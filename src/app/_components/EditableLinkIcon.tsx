@@ -5,6 +5,9 @@ import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { EditModeContext } from "./EditModeContext";
+import { requestArtistLinkEdit } from "@/lib/artistLinks/requestArtistLinkEdit";
+import { getDisplayedCatalogId } from "@/lib/artistLinks/getDisplayedCatalogId";
+import { trackEvent } from "@/lib/analytics/trackEvent";
 
 interface EditableLinkIconProps {
     href: string;
@@ -38,20 +41,26 @@ export default function EditableLinkIcon({
         e.stopPropagation();
         setDeleting(true);
         try {
-            const res = await fetch(sourceId ? `/api/artist/${encodeURIComponent(artistId)}/link-suggestions` : "/api/directEditLink", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(sourceId ? {id: sourceId, kind: "source", decision: "remove"} : { artistId, action: "clear", siteName }),
-            });
+            const res = sourceId
+                ? await fetch(`/api/artist/${encodeURIComponent(artistId)}/link-suggestions`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: sourceId, kind: "source", decision: "remove" }),
+                })
+                : await requestArtistLinkEdit("directEditLink", {
+                    artistId, action: "clear", siteName,
+                    expectedValue: getDisplayedCatalogId(siteName, href),
+                });
             if (res.ok) {
+                if (!sourceId) trackEvent("profile_edit", { action: "link_remove", target: siteName });
                 toast({ title: `Removed ${label}` });
                 if (refreshProfile) refreshProfile(); else router.refresh();
             } else {
                 const data = await res.json();
                 toast({ title: "Error", description: data.error, variant: "destructive" });
             }
-        } catch {
-            toast({ title: "Error", description: "Failed to remove link", variant: "destructive" });
+        } catch (error) {
+            toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to remove link", variant: "destructive" });
         } finally {
             setDeleting(false);
         }

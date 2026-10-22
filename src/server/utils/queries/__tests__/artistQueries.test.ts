@@ -18,7 +18,6 @@ jest.mock("@/server/utils/artistLinkService", () => {
   return {
     ArtistLinkConflictError,
     setArtistLink: jest.fn().mockResolvedValue({ oldValue: null }),
-    clearArtistLink: jest.fn().mockResolvedValue({ oldValue: null }),
   };
 });
 jest.mock("@/server/utils/queries/discord", () => ({
@@ -66,10 +65,10 @@ describe("artistQueries", () => {
       "@/server/utils/queries/userQueries"
     );
     const { extractArtistId } = await import("@/server/utils/services");
-    const { ArtistLinkConflictError, setArtistLink, clearArtistLink } = await import(
+    const { ArtistLinkConflictError, setArtistLink } = await import(
       "@/server/utils/artistLinkService"
     );
-    const { addArtistData, approveUgcAdmin, approveUGC, removeArtistData } = await import(
+    const { addArtistData, approveUgcAdmin, approveUGC } = await import(
       "../artistQueries"
     );
 
@@ -86,11 +85,9 @@ describe("artistQueries", () => {
       extractArtistId: extractArtistId as jest.Mock,
       ArtistLinkConflictError,
       setArtistLink: setArtistLink as jest.Mock,
-      clearArtistLink: clearArtistLink as jest.Mock,
       addArtistData,
       approveUgcAdmin,
       approveUGC,
-      removeArtistData,
       mockSet,
       mockWhere,
     };
@@ -366,239 +363,4 @@ describe("artistQueries", () => {
     });
   });
 
-  // ----------------------------------
-  // removeArtistData tests
-  // ----------------------------------
-
-  describe("removeArtistData", () => {
-    it("throws if not authenticated", async () => {
-      const { removeArtistData, getServerAuthSession } = await setup();
-      getServerAuthSession.mockResolvedValue(null);
-
-      await expect(
-        removeArtistData("artist-1", "instagram")
-      ).rejects.toThrow("Not authenticated");
-    });
-
-    it("returns error if user is not whitelisted or admin", async () => {
-      const { removeArtistData, getServerAuthSession, getUserById } =
-        await setup();
-      getServerAuthSession.mockResolvedValue({
-        user: { id: "user-1" },
-      });
-      getUserById.mockResolvedValue({
-        id: "user-1",
-        isAdmin: false,
-        isWhiteListed: false,
-      });
-
-      const result = await removeArtistData("artist-1", "instagram");
-
-      expect(result).toEqual({
-        status: "error",
-        message: "Unauthorized",
-      });
-    });
-
-    it("calls clearArtistLink for normal platforms when admin", async () => {
-      const {
-        removeArtistData,
-        getServerAuthSession,
-        getUserById,
-        clearArtistLink,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({
-        user: { id: "user-1" },
-      });
-      getUserById.mockResolvedValue({
-        id: "user-1",
-        isAdmin: true,
-        isWhiteListed: false,
-      });
-
-      const result = await removeArtistData("artist-1", "instagram");
-
-      expect(clearArtistLink).toHaveBeenCalledWith(
-        "artist-1",
-        "instagram"
-      );
-      expect(result).toEqual({
-        status: "success",
-        message: "Artist data removed",
-      });
-    });
-
-    it("calls clearArtistLink for normal platforms when whitelisted", async () => {
-      const {
-        removeArtistData,
-        getServerAuthSession,
-        getUserById,
-        clearArtistLink,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({
-        user: { id: "user-1" },
-      });
-      getUserById.mockResolvedValue({
-        id: "user-1",
-        isAdmin: false,
-        isWhiteListed: true,
-      });
-
-      const result = await removeArtistData("artist-1", "x");
-
-      expect(clearArtistLink).toHaveBeenCalledWith("artist-1", "x");
-      expect(result).toEqual({
-        status: "success",
-        message: "Artist data removed",
-      });
-    });
-
-    it("handles wallets siteName with array_remove SQL (not clearArtistLink)", async () => {
-      const {
-        removeArtistData,
-        getServerAuthSession,
-        getUserById,
-        clearArtistLink,
-        db,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({
-        user: { id: "user-1" },
-      });
-      getUserById.mockResolvedValue({
-        id: "user-1",
-        isAdmin: true,
-        isWhiteListed: false,
-      });
-
-      const result = await removeArtistData("artist-1", "wallets");
-
-      expect(clearArtistLink).not.toHaveBeenCalled();
-      expect(db.execute).toHaveBeenCalled();
-      expect(result).toEqual({
-        status: "success",
-        message: "Artist data removed",
-      });
-    });
-
-    it("handles wallet siteName with array_remove SQL (not clearArtistLink)", async () => {
-      const {
-        removeArtistData,
-        getServerAuthSession,
-        getUserById,
-        clearArtistLink,
-        db,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({
-        user: { id: "user-1" },
-      });
-      getUserById.mockResolvedValue({
-        id: "user-1",
-        isAdmin: true,
-        isWhiteListed: false,
-      });
-
-      const result = await removeArtistData("artist-1", "wallet");
-
-      expect(clearArtistLink).not.toHaveBeenCalled();
-      expect(db.execute).toHaveBeenCalled();
-      expect(result).toEqual({
-        status: "success",
-        message: "Artist data removed",
-      });
-    });
-
-    it("catches whitelist validation errors from clearArtistLink and returns invalid platform message", async () => {
-      const {
-        removeArtistData,
-        getServerAuthSession,
-        getUserById,
-        clearArtistLink,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({
-        user: { id: "user-1" },
-      });
-      getUserById.mockResolvedValue({
-        id: "user-1",
-        isAdmin: true,
-        isWhiteListed: false,
-      });
-      clearArtistLink.mockRejectedValue(
-        new Error("Column not in writable whitelist: name")
-      );
-
-      const result = await removeArtistData("artist-1", "name");
-
-      expect(result).toEqual({
-        status: "error",
-        message: "Invalid platform column",
-      });
-    });
-
-    it("returns generic error for unexpected exceptions from clearArtistLink", async () => {
-      const {
-        removeArtistData,
-        getServerAuthSession,
-        getUserById,
-        clearArtistLink,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({
-        user: { id: "user-1" },
-      });
-      getUserById.mockResolvedValue({
-        id: "user-1",
-        isAdmin: true,
-        isWhiteListed: false,
-      });
-      clearArtistLink.mockRejectedValue(new Error("Unexpected DB error"));
-
-      const result = await removeArtistData("artist-1", "instagram");
-
-      expect(result).toEqual({
-        status: "error",
-        message: "Error removing artist data",
-      });
-    });
-
-    it("returns success on happy path", async () => {
-      const {
-        removeArtistData,
-        getServerAuthSession,
-        getUserById,
-        clearArtistLink,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({
-        user: { id: "user-1" },
-      });
-      getUserById.mockResolvedValue({
-        id: "user-1",
-        isAdmin: true,
-        isWhiteListed: false,
-      });
-      clearArtistLink.mockResolvedValue({ oldValue: "old-handle" });
-
-      const result = await removeArtistData("artist-1", "tiktok");
-
-      expect(clearArtistLink).toHaveBeenCalledWith("artist-1", "tiktok");
-      expect(result).toEqual({
-        status: "success",
-        message: "Artist data removed",
-      });
-    });
-
-    it("returns error when session user id is missing (getUserById returns null)", async () => {
-      const { removeArtistData, getServerAuthSession, getUserById } =
-        await setup();
-      getServerAuthSession.mockResolvedValue({
-        user: { id: "user-1" },
-      });
-      getUserById.mockResolvedValue(null);
-
-      const result = await removeArtistData("artist-1", "instagram");
-
-      expect(result).toEqual({
-        status: "error",
-        message: "Unauthorized",
-      });
-    });
-  });
 });

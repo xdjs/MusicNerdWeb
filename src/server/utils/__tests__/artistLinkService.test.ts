@@ -262,33 +262,17 @@ describe("artistLinkService", () => {
     },
   );
 
-  it.each(["spotify", "deezer"])(
-    "serializes a %s clear under the artist/platform slot lock",
+  it.each(["spotify", "deezer", "spot!ify", "dee!zer"])(
+    "rejects legacy %s clears before any database access",
     async (platform) => {
       const { db, clearArtistLink } = await setup();
-      (db as any).query.artists.findFirst.mockResolvedValue({
-        id: "artist-123",
-        name: "Test Artist",
-        [platform]: `${platform}-123`,
-      });
-
-      await expect(
-        clearArtistLink("artist-123", platform),
-      ).resolves.toEqual({ oldValue: `${platform}-123` });
-
-      expect(db.transaction).toHaveBeenCalledTimes(1);
-      // Slot lock, pending matching cancellation, then artist update.
-      expect(db.execute).toHaveBeenCalledTimes(3);
-      expect(dialect.sqlToQuery(db.execute.mock.calls[1][0]).sql).toContain("kind='spotify_match'");
-      expect(dialect.sqlToQuery(db.execute.mock.calls[0][0]).params[0]).toBe(
-        `musicnerd:artist-platform-slot:artist-123:${platform}`,
+      await expect(clearArtistLink("artist-123", platform)).rejects.toThrow(
+        "Use the authenticated profile editor/API to disconnect Spotify or Deezer",
       );
-      expect(db.execute.mock.invocationCallOrder[0]).toBeLessThan(
-        (db as any).query.artists.findFirst.mock.invocationCallOrder[0],
-      );
-      expect(
-        (db as any).query.artistIdMappings.findFirst,
-      ).not.toHaveBeenCalled();
+      expect(db.transaction).not.toHaveBeenCalled();
+      expect(db.execute).not.toHaveBeenCalled();
+      expect(db.query.artists.findFirst).not.toHaveBeenCalled();
+      expect(db.query.artistIdMappings.findFirst).not.toHaveBeenCalled();
     },
   );
 
@@ -316,11 +300,12 @@ describe("artistLinkService", () => {
     expect(result).toEqual({ oldValue: "old-handle" });
   });
 
- it('clearing an empty Spotify slot still cancels a pending lookup so it cannot reappear later', async () => {
+ it('rejects an empty catalog slot without cancelling jobs or reading the database', async () => {
    const { db, clearArtistLink } = await setup();
-   (db as any).query.artists.findFirst.mockResolvedValue({ id:'artist-123',name:'Artist',spotify:null });
-   await clearArtistLink('artist-123','spotify');
-   expect(db.execute.mock.calls.map(([query])=>dialect.sqlToQuery(query).sql).join('\n')).toContain("kind='spotify_match'");
+   db.query.artists.findFirst.mockResolvedValue({ id:'artist-123',name:'Artist',spotify:null });
+   await expect(clearArtistLink('artist-123','spotify')).rejects.toThrow('authenticated profile editor/API');
+   expect(db.execute).not.toHaveBeenCalled();
+   expect(db.query.artists.findFirst).not.toHaveBeenCalled();
  });
  it('re-saving the same verified platform ID does not invalidate independent pending work', async () => {
    const { db, setArtistLink } = await setup();

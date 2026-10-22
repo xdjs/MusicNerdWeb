@@ -5,6 +5,8 @@ import AddArtistData from '@/app/artist/[id]/_components/AddArtistData';
 import { useSession } from 'next-auth/react';
 import { LINK_NOT_SUPPORTED } from '@/lib/linkSubmissionMessages';
 import { addArtistDataAction } from '@/app/actions/serverActions';
+import { requestArtistLinkEdit } from '@/lib/artistLinks/requestArtistLinkEdit';
+jest.mock('@/lib/artistLinks/requestArtistLinkEdit', () => ({ requestArtistLinkEdit: jest.fn() }));
 
 const mockTrackEvent = jest.fn();
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
@@ -459,5 +461,37 @@ describe('isLinkTarget', () => {
     expect(screen.getByRole('button', { name: 'ARTIST_NAME.bandcamp.com' })).toBeInTheDocument();
     expect(screen.queryByText(/Example Wallet/)).not.toBeInTheDocument();
     expect(screen.queryByText(/ARTIST_NAME\.eth/)).not.toBeInTheDocument();
+  });
+});
+
+
+describe('AddArtistData authenticated API editing', () => {
+  const url = 'https://open.spotify.com/artist/0y9DJxRh3j84i13hctQcFx';
+  const request = requestArtistLinkEdit as jest.Mock;
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => [{ siteName: 'spotify', regex: '^https://open\\.spotify\\.com/artist/[a-zA-Z0-9]{22}$' }] });
+  });
+  async function submit() {
+    render(<AddArtistData {...baseProps} directEdit isOpenOnLoad prefillUrl={url} />);
+    const save = screen.getByRole('button', { name: 'Save Link' });
+    await waitFor(() => expect(save).toBeEnabled());
+    fireEvent.click(save);
+    await waitFor(() => expect(request).toHaveBeenCalledWith('directEditLink', { artistId: 'a1', action: 'set', url }));
+  }
+  it.each([true, false, undefined])('preserves changed-save analytics for changed=%s without server analytics', async changed => {
+    request.mockResolvedValue({ ok: true, json: async () => ({ status: 'ok', success: true, siteName: 'spotify', changed }) });
+    await submit();
+    await waitFor(() => expect(screen.getByText('Link saved successfully.')).toBeInTheDocument());
+    expect(addArtistDataAction).not.toHaveBeenCalled();
+    if (changed) expect(mockTrackEvent).toHaveBeenCalledWith('profile_edit', { action: 'link_add', target: 'spotify' });
+    else expect(mockTrackEvent).not.toHaveBeenCalledWith('profile_edit', expect.anything());
+  });
+  it('keeps a server collision visible and does not report a successful profile edit', async () => {
+    request.mockResolvedValue({ ok: false, json: async () => ({ status: 'error', error: 'That account belongs to another artist.' }) });
+    await submit();
+    await waitFor(() => expect(screen.getByText('That account belongs to another artist.')).toBeInTheDocument());
+    expect(mockTrackEvent).not.toHaveBeenCalledWith('profile_edit', expect.anything());
   });
 });

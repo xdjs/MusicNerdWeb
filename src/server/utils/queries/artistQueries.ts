@@ -30,7 +30,6 @@ import { maybePingDiscordForPendingUGC } from "@/server/utils/ugcDiscordNotifier
 import { notifyDiscordOfArtistLinkAdded } from "@/server/utils/artistLinkDiscordNotifier";
 import {
     ArtistLinkConflictError,
-    clearArtistLink,
 } from "@/server/utils/artistLinkService";
 import { regenerateArtistBio } from "@/server/utils/queries/regenerateArtistBio";
 import { isAboutEmptyState } from "@/lib/bio/bioConstants";
@@ -949,48 +948,6 @@ export async function getAllSpotifyIds(): Promise<string[]> {
     } catch (e) {
         console.error("Error fetching Spotify IDs:", e);
         return [];
-    }
-}
-
-export async function removeArtistData(artistId: string, siteName: string): Promise<RemoveArtistDataResp> {
-    const session = await getServerAuthSession();
-    if (!session) {
-        throw new Error("Not authenticated");
-    }
-
-    const user = session?.user?.id ? await getUserById(session.user.id) : null;
-    const isWhitelistedOrAdmin = user?.isAdmin || user?.isWhiteListed;
-
-    if (!isWhitelistedOrAdmin) {
-        return { status: "error", message: "Unauthorized" };
-    }
-
-    try {
-        if (siteName === "wallets" || siteName === "wallet") {
-            // FIXME: Bug — uses artistId as the value to remove instead of the wallet address.
-            // The caller should pass the wallet address, not the artist ID.
-            await db.execute(sql`
-                UPDATE artists
-                SET wallets = array_remove(wallets, ${artistId})
-                WHERE id = ${artistId}`);
-        } else {
-            await clearArtistLink(artistId, siteName);
-        }
-
-        // NOTE: We no longer delete the UGC record so that the original contribution
-        // continues to count towards the leaderboard. Keeping the row ensures the
-        // user retains credit for having added the link, even after it is removed
-        // from the artist profile. If we want to track removal explicitly in the
-        // future we can add a column (e.g. `removed: boolean`) but for now simply
-        // leaving the row untouched is sufficient.
-
-        return { status: "success", message: "Artist data removed" };
-    } catch (e) {
-        console.error("Error removing artist data", e);
-        if (e instanceof Error && e.message.startsWith("Column not in writable whitelist")) {
-            return { status: "error", message: "Invalid platform column" };
-        }
-        return { status: "error", message: "Error removing artist data" };
     }
 }
 

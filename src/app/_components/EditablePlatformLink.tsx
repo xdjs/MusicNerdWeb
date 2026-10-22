@@ -6,6 +6,9 @@ import { EditModeContext } from "./EditModeContext";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { requestArtistLinkEdit } from "@/lib/artistLinks/requestArtistLinkEdit";
+import { getDisplayedCatalogId } from "@/lib/artistLinks/getDisplayedCatalogId";
+import { trackEvent } from "@/lib/analytics/trackEvent";
 
 interface Props {
     link: string;
@@ -33,14 +36,11 @@ export default function EditablePlatformLink({ link, descriptor, image, siteName
         if (!window.confirm(`Remove ${link}?`)) return;
         setIsDeleting(true);
         try {
-            const response = await fetch("/api/removeArtistData", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ artistId, siteName }),
+            const response = await requestArtistLinkEdit("removeArtistData", {
+                artistId, siteName, expectedValue: getDisplayedCatalogId(siteName, link),
             });
             if (response.ok) {
+                trackEvent("profile_edit", { action: "link_remove", target: siteName });
                 const formattedSite = siteName.charAt(0).toUpperCase() + siteName.slice(1);
                 toast({
                     title: `${formattedSite} link has been removed`,
@@ -49,11 +49,11 @@ export default function EditablePlatformLink({ link, descriptor, image, siteName
                 const data = await response.json().catch(() => ({}));
                 toast({
                     title: "Error removing metadata",
-                    description: data?.message ?? "Please try again.",
+                    description: data?.error ?? "Please try again.",
                 });
             }
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            toast({ title: "Error removing metadata", description: error instanceof Error ? error.message : "Please try again." });
         } finally {
             setIsDeleting(false);
             router.refresh();

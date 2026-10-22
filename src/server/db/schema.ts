@@ -1,4 +1,4 @@
-import { pgTable, primaryKey, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
+import { pgSchema, pgTable, primaryKey, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
 import { relations, sql } from "drizzle-orm"
 
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
@@ -1351,4 +1351,24 @@ export const artistBioCorrections = pgTable("artist_bio_corrections", {
   check("artist_bio_corrections_bounds", sql`length(${table.details}) <= 2000 and length(${table.bioSnapshot}) between 1 and 12000 and (${table.sourceUrl} is null or length(${table.sourceUrl}) <= 2048)`),
   check("artist_bio_corrections_review", sql`(${table.status} = 'pending' and ${table.reviewedAt} is null and ${table.reviewedBy} is null) or (${table.status} <> 'pending' and ${table.reviewedAt} is not null and ${table.reviewedBy} is not null)`),
   pgPolicy("mnweb_bio_corrections", { for: "all", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+]).enableRLS();
+
+
+// Private historical evidence. Only the reviewed SECURITY DEFINER function writes;
+// mnweb/browser roles have no table access. Snapshot IDs deliberately have no FKs.
+export const catalogLinkDisconnects = pgSchema("musicnerd_private").table("catalog_link_disconnects", {
+  id: uuid("id").defaultRandom().primaryKey().notNull(),
+  artistId: uuid("artist_id").notNull(),
+  platform: text("platform").notNull(),
+  oldValue: text("old_value").notNull(),
+  mappingSnapshot: jsonb("mapping_snapshot"),
+  actorUserId: uuid("actor_user_id").notNull(),
+  claimId: uuid("claim_id"),
+  authorizationMode: text("authorization_mode").notNull(),
+  disconnectedAt: timestamp("disconnected_at", {withTimezone: true, mode: "string"}).default(sql`clock_timestamp()`).notNull(),
+}, (table) => [
+  check("catalog_link_disconnects_platform_check", sql`${table.platform} IN ('spotify', 'deezer')`),
+  check("catalog_link_disconnects_old_value_check", sql`length(btrim(${table.oldValue})) > 0`),
+  check("catalog_link_disconnects_authorization_mode_check", sql`${table.authorizationMode} IN ('owner', 'contributor')`),
+  check("catalog_disconnect_mapping_snapshot", sql`${table.mappingSnapshot} IS NULL OR (jsonb_typeof(${table.mappingSnapshot}) = 'object' AND ${table.mappingSnapshot}->>'artist_id' = ${table.artistId}::text AND ${table.mappingSnapshot}->>'platform' = ${table.platform} AND ${table.mappingSnapshot}->>'platform_id' = ${table.oldValue} AND ${table.mappingSnapshot}->>'id' IS NOT NULL)`),
 ]).enableRLS();
