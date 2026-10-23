@@ -23,7 +23,7 @@ treating a handoff as live evidence. Preserve user edits and ignored files.
 | Data model / client / types | `src/server/db/schema.ts`, `drizzle.ts`, `DbTypes.ts` |
 | Authentication and authorization | `src/server/auth.ts`, `src/lib/auth-helpers.ts` |
 | Research workers and scheduler | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) runs every `artist_research_jobs` kind and its cron; this repo only queues jobs (`latest/requestLatestRefresh.ts`). The onboarding chat runs there too (`/api/onboarding/{artistId}/chat`) |
-| MCP tools and shared link writes | `src/app/api/mcp/`, `src/server/utils/artistLinkService.ts` |
+| MCP tools | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) `/api/mcp` (see `docs/mcp.md`); shared link writes: `src/server/utils/artistLinkService.ts` |
 
 [Development reference](docs/development.md) covers setup, test patterns, integrations, and
 migration/release verification. Load only the deeper guidance relevant to the change.
