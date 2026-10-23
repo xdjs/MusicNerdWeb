@@ -2,6 +2,7 @@
 
 import AdminSelect from "@/components/ui/MusicNerdSelect";
 import { useState, useMemo } from "react";
+import { requestAdminApi } from "@/lib/admin/requestAdminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -69,11 +70,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/mcp-keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: newLabel.trim() }),
-      });
+      const res = await requestAdminApi("/api/admin/mcp-keys", { method: "POST", body: { label: newLabel.trim() } });
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || "Failed to create key");
@@ -98,9 +95,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
     setLoading(true);
     setRevokeError("");
     try {
-      const res = await fetch(`/api/admin/mcp-keys/${revokeTarget.id}/revoke`, {
-        method: "POST",
-      });
+      const res = await requestAdminApi(`/api/admin/mcp-keys/${revokeTarget.id}/revoke`, { method: "POST" });
       if (!res.ok) {
         const data = await res.json();
         setRevokeError(data.error || "Failed to revoke key");
@@ -118,7 +113,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
 
   async function refreshKeys() {
     try {
-      const res = await fetch("/api/admin/mcp-keys");
+      const res = await requestAdminApi("/api/admin/mcp-keys");
       if (res.ok) {
         const data = await res.json();
         setKeys(data);

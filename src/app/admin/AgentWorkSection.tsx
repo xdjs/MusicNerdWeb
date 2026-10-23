@@ -2,6 +2,7 @@
 
 import AdminSelect from "@/components/ui/MusicNerdSelect";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { requestAdminApi } from "@/lib/admin/requestAdminApi";
 import Link from "next/link";
 import styles from "@/components/community/Community.module.css";
 import { Button } from "@/components/ui/button";
@@ -469,7 +470,7 @@ export default function AgentWorkSection({dataUrl="/api/admin/agent-work"}:{data
     fetchInFlight.current = true;
     try {
       if (!background) { setLoading(true); setError(""); }
-      const res = await fetch(dataUrl);
+      const res = await requestAdminApi(dataUrl);
       if (!res.ok) {
         if (!background) {
           const body = await res.json().catch(() => ({}));
@@ -491,7 +492,7 @@ export default function AgentWorkSection({dataUrl="/api/admin/agent-work"}:{data
       setDetailsError("");
       if (page === 1) setLoadingDetails(true);
       else setPaginatingAudit(true);
-      const res = await fetch(`${dataUrl}?sections=details&auditPage=${page}&auditLimit=50`);
+      const res = await requestAdminApi(`${dataUrl}?sections=details&auditPage=${page}&auditLimit=50`);
       if (!res.ok) throw new Error("Details unavailable");
       const data = await res.json();
       setDetails(data);
