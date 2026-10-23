@@ -57,15 +57,6 @@ describe('middleware rate limiting', () => {
     expect(res.status).toBe(429);
   });
 
-  it('strict limit applies to artistBio path', async () => {
-    const { middleware } = await loadMiddleware();
-    for (let i = 0; i < 5; i++) {
-      middleware(makeRequest('/api/artistBio/123'));
-    }
-    const res = middleware(makeRequest('/api/artistBio/123'));
-    expect(res.status).toBe(429);
-  });
-
   it('medium paths have their own limit (20/min)', async () => {
     const { middleware } = await loadMiddleware();
     for (let i = 0; i < 20; i++) {

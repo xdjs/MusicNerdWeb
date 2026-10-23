@@ -1,6 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useArtistBio } from '@/hooks/useArtistBio';
 
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
+
 // Mock fetch
 global.fetch = jest.fn();
 
@@ -28,7 +30,7 @@ describe('useArtistBio', () => {
     });
 
     expect(result.current.bio).toBe(mockBio);
-    expect(fetch).toHaveBeenCalledWith('/api/artistBio/test-artist-id');
+    expect(fetch).toHaveBeenCalledWith('https://api-preview.test/api/artistBio/test-artist-id', { credentials: 'omit', cache: 'no-store' });
   });
 
   it('should strip markdown citations from a server-provided bio', () => {

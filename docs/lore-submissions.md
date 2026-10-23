@@ -34,7 +34,7 @@ approved source visible and returns a warning instead of encouraging resubmissio
 Existing artist/admin moderation can still reject the source.
 
 Data path: `ArtistProfileContent` → `VaultSection` → `SuggestLoreSource` →
-`POST /api/artist/[id]/lore-suggestions` (or editor `addVaultSource`) →
+`POST /api/artist/[id]/lore-suggestions` on MusicNerdAPI with the Privy token (or editor `addVaultSource`) →
 `insertVaultSource` + activity → approved source reader + `queueLoreRefresh`.
 No schema, grants, RLS, or external integration changes are required.
 

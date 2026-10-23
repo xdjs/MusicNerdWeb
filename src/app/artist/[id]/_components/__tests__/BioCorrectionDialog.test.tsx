@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import BioCorrectionDialog from '../BioCorrectionDialog';
 import { usePrivy } from '@privy-io/react-auth';
-jest.mock('@privy-io/react-auth', () => ({ usePrivy: jest.fn() }));
+jest.mock('@privy-io/react-auth', () => ({ usePrivy: jest.fn(), getAccessToken: jest.fn(async () => 'private-token') }));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
 jest.mock('next-auth/react', () => ({ useSession: () => ({status: mockSessionStatus}) }));
 let mockSessionStatus = 'authenticated';
 const login = jest.fn();
@@ -14,7 +15,7 @@ it('opens from quiet action and submits the exact displayed bio', async () => {
  fireEvent.click(screen.getByRole('option',{name:'This is about a different artist'}));
  fireEvent.click(screen.getByRole('button', { name: 'Submit report' }));
  await screen.findByRole('status');
- expect(fetch).toHaveBeenCalledWith('/api/artist/artist/bio-corrections', expect.objectContaining({ body: JSON.stringify({ reason: 'wrong_artist', details: '', sourceUrl: '', expectedBio: 'A published bio' }) }));
+ expect(fetch).toHaveBeenCalledWith('https://api-preview.test/api/artist/artist/bio-corrections', expect.objectContaining({ credentials: 'omit', headers: expect.objectContaining({ Authorization: 'Bearer private-token' }), body: JSON.stringify({ reason: 'wrong_artist', details: '', sourceUrl: '', expectedBio: 'A published bio' }) }));
 });
 it('opens login before showing the report form to anonymous visitors', () => {
  jest.mocked(usePrivy).mockReturnValue({ ready: true, authenticated: false, login } as never);
@@ -41,7 +42,7 @@ it('restores a draft after a login reload and requires an explicit send', async 
  expect(fetch).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole('button',{name:'Submit report'}));
  await waitFor(()=>expect(screen.getByRole('status')).toHaveTextContent('in our review queue'));
- expect(fetch).toHaveBeenCalledWith('/api/artist/artist/bio-corrections',expect.objectContaining({body:JSON.stringify({reason:'other',details:'Clarify the instrument',sourceUrl:'https://example.test/source',expectedBio:'Original snapshot'})}));
+ expect(fetch).toHaveBeenCalledWith('https://api-preview.test/api/artist/artist/bio-corrections',expect.objectContaining({body:JSON.stringify({reason:'other',details:'Clarify the instrument',sourceUrl:'https://example.test/source',expectedBio:'Original snapshot'})}));
  expect(sessionStorage.getItem('mn:bio-correction:artist')).toBeNull();
 });
 it('transitions the same dialog from sign-in progress to the form without a reload', async () => {

@@ -72,7 +72,7 @@ async function setArtistLinkWithExecutor(
   // Update the link column only. We intentionally do NOT null or regenerate the
   // bio on link changes — that overwrote artist edits and re-ran generation on
   // every UGC/agent submission. The About refreshes on explicit regenerate, or
-  // lazily when it's absent (see the artistBio route).
+  // lazily when it's absent (MusicNerdAPI's /api/artistBio).
   if (evidence) {
     await writeVerifiedCatalogLink(database, artistId, columnName, value, evidence);
   } else {

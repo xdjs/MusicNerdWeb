@@ -7,6 +7,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useSession } from 'next-auth/react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { requestBioCorrection } from '@/lib/bio/requestBioCorrection';
 
 export default function BioCorrectionDialog({ artistId, artistName, bio, portrait = false }: { artistId: string; artistName: string; bio: string; portrait?: boolean }) {
   const { authenticated, ready, login } = usePrivy();
@@ -61,7 +62,7 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
     submitting.current = true;
     setBusy(true); setError('');
     try {
-      const response = await fetch(`/api/artist/${artistId}/bio-corrections`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, details, sourceUrl, expectedBio }) });
+      const response = await requestBioCorrection(artistId, { reason, details, sourceUrl, expectedBio });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? 'Could not send your suggestion');
       setDuplicate(result.duplicate === true); setSent(true); setResume(false);

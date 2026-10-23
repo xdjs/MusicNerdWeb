@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useArtistBio } from "@/hooks/useArtistBio";
 import { sanitizeBioText } from "@/lib/bio/bioText";
 import { renderBioMarkdown } from "@/lib/bio/renderBioMarkdown";
+import { requestArtistBioUpdate } from "@/lib/bio/requestArtistBioUpdate";
 import BioCorrectionDialog from "./BioCorrectionDialog";
 import AboutAttribution from "./AboutAttribution";
 import type { PublicArtistAbout } from "@/lib/bio/types";
@@ -66,13 +67,7 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
     if (isSaving) return;
     setIsSaving(true);
     try {
-      const resp = await fetch(`/api/artistBio/${artistId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ bio: editText }),
-      });
+      const resp = await requestArtistBioUpdate(artistId, { bio: editText });
       const data = await resp.json().catch(() => ({}));
       if (resp.ok) {
         setOriginalBio(editText);
@@ -82,7 +77,7 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
         refreshProfile?.();
         toast({ title: "Bio saved", description: "Your edited bio is saved in Lore." });
       } else {
-        toast({ title: "Error saving bio", description: data?.message ?? "Please try again." });
+        toast({ title: "Error saving bio", description: data?.error ?? "Please try again." });
       }
     } catch (e) {
       console.error(e);
@@ -102,11 +97,7 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
     try {
       // One explicit generation request. Retrying via GET could start a second
       // model call after a timeout or hide an authorization/locked-bio error.
-      const resp = await fetch(`/api/artistBio/${artistId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ regenerate: true }),
-      });
+      const resp = await requestArtistBioUpdate(artistId, { regenerate: true });
       if (resp.ok) {
         const data = await resp.json();
         setEditText(data.bio);
@@ -116,7 +107,7 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
         toast({ title: data.message ?? "Bio regenerated" });
       } else {
         const data = await resp.json().catch(() => ({}));
-        toast({ title: "Error regenerating bio", description: data?.error ?? data?.message ?? "Please try again." });
+        toast({ title: "Error regenerating bio", description: data?.error ?? "Please try again." });
       }
     } catch (e) {
       console.error(e);
