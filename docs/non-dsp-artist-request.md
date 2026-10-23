@@ -2,7 +2,8 @@
 
 The October 22 R&D selected the existing info alias for artist submissions (the
 [public transcript](rnd/transcripts/2026-10-22-rnd-08f8acb45619.md), line 63, redacts
-the address). Pete supplied the exact destination for the October 23 implementation.
+the address). The [original shared meeting notes](https://notes.granola.ai/t/08f8acb4-5619-4b2d-ba1a-a89231bb6c5e)
+independently confirm the exact destination Pete supplied for this implementation.
 This supersedes the September 21 recipient choice; mailbox delivery is not verified
 by preparing or copying a draft.
 
