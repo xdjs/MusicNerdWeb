@@ -2,6 +2,7 @@
 
 import DatePicker from "./DatePicker";
 import ProfilePhoto from "./ProfilePhoto";
+import { requestUserApi } from "@/lib/user/requestUserApi";
 import useBookmarkedArtistSummaries from "./useBookmarkedArtistSummaries";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -351,22 +352,22 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
         setSavingUsername(true);
         try {
-            const resp = await fetch(`/api/user/${user.id}`, {
+            const resp = await requestUserApi(`/api/user/${user.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username: usernameInput })
             });
             if (!resp.ok) {
                 const data = await resp.json().catch(() => null);
-                alert(data?.message || "Failed to update username");
+                alert(data?.error || "Failed to update username");
                 return;
             }
             const data = await resp.json();
-            if (data.status === "success") {
+            if (data.status === "ok") {
                 window.location.reload();
                 return;
             }
-            alert(data.message || "Failed to update username");
+            alert(data.error || "Failed to update username");
         } catch(e) {
             alert("Server error updating username");
         } finally {

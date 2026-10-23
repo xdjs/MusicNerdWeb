@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { resumeCorrectionSession } from '@/lib/bio/resumeCorrectionSession';
 import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
 import { trackEvent } from '@/lib/analytics/trackEvent';
+import { requestUserApi } from '@/lib/user/requestUserApi';
 import { markLoginCompleted } from '@/lib/analytics/markLoginCompleted';
 import { takeCompletedLogin } from '@/lib/analytics/takeCompletedLogin';
 import { rememberLoginTrigger } from '@/lib/analytics/rememberLoginTrigger';
@@ -68,7 +69,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
         return;
       }
       const controller = new AbortController();
-      fetch("/api/user/has-claim", { signal: controller.signal })
+      requestUserApi('/api/user/has-claim', { signal: controller.signal })
         .then(r => r.json())
         .then(d => {
           setHasDashboardClaim(!!d.hasClaim);
