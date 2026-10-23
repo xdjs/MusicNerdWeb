@@ -31,9 +31,6 @@ import { notifyDiscordOfArtistLinkAdded } from "@/server/utils/artistLinkDiscord
 import {
     ArtistLinkConflictError,
 } from "@/server/utils/artistLinkService";
-import { regenerateArtistBio } from "@/server/utils/queries/regenerateArtistBio";
-import { isAboutEmptyState } from "@/lib/bio/bioConstants";
-import { BioGenerationError } from "@/lib/bio/bioGenerationError";
 import { LINK_NOT_SUPPORTED_LONG } from "@/lib/linkSubmissionMessages";
 import {
     acquireArtistNameLock,
@@ -948,44 +945,6 @@ export async function getAllSpotifyIds(): Promise<string[]> {
     } catch (e) {
         console.error("Error fetching Spotify IDs:", e);
         return [];
-    }
-}
-
-// ----------------------------------
-// Bio update helper
-// ----------------------------------
-export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean, ownership: import('./ownershipWrites').ArtistWriteAuth): Promise<RemoveArtistDataResp & { statusCode?: number; code?: string }> {
-    try {
-        if (regenerate) {
-            // Snapshot the current About so we can tell a real regeneration apart from a
-            // no-op (a pinned bio is deliberately returned unchanged).
-            const priorBio = (await getArtistById(artistId))?.bio ?? null;
-            const generatedBio = await regenerateArtistBio(artistId, ownership);
-            if (!generatedBio) {
-                return { status: "error", message: "Failed to generate bio" };
-            }
-            // Discovery found nothing verifiable — the About degraded to the claim-nudge.
-            // Surface that distinctly so an admin regenerate doesn't look like a normal success.
-            if (isAboutEmptyState(generatedBio)) {
-                return { status: "success", message: "No verified sources found — showing the claim prompt", data: generatedBio };
-            }
-            // A pinned bio or identical Lore synthesis leaves the existing About unchanged.
-            if (priorBio !== null && generatedBio === priorBio) {
-                return { status: "success", message: "About unchanged. A pinned bio stays locked until you unpin it; otherwise the saved Lore produced the same text.", data: generatedBio };
-            }
-            return { status: "success", message: "Bio regenerated", data: generatedBio };
-        } else {
-            // Update with provided bio
-            const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-            await persistArtistBio(artistId, bio, { ownership });
-            return { status: "success", message: "Bio updated" };
-        }
-    } catch (e) {
-        console.error("Error updating bio", e);
-        if (e instanceof BioGenerationError) {
-            return { status: "error", message: e.message, statusCode: e.status, code: e.code };
-        }
-        return { status: "error", message: e instanceof Error ? e.message : "Error updating bio" };
     }
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { sanitizeBioText } from '@/lib/bio/bioText';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
 interface BioCache {
   [artistId: string]: {
@@ -87,7 +88,8 @@ export function useArtistBio(artistId: string, initialBio?: string | null): UseA
     setError(null);
 
     try {
-      const response = await fetch(`/api/artistBio/${artistId}`);
+      // Public read on MusicNerdAPI: no account, no cookies.
+      const response = await fetch(musicNerdApiUrl(`/api/artistBio/${artistId}`), { credentials: 'omit', cache: 'no-store' });
       if (!response.ok) {
         throw new Error('Failed to load bio');
       }

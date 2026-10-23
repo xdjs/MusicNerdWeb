@@ -15,6 +15,11 @@ jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({
     musicNerdApiUrl: (path) => `https://api.example.test${path}`,
 }));
 
+const downloadKnowledgeDoc = jest.fn();
+jest.mock('@/lib/source/downloadKnowledgeDoc', () => ({
+    downloadKnowledgeDoc: (...a) => downloadKnowledgeDoc(...a),
+}));
+
 import KnowledgeSection from '@/app/artist/[id]/_components/KnowledgeSection';
 
 // The section renders only for an owner who is actively editing — Pete: "it
@@ -51,6 +56,24 @@ describe('KnowledgeSection', () => {
         expect(screen.queryByText(/Career Highlights/)).toBeNull();
         expect(screen.queryByText(/^##/)).toBeNull();
         expect(screen.getByText(/i-Standard/)).toBeInTheDocument();
+    });
+
+    it('downloads Lore from MusicNerdAPI instead of linking to a Web route', async () => {
+        downloadKnowledgeDoc.mockResolvedValue(undefined);
+        renderEditing();
+        await screen.findByText(/What you've done/i);
+        expect(document.querySelector('a[href*="knowledge-doc/export"]')).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: /Download/ }));
+        await waitFor(() => expect(downloadKnowledgeDoc).toHaveBeenCalledWith('a1'));
+        expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('shows why a download was refused', async () => {
+        downloadKnowledgeDoc.mockRejectedValue(new Error('Not your artist'));
+        renderEditing();
+        await screen.findByText(/What you've done/i);
+        fireEvent.click(screen.getByRole('button', { name: /Download/ }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('Not your artist');
     });
 
     it('shows where a claim came from, with the year', async () => {
