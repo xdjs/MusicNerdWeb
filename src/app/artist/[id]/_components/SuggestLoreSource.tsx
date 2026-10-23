@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { normalizePublicUrl } from "@/lib/links/normalizePublicUrl";
+import { requestLoreSuggestion } from "@/lib/source/requestLoreSuggestion";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 
 export default function SuggestLoreSource({ artistId, isClaimed, autoApprove = false }: { artistId: string; isClaimed: boolean; autoApprove?: boolean }) {
@@ -46,16 +47,13 @@ export default function SuggestLoreSource({ artistId, isClaimed, autoApprove = f
     }
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/artist/${artistId}/lore-suggestions`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: normalized }),
-      });
+      const response = await requestLoreSuggestion(artistId, normalized);
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
         setError(result.error ?? "Could not submit the source. Please try again.");
       } else {
         setUrl("");
-        const approved = result.status === "approved";
+        const approved = result.sourceStatus === "approved";
         setMessage([
           approved ? "Added to Lore. You can add another source." : isClaimed
             ? "Submitted for artist review. You can suggest another source."

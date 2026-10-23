@@ -1,36 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, fetchAsUser } from './helpers/auth';
-
-test.describe('Admin route auth checks', () => {
-  test.setTimeout(60_000);
-
-  test('Unauthenticated request gets 401', async ({ request }) => {
-    // PUT to artistBio endpoint without any auth
-    const bioRes = await request.put('/api/artistBio/test-id', {
-      data: { bio: 'Unauthenticated bio attempt' },
-    });
-    expect(bioRes.status()).toBe(401);
-  });
-
-  test('Admin can update artist bio', async ({ page }) => {
-    await login(page, 'test-3256@privy.io', '207862');
-
-    const result = await fetchAsUser(page, '/api/artistBio/some-artist-id', {
-      method: 'PUT',
-      body: JSON.stringify({ bio: 'E2E test bio' }),
-    });
-
-    // Should NOT be 401 (unauthenticated)
-    expect(result.status).not.toBe(401);
-
-    // Auth 403 returns { error: 'Forbidden' }, business logic 403 returns { message: '...' }
-    // If we get 403, it must be from business logic (artist not found), not from auth
-    if (result.status === 403) {
-      expect(result.body).not.toHaveProperty('error', 'Forbidden');
-      expect(result.body).toHaveProperty('message');
-    }
-  });
-});
+import { login } from './helpers/auth';
 
 test.describe('Admin page access checks', () => {
   test.setTimeout(60_000);

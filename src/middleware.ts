@@ -4,13 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 // not shared across worker instances. This provides best-effort protection for a
 // low-traffic site. For stronger guarantees, swap to @upstash/ratelimit + @upstash/redis.
 
-const STRICT_PATHS = ['/api/funFacts', '/api/artistBio'];
+const STRICT_PATHS = ['/api/funFacts'];
 
-type Tier = 'strict' | 'medium' | 'default' | 'artistImage';
+type Tier = 'strict' | 'default' | 'artistImage';
 
 function getTier(pathname: string): Tier {
   if (/^\/api\/artist\/[^/]+\/image$/.test(pathname)) return 'artistImage';
-  if (/^\/api\/artist\/[^/]+\/lore-suggestions$/.test(pathname)) return 'medium';
   if (STRICT_PATHS.some((p) => pathname.startsWith(p))) return 'strict';
   return 'default';
 }
@@ -24,7 +23,6 @@ function envInt(name: string, fallback: number): number {
 // jest.resetModules() in tests causes re-evaluation, so env override tests still work.
 const LIMITS = {
   strict: envInt('RATE_LIMIT_STRICT', 5),
-  medium: envInt('RATE_LIMIT_MEDIUM', 20),
   default: envInt('RATE_LIMIT_DEFAULT', 60),
   artistImage: envInt('RATE_LIMIT_ARTIST_IMAGE', 180),
 } as const;
