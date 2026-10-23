@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { jest } from "@jest/globals";
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
@@ -9,6 +8,8 @@ jest.mock("next/link", () => ({
   __esModule: true,
   default: ({ href, children, ...props }) => React.createElement("a", { href, ...props }, children),
 }));
+const mockRequest = jest.fn();
+jest.mock("@/lib/admin/requestAdminApi", () => ({ requestAdminApi: (...args) => mockRequest(...args) }));
 
 const mockSummary = {
   stats: {
@@ -97,17 +98,17 @@ const mockDetails = {
 import AgentWorkSection from "../AgentWorkSection";
 
 function mockFetchResponses(summary = mockSummary, details = mockDetails) {
-  (global.fetch as jest.Mock).mockImplementation((url: string) => {
+  mockRequest.mockImplementation((url: string) => {
     if (url.includes("sections=details")) {
-      return Promise.resolve({ ok: true, json: async () => details });
+      return Promise.resolve({ ok: true, json: async () => ({ status: "ok", ...details }) });
     }
-    return Promise.resolve({ ok: true, json: async () => summary });
+    return Promise.resolve({ ok: true, json: async () => ({ status: "ok", ...summary }) });
   });
 }
 
 describe("AgentWorkSection", () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
+    mockRequest.mockReset();
   });
 
   afterEach(() => {
@@ -119,10 +120,21 @@ describe("AgentWorkSection", () => {
   }
 
   it("shows loading state initially", async () => {
-    (global.fetch as jest.Mock).mockReturnValue(new Promise(() => {})); // never resolves
+    mockRequest.mockReturnValue(new Promise(() => {})); // never resolves
     await renderComponent();
     const spinner = document.querySelector(".animate-spin");
     expect(spinner).toBeInTheDocument();
+  });
+
+  it("reads the summary and details from MusicNerdAPI's admin route", async () => {
+    mockFetchResponses();
+    await renderComponent();
+    await waitFor(() => { expect(screen.getByText("Show Details")).toBeInTheDocument(); });
+    expect(mockRequest).toHaveBeenCalledWith("/api/admin/agent-work");
+    fireEvent.click(screen.getByText("Show Details"));
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith("/api/admin/agent-work?sections=details&auditPage=1&auditLimit=50");
+    });
   });
 
   it("renders platform stats after fetch", async () => {
@@ -182,7 +194,7 @@ describe("AgentWorkSection", () => {
 
     fireEvent.click(screen.getByText("Next"));
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockRequest).toHaveBeenCalledWith(
         expect.stringContaining("sections=details&auditPage=2")
       );
     });
@@ -226,10 +238,10 @@ describe("AgentWorkSection", () => {
   });
 
   it("shows error state on fetch failure", async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
+    mockRequest.mockResolvedValue({
       ok: false,
       status: 500,
-      json: async () => ({ error: "Server error" }),
+      json: async () => ({ status: "error", error: "Server error" }),
     });
     await renderComponent();
     await waitFor(() => {
