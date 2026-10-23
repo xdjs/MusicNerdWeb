@@ -3,6 +3,11 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { OnboardingProgressContext } from '@/app/artist/[id]/_components/onboarding/OnboardingProgressContext';
 import HeroSection from '@/app/artist/[id]/_components/HeroSection';
+import { trackEvent } from '@/lib/analytics/trackEvent';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: jest.fn() }));
+const toast = jest.fn();
+jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }));
 const researchNone = { profiles: null, vault: null, interview: null, publish: null };
 const research = (over = {}) => ({ steps: researchNone, currentStep: null, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over });
 
@@ -49,8 +54,19 @@ describe('Museum hero', () => {
     const { container } = renderWith(true, refreshProfile);
     fireEvent.change(container.querySelector('input[type=file]')!, { target: { files: [new File(['image'], 'portrait.png', { type: 'image/png' })] } });
     await waitFor(() => expect(container.querySelector('[data-artist-portrait]')).toBeInTheDocument());
-    expect(fetchMock).toHaveBeenCalledWith('/api/artist/profile-image', expect.objectContaining({ method: 'POST', body: expect.any(FormData) }));
+    expect(fetchMock).toHaveBeenCalledWith(musicNerdApiUrl('/api/artist/profile-image'), expect.objectContaining({ method: 'POST', body: expect.any(FormData), headers: { Authorization: 'Bearer mock-access-token' }, credentials: 'omit' }));
     expect(refreshProfile).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('profile_edit', { action: 'photo', target: null });
+    fetchMock.mockRestore();
+  });
+  it('keeps the current photo and sends no analytics when the upload is refused', async () => {
+    (trackEvent as jest.Mock).mockClear();
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: false, json: async () => ({ status: 'error', error: 'Not authorized for this artist' }) } as Response);
+    const { container } = renderWith(true);
+    fireEvent.change(container.querySelector('input[type=file]')!, { target: { files: [new File(['image'], 'portrait.png', { type: 'image/png' })] } });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'Not authorized for this artist', variant: 'destructive' })));
+    expect(container.querySelector('[data-artist-portrait]')).not.toBeInTheDocument();
+    expect(trackEvent).not.toHaveBeenCalled();
     fetchMock.mockRestore();
   });
 });

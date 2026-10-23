@@ -1,5 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ArtistPhotoChoice from '../ArtistPhotoChoice';
+import { trackEvent } from '@/lib/analytics/trackEvent';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: jest.fn() }));
 const image = 'https://i.scdn.co/image/chosen';
 const choices = { expectedCustomImage: '/pete.png', options: [
     { source: 'deezer', providerId: 'dz', imageUrl: 'https://cdn.example/deezer.jpg' },
@@ -23,6 +26,13 @@ it('preview and cancel never save or change the current photo', async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(trackEvent).not.toHaveBeenCalled();
+});
+it('reads the choices from MusicNerdAPI with the Privy bearer token', async () => {
+    open();
+    await screen.findByRole('button', { name: 'Choose Spotify photo' });
+    expect(fetchMock).toHaveBeenCalledWith(musicNerdApiUrl('/api/artist/photo-choice?artistId=artist'),
+        expect.objectContaining({ headers: { Authorization: 'Bearer mock-access-token' }, credentials: 'omit' }));
 });
 it('saves only after explicit confirmation and uses the server crop', async () => {
     open();
@@ -32,6 +42,9 @@ it('saves only after explicit confirmation and uses the server crop', async () =
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(image, 35));
     const payload = JSON.parse(fetchMock.mock.calls[1][1].body);
     expect(payload).toMatchObject({ expectedCustomImage: '/pete.png', source: 'spotify', imageUrl: image });
+    expect(fetchMock.mock.calls[1][0]).toBe(musicNerdApiUrl('/api/artist/photo-choice'));
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: 'PATCH', headers: { Authorization: 'Bearer mock-access-token', 'Content-Type': 'application/json' } });
+    expect(trackEvent).toHaveBeenCalledWith('profile_edit', { action: 'photo', target: null });
 });
 it('failed save leaves the current photo unchanged', async () => {
     open();
@@ -41,6 +54,7 @@ it('failed save leaves the current photo unchanged', async () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('The profile changed');
     expect(onSaved).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalled();
 });
 it('disables failed image previews and retains upload when lookup fails', async () => {
     open();
