@@ -8,6 +8,7 @@ import ResearchSourcePassage from "./ResearchSourcePassage";
 import { getInstagramMentions } from "@/lib/instagram/getInstagramMentions";
 import type { QuestionQuota } from '@/lib/questionResearch/getQuestionQuota';
 import QuestionQuotaNotice from './QuestionQuotaNotice';
+import { trackEvent } from '@/lib/analytics/trackEvent';
 
 interface AskAboutArtistProps {
     artistId: string;
@@ -617,12 +618,15 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                 return;
             }
             if (data.error || typeof data.answer !== "string" || !data.answer.trim()) {
+                trackEvent('ask_question', { outcome: 'error', sources: 0 });
                 finish({ error: typeof data.error === "string" ? data.error : "Something went wrong. Try again.", ...(data.retryFromStart ? { jobId: undefined, resolvedQuestion: undefined } : {}) });
                 return;
             }
+            const sources = Array.isArray(data.sources) ? data.sources as AnswerSource[] : [];
+            trackEvent('ask_question', { outcome: data.fromOpenWeb === true ? 'open_web' : 'answered', sources: sources.length });
             finish({
                 answer: data.answer,
-                sources: Array.isArray(data.sources) ? data.sources as AnswerSource[] : [],
+                sources,
                 mentions: Array.isArray(data.mentions) ? data.mentions as AnswerMention[] : [],
                 instagramMentions: Array.isArray(data.instagramMentions) ? data.instagramMentions.filter((handle: unknown) => typeof handle === 'string') : [],
                 songs: Array.isArray(data.songs) ? data.songs as AnswerSong[] : [],
@@ -635,6 +639,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     typeof s === "string" && !askedQuestions.current.has(s.toLowerCase())));
             }
         } catch (error) {
+            if (!controller.signal.aborted) trackEvent('ask_question', { outcome: 'error', sources: 0 });
             finish({ error: error instanceof Error ? error.message : "Failed to get an answer. Try again." });
         } finally {
             if (activeRequest.current === controller) { requestPending.current = false; setLoading(false); }

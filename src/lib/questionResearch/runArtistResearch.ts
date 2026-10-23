@@ -1,3 +1,5 @@
+import { getAccessToken } from "@privy-io/react-auth";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import { fetchResearchResponse } from "./fetchResearchResponse";
 import type { PublicChatTurn } from "./publicChatTypes";
 import { getQuestionQuota, type QuestionQuota } from './getQuestionQuota';
@@ -22,7 +24,11 @@ export type QuestionAnswer = {
   fromOpenWeb?: boolean;
   webDomains?: unknown[];
 };
-/** One explicit question starts work; subsequent polls and reconnects reuse its durable job. */
+/**
+ * One explicit question starts work; subsequent polls and reconnects reuse its durable job.
+ * Every call goes to MusicNerdAPI. A new question carries the Privy token when signed in, so the
+ * hourly allowance counts per account; signed out, the API counts it per IP.
+ */
 export async function runArtistResearch(input: {
   artistId: string;
   question: string;
@@ -39,12 +45,17 @@ export async function runArtistResearch(input: {
   ]);
   let resolvedQuestion = input.resolvedQuestion;
   const post = async (jobId?: string) => {
-    const url = jobId
+    const url = musicNerdApiUrl(jobId
       ? `/api/artist/${encodeURIComponent(input.artistId)}/questionResearch/${encodeURIComponent(jobId)}/answer`
-      : "/api/askArtist";
+      : "/api/askArtist");
+    const token = jobId ? null : await getAccessToken().catch(() => null);
     const r = await fetchResearchResponse(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: "omit",
       body: JSON.stringify({
         ...(!jobId ? { artistId: input.artistId } : {}),
         question: jobId ? resolvedQuestion ?? input.question : input.question,
@@ -97,8 +108,8 @@ export async function runArtistResearch(input: {
   for (;;) {
     signal.throwIfAborted();
     const r = await fetchResearchResponse(
-      `/api/artist/${input.artistId}/questionResearch/${encodeURIComponent(jobId)}`,
-      { signal, cache: "no-store" },
+      musicNerdApiUrl(`/api/artist/${input.artistId}/questionResearch/${encodeURIComponent(jobId)}`),
+      { signal, cache: "no-store", credentials: "omit" },
       input.onCooldown,
     );
     const progress = await r.json();

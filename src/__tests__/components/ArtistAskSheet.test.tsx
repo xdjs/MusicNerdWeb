@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ArtistAskSheet from '@/app/artist/[id]/_components/ArtistAskSheet';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
 it('opens existing suggested questions, submits the artist ID, and renders real citation links in the sheet', async () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({
@@ -13,7 +14,7 @@ it('opens existing suggested questions, submits the artist ID, and renders real 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'How did Nova get started?' }));
     await waitFor(() => expect(screen.getByText(/Nova started recording/)).toBeInTheDocument());
-    expect(fetchMock).toHaveBeenCalledWith('/api/askArtist', expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith(musicNerdApiUrl('/api/askArtist'), expect.objectContaining({
         method: 'POST', body: JSON.stringify({ artistId: 'nova-id', question: 'How did Nova get started?' }),
     }));
     expect(screen.getAllByRole('link').some(link => link.getAttribute('href') === 'https://example.com/interview')).toBe(true);
@@ -97,6 +98,7 @@ it('finishes an in-flight answer while minimized without resubmitting when reope
     fireEvent.click(trigger);
     fireEvent.click(screen.getByRole('button', { name: 'How did Nova get started?' }));
     expect(screen.getByRole('status')).toHaveTextContent('Checking Lore…');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole('button', { name: 'Minimize chat' }));
     await act(async () => resolve({ ok: true, json: async () => ({ answer: 'Ready when you return.', suggestions: [] }) } as Response));
     fireEvent.click(trigger);
