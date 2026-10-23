@@ -4,6 +4,7 @@ import { usePrivy, useLogin, useLogout, useIdentityToken, getIdentityToken } fro
 import { getSession, signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { resumeCorrectionSession } from '@/lib/bio/resumeCorrectionSession';
+import { requestAdminApi } from '@/lib/admin/requestAdminApi';
 import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
 import { trackEvent } from '@/lib/analytics/trackEvent';
 import { markLoginCompleted } from '@/lib/analytics/markLoginCompleted';
@@ -295,7 +296,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const fetchPendingUGC = useCallback(async () => {
       if (session?.user?.isAdmin) {
         try {
-          const res = await fetch('/api/pendingUGCCount');
+          const res = await requestAdminApi('/api/pendingUGCCount');
           if (res.ok) {
             const data = await res.json();
             setHasPendingUGC(data.count > 0);

@@ -910,23 +910,6 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
 // UGC stats & retrieval
 // ----------------------------------
 
-export async function getPendingUGC() {
-    const start = performance.now();
-    try {
-        const result = await db.query.ugcresearch.findMany({ where: and(eq(ugcresearch.accepted, false), sql`${ugcresearch.dateProcessed} is null`), with: { user: true } });
-        return result.map((obj) => {
-            const { user, ...rest } = obj;
-            return { ...rest, wallet: user?.wallet ?? null, username: user?.username ?? null };
-        });
-    } catch (e) {
-        console.error("error getting pending ugc", e);
-        throw new Error("Error finding pending UGC");
-    } finally {
-        const end = performance.now();
-        console.debug(`[getPendingUGC] took ${end - start}ms`);
-    }
-}
-
 // Removed getUgcStats and getUgcStatsInRange – these functions have been moved to leaderboardQueries.ts
 
 // ----------------------------------
