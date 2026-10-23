@@ -10,6 +10,7 @@ import { DateRange } from "react-day-picker";
 import { getUgcStatsInRangeAction as getUgcStatsInRange } from "@/app/actions/serverActions";
 import { User } from "@/server/db/DbTypes";
 import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
@@ -250,12 +251,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
         async function fetchRank() {
             try {
-                let url = '/api/leaderboard';
+                let url = musicNerdApiUrl('/api/leaderboard');
                 const dates = isCompactLayout ? getRangeDates(selectedRangeToUse) : null;
                 if (dates) {
-                    url = `/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`;
+                    url = musicNerdApiUrl(`/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`);
                 }
-                const resp = await fetch(url);
+                const resp = await fetch(url, { credentials: 'omit' });
                 if (!resp.ok) return;
                 const data = await resp.json();
                 if (cancelled) return;

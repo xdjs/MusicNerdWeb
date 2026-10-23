@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import Dashboard from '../Dashboard';
 import type { User } from '@/server/db/DbTypes';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
 jest.mock('@/app/actions/serverActions', () => ({
     getUgcStatsInRangeAction: jest.fn().mockResolvedValue({ ugcCount: 99, artistsCount: 88 }),
@@ -16,7 +17,7 @@ beforeEach(() => {
     rows = [];
     jest.mocked(fetch).mockImplementation(async input => ({
         ok: true,
-        json: async () => String(input).startsWith('/api/leaderboard') ? rows : [],
+        json: async () => String(input).startsWith(musicNerdApiUrl('/api/leaderboard')) ? rows : [],
     } as Response));
 });
 
@@ -70,7 +71,7 @@ it('ignores a late response from the previous period', async () => {
     let resolveOld!: (response: Response) => void;
     const oldResponse = new Promise<Response>(resolve => { resolveOld = resolve; });
     jest.mocked(fetch).mockImplementation(async input => {
-        if (String(input) === '/api/leaderboard') return oldResponse;
+        if (String(input) === musicNerdApiUrl('/api/leaderboard')) return oldResponse;
         return { ok: true, json: async () => [] } as Response;
     });
     const { rerender } = render(view('all'));

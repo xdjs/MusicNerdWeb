@@ -40,6 +40,7 @@ import { render, screen, fireEvent, waitFor, act, within } from '@testing-librar
 import { useSession } from 'next-auth/react';
 
 import SearchBar from '@/app/_components/nav/components/SearchBar';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
 function mockSearchResults(results: object[]) {
     global.fetch = jest.fn().mockResolvedValue({
@@ -111,7 +112,7 @@ describe('SearchBar Add Artist Flow', () => {
         const input = screen.getByRole('textbox', { name: 'Search for an artist' });
         fireEvent.change(input, { target: { value: 'not-in-directory' } });
         fireEvent.focus(input);
-        await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+        await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(musicNerdApiUrl('/api/searchArtists'), expect.objectContaining({ method: 'POST', credentials: 'omit' })));
         expect(screen.queryByText('No artists found.')).not.toBeInTheDocument();
         await act(async () => finishSearch({ ok: true, json: async () => ({ results: [] }) }));
         expect(await screen.findByRole('status')).toHaveTextContent('Use + to add the artist');
