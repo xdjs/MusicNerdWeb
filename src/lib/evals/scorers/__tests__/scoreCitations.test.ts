@@ -1,6 +1,6 @@
 import { scoreCitations } from "@/lib/evals/scorers/scoreCitations";
 
-// Marker rules are the Ask route's (src/app/api/askArtist/route.ts): a
+// Marker rules are Ask's (MusicNerdAPI `POST /api/askArtist`): a
 // citation is a number in square brackets, "[13, 8, 86]" is three, a mixed
 // group keeps its numbers, and "[2026-05-13]" is a date, not a citation.
 

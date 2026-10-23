@@ -65,7 +65,7 @@ ${sitemapLines}
 
 ## Asking a question instead
 
-POST ${BASE}/api/askArtist with {"artistId": "<id>", "question": "..."} answers
+POST https://api.musicnerd.net/api/askArtist with {"artistId": "<id>", "question": "..."} answers
 from the same document. Use the markdown when you want the whole picture and its
 sources; use this when you want one thing.
 `;

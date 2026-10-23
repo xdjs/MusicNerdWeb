@@ -1,3 +1,4 @@
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import { readSourceDetails } from "../readSourceDetails";
 const source = { sourceId: `latest:inprocess:${"a".repeat(64)}`, revision: "b".repeat(64) };
 function page(start: number, end: number, totalChars: number) {
@@ -22,4 +23,12 @@ it("caps continuation reads at four pages even when the server returns small win
   });
   await expect(readSourceDetails("artist", source, new AbortController().signal)).resolves.toEqual({ text: "", url: "https://example.com/post" });
   expect(fetch).toHaveBeenCalledTimes(4);
+});
+it("reads the citation window from MusicNerdAPI without cookies", async () => {
+  const plain = { sourceId: "vault:11111111-1111-4111-8111-111111111111", revision: "b".repeat(64) };
+  (fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ ...page(0, 10, 10), passage: { ...page(0, 10, 10).passage, ...plain } }) });
+  await expect(readSourceDetails("artist", plain, new AbortController().signal)).resolves.toEqual({ text: "x".repeat(10), url: "https://example.com/post" });
+  const [url, init] = (fetch as jest.Mock).mock.calls[0];
+  expect(url).toBe(musicNerdApiUrl(`/api/artist/artist/questionResearch/source?${new URLSearchParams({ sourceId: plain.sourceId, revision: plain.revision, start: "0" })}`));
+  expect(init).toMatchObject({ credentials: "omit", cache: "no-store" });
 });

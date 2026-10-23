@@ -1,3 +1,4 @@
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import { researchReadSchema } from "./schemas";
 /** Read bounded display windows without changing the stored original or research budget. */
 export async function readSourceDetails(
@@ -11,7 +12,7 @@ export async function readSourceDetails(
   let text = "";
   for (let page = 0; page < (structured ? 4 : 1); page++) {
     const q = new URLSearchParams({ sourceId: source.sourceId, revision: source.revision, start: String(start) });
-    const response = await fetch(`/api/artist/${artistId}/questionResearch/source?${q}`, { signal, cache: "no-store" });
+    const response = await fetch(musicNerdApiUrl(`/api/artist/${artistId}/questionResearch/source?${q}`), { signal, cache: "no-store", credentials: "omit" });
     if (!response.ok) throw new Error("This original changed or is no longer available. Refresh the research.");
     const result = researchReadSchema.parse(await response.json());
     const p = result.passage;
