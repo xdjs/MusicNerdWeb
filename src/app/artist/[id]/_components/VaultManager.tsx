@@ -22,6 +22,8 @@ import { addVaultSource } from "@/app/actions/addVaultSource";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL } from '@/lib/vaultUpload';
+import { requestVaultUpload } from '@/lib/source/requestVaultUpload';
+import { trackEvent } from '@/lib/analytics/trackEvent';
 
 interface VaultManagerProps {
   artistId: string;
@@ -256,9 +258,9 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
     const retryKey = JSON.stringify([artistId, file.name, file.size, file.type, file.lastModified]);
     try {
       let ticket = pendingCompletions.current.get(retryKey);
+      let signedType: string | undefined;
       if (!ticket) {
-      const signing = await fetch('/api/vault/upload/sign', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artistId, name: file.name, type: file.type, size: file.size }) });
+      const signing = await requestVaultUpload('sign', { artistId, name: file.name, type: file.type, size: file.size });
       const signed = await signing.json();
       if (!signing.ok) throw new Error(signed.error ?? 'Could not prepare upload');
       const fd = new FormData();
@@ -266,13 +268,16 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
       fd.append('', new Blob([file], { type: signed.contentType }), file.name);
       const uploaded = await fetch(signed.signedUrl, { method: 'PUT', body: fd });
       if (!uploaded.ok) throw new Error('File storage rejected the upload. Please try again.');
-      ticket = signed.ticket;
+      ticket = signed.ticket as string;
+      signedType = signed.contentType;
       pendingCompletions.current.set(retryKey, signed.ticket);
       }
-      const res = await fetch('/api/vault/upload/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket }) });
+      const res = await requestVaultUpload('complete', { ticket });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.source) {
         pendingCompletions.current.delete(retryKey);
+        // A retried ticket may return the already-saved source, which Web's route never counted.
+        if (signedType) trackEvent('profile_edit', { action: 'vault_upload', target: signedType });
         setApproved(prev => [data.source, ...prev.filter(s => s.id !== data.source.id)]);
         toast({ title: "File uploaded", description: data.warning });
         router.refresh();
