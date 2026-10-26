@@ -12,7 +12,7 @@ agent tool access. MCP bearer keys are not a general authentication scheme for t
 
 ### Artist Search & Discovery
 
-The public lookups `searchArtists`, `searchArtists/batch`, `findArtistBySpotifyID`, `findArtistByDeezerID`, `findArtistByIG`, `findTwitterHandle`, `getSpotifyData`, `trackLinks`, `leaderboard` and `artist/[id]/image` are served by MusicNerdAPI at `api.musicnerd.net`, in the response shapes external clients already use ([docs](https://docs.musicnerd.net/api-reference/lookups/search-artists)).
+The public lookups `searchArtists`, `findArtistBySpotifyID`, `findArtistByIG`, `findTwitterHandle`, `trackLinks`, `leaderboard` and `artist/[id]/image` are served by MusicNerdAPI at `api.musicnerd.net`, in the response shapes external clients already use ([docs](https://docs.musicnerd.net/api-reference/lookups/search-artists)).
 
 ### Artist Data & Content
 
@@ -84,13 +84,13 @@ and `npm run test:ci` for CI verification.
 
 ### Example
 
-This searches stored artists on MusicNerdAPI and does not create an artist:
+This searches artists on MusicNerdAPI and does not create an artist:
 
 ```javascript
-const response = await fetch('https://api.musicnerd.net/api/searchArtists/batch', {
+const response = await fetch('https://api.musicnerd.net/api/searchArtists', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ query: { artists: ['Pete Rango'] } }),
+  body: JSON.stringify({ query: 'Pete Rango' }),
 });
 if (!response.ok) throw new Error(`Search failed: ${response.status}`);
 const { results } = await response.json();
