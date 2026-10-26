@@ -121,7 +121,6 @@ The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHan
 
 | Area | Entry points |
 | --- | --- |
-| Account bookmarks (removed; stored data kept) | [What remains](docs/account-bookmarks.md) |
 | Account login and wallet linking | [Auth reference](docs/development.md#architecture-and-integration-map), [link handler](src/app/api/auth/link-wallet/route.ts) |
 | Artist questions and interview | [Ask](src/app/api/askArtist/route.ts), [interview chat](src/app/api/onboarding/[artistId]/chat/route.ts) |
 | Source research and stored knowledge | [Lore URL suggestions](src/app/api/artist/[id]/lore-suggestions/route.ts), [research refresh](src/app/api/artist/[id]/research/refresh/route.ts), [scheduler](src/app/api/research/advance/route.ts), [knowledge export](src/app/api/artist/[id]/knowledge-doc/export/route.ts) |

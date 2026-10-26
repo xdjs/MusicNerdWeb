@@ -40,7 +40,6 @@ side-effect requirements. A mocked unit suite is not proof of working production
 - [MCP reference](docs/mcp.md)
 - [R&D decisions and public documentation](docs/rnd/README.md)
 - [Artist Latest experiment](docs/artist-latest.md)
-- [Account bookmarks](docs/account-bookmarks.md)
 
 ## License
 

@@ -114,8 +114,6 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   second schema inventory in instructions.
 - **Rate limiting:** `src/middleware.ts` applies configurable API limits (auth excluded).
   Storage is in-process: cold starts reset it and different workers don't share it.
-- **Bookmarks:** removed from the site; stored rows are kept. See
-  [account-bookmarks.md](account-bookmarks.md).
 
 ## Coding and test patterns
 
