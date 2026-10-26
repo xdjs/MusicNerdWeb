@@ -6,6 +6,7 @@ let mockAccount='a';
 let mockModel: LiveProfileModel;
 jest.mock('next-auth/react',()=>({useSession:()=>({status:'authenticated',data:{user:{id:mockAccount}},update:jest.fn()})}));
 jest.mock('../ProfileConcept',()=>({__esModule:true,default:({live}:{live:LiveProfileModel})=>{mockModel=live;return <div data-testid="artists">{live.artists.map(a=>a.artistName).join(',')}</div>}}));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl',()=>({musicNerdApiUrl:(path:string)=>`https://api.test${path}`}));
 jest.mock('../ProfileLoading',()=>({__esModule:true,default:()=> <div>Loading account</div>}));
 const user=(id:string)=>({id,username:id,email:null,wallet:null,isAdmin:false,isWhiteListed:false,isHidden:false});
 let client:QueryClient;
@@ -24,7 +25,7 @@ afterEach(()=>{client.clear();jest.restoreAllMocks()});
 const tree=(id:string)=><QueryClientProvider client={client}><LiveUserProfile key={id} user={user(id)}/></QueryClientProvider>;
 it('loads both sections without reading or importing bookmarks and searches remotely',async()=>{
  render(tree('a'));await waitFor(()=>expect(screen.getByTestId('artists')).toHaveTextContent('a artist'));
- await waitFor(()=>expect(global.fetch).toHaveBeenCalledWith('/api/profile/updates?offset=0&kind=All',expect.objectContaining({headers:{'X-Profile-Account':'a'}})));
+ await waitFor(()=>expect(global.fetch).toHaveBeenCalledWith('https://api.test/api/profile/updates?offset=0&kind=All',expect.objectContaining({headers:{'X-Profile-Account':'a',Authorization:'Bearer mock-access-token'},credentials:'omit'})));
  await act(async()=>mockModel.setArtistSearch('beyond first page'));
  await waitFor(()=>expect(mockModel.artistMatches[0]?.artistName).toBe('a search'));
  expect(mockModel.artists[0]?.artistName).toBe('a artist');

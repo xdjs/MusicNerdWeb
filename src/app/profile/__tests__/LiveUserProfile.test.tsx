@@ -8,6 +8,7 @@ const mockUpdate = jest.fn().mockResolvedValue(null);
 let mockModel: LiveProfileModel;
 jest.mock('next-auth/react', () => ({ useSession: () => ({ update: mockUpdate, status: 'authenticated', data: {user: {id: 'account'}} }) }));
 jest.mock('../ProfileConcept', () => ({ __esModule: true, default: ({live}: {live: LiveProfileModel}) => { mockModel = live; return null; } }));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api.test${path}` }));
 jest.mock('../ProfileLoading', () => ({ __esModule: true, default: () => null }));
 
 let client: QueryClient;
@@ -27,7 +28,7 @@ beforeEach(() => {
     if (!options?.method) return {ok: !photoReadFailure, json: async () => ({userId: 'account', url: '/new.png'})} as Response;
     calls.push(options.method);
     if (options.method === 'POST' && uploadFailure === 'network') throw new TypeError('Failed to fetch');
-    return {ok: options.method === 'POST' ? !uploadFailure : !nameFailure, json: async () => ({message: 'Name rejected'})} as Response;
+    return {ok: options.method === 'POST' ? !uploadFailure : !nameFailure, json: async () => ({status: 'error', error: 'Name rejected'})} as Response;
   });
 });
 afterEach(() => {client.clear(); jest.restoreAllMocks();});
@@ -61,7 +62,18 @@ it('saves a name without uploading an unchanged photo and refreshes the session'
   await mount();
   await act(async () => { await expect(mockModel.saveProfile('Changed',null)).resolves.toEqual({name:'Changed',photo:'/old.png'}); });
   expect(calls).toEqual(['PATCH']);
+  expect(global.fetch).toHaveBeenCalledWith('https://api.test/api/user/account', expect.objectContaining({
+    method: 'PATCH', credentials: 'omit', headers: {'Content-Type': 'application/json', Authorization: 'Bearer mock-access-token'},
+  }));
   expect(mockUpdate).toHaveBeenCalledTimes(1);
+});
+
+it('uploads the photo to the API with the Privy token and the rendered account', async () => {
+  await mount();
+  await act(async () => { await mockModel.saveProfile('Changed', file); });
+  expect(global.fetch).toHaveBeenCalledWith('https://api.test/api/user/profile-image', expect.objectContaining({
+    method: 'POST', body: expect.any(FormData), credentials: 'omit', headers: {'X-Profile-Account': 'account', Authorization: 'Bearer mock-access-token'},
+  }));
 });
 
  it('reports a committed upload when its refresh fails and retries the read without uploading again', async () => {

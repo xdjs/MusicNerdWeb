@@ -6,6 +6,7 @@ import LiveUserProfile from "./LiveUserProfile";
 import Link from "next/link";
 import ProfileLoading from "./ProfileLoading";
 import ProfileConcept from "./ProfileConcept";
+import { requestUserApi } from "@/lib/user/requestUserApi";
 
 
 type User = {
@@ -44,7 +45,7 @@ export default function ClientWrapper({ designPreview = false, emptyPreview = fa
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
         try {
-          const response = await fetch(`/api/user/${session.user.id}`);
+          const response = await requestUserApi(`/api/user/${session.user.id}`);
           if (cancelled) return;
           if (response.ok) {
             const userData = await response.json();

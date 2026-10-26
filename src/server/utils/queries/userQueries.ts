@@ -1,7 +1,6 @@
 import { transferBioCorrections } from '@/server/utils/bio/transferBioCorrections';
 import { getUserDisplayName as publicUserName } from '@/lib/user/getUserDisplayName';
 import { needsUserName } from '@/lib/user/needsUserName';
-import { setUserName } from '@/server/utils/user/setUserName';
 import { db } from "@/server/db/drizzle";
 import { eq, ilike, inArray, sql } from "drizzle-orm";
 import { users } from "@/server/db/schema";
@@ -125,11 +124,6 @@ export async function searchForUsersByWallet(wallet: string) {
 // Preserve existing callers while sharing the pure public-name policy.
 export function getUserDisplayName(user: Parameters<typeof publicUserName>[0]): string {
     return publicUserName(user);
-}
-
-// Names are reserved case-insensitively and explicit saves confirm generated names.
-export async function updateUsername(userId: string, username: string) {
-    return setUserName(userId, username);
 }
 
 export type AddUsersToAdminResp = {
