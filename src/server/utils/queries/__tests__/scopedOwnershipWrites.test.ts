@@ -17,8 +17,6 @@ describe('long-running artist operation writes', () => {
         const links = await import('@/server/utils/artistLinkService');
         const operations = {
             checkpoint: () => onboarding.confirmOnboardingStep('a1', 'profiles'),
-            answer: () => onboarding.upsertInterviewAnswer({ artistId: 'a1', questionKey: 'q', question: 'Q?', answer: 'A', sitting: 1, source: 'onboarding' }),
-            offeredQuestions: () => onboarding.recordInterviewBatchOffered('a1', [{ questionKey: 'q', question: 'Q?' }]),
             document: () => onboarding.upsertArtistDoc('a1', 'Stale doc'),
             citations: () => onboarding.upsertArtistDocSources('a1', []),
             discoveredSource: () => vault.insertVaultSource({ artistId: 'a1', url: 'https://example.com' }),
@@ -33,7 +31,7 @@ describe('long-running artist operation writes', () => {
         };
         return { tx, scope, operations };
     }
-    it.each(['checkpoint','answer','offeredQuestions','document','citations','discoveredSource','sourceApproval','sourceContent','sourceType','sourceDelete','socialJob','reopenJob','linkWrite','linkClear'])('%s rejects the old operation after revocation', async name => {
+    it.each(['checkpoint','document','citations','discoveredSource','sourceApproval','sourceContent','sourceType','sourceDelete','socialJob','reopenJob','linkWrite','linkClear'])('%s rejects the old operation after revocation', async name => {
         const { tx, scope, operations } = await setup();
         await expect(scope.withArtistOperation('a1', { userId: 'old-owner', expectedClaimId: 'original' }, async () => {
             await Promise.resolve();

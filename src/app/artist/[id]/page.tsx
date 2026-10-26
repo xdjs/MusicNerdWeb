@@ -24,11 +24,7 @@ import SeoArtistLinks from "./_components/SeoArtistLinks";
 import ArtistJsonLd from "./_components/ArtistJsonLd";
 import OnboardingGate from "./_components/onboarding/OnboardingGate";
 import ProfileTour from "./_components/onboarding/ProfileTour";
-import { isInterviewPreviewEnabled } from "@/lib/interview/isInterviewPreviewEnabled";
-import InterviewPreview from "@/app/dev/interview-preview/InterviewPreview";
-import InterviewOffer from "./_components/onboarding/InterviewOffer";
 import ApiInterview from "./_components/onboarding/ApiInterview";
-import { MUSICNERD_API_INTERVIEWER_ENABLED } from "@/env";
 import { fetchOnboardingState } from "@/server/utils/onboarding/fetchOnboardingState";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { isRealBio } from "@/lib/bio/bioConstants";
@@ -38,7 +34,7 @@ import ProfileTourPreview from "./_components/onboarding/ProfileTourPreview";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
-    searchParams?: Promise<{ addLink?: string | string[]; interviewPreview?: string; tourPreview?: string }>;
+    searchParams?: Promise<{ addLink?: string | string[]; tourPreview?: string }>;
 }
 
 function getAddLinkPrefill(addLink: string | string[] | undefined): string | undefined {
@@ -127,7 +123,6 @@ function summarize(bio: string, max = 300): string {
 export default async function ArtistProfile({ params, searchParams }: ArtistProfileProps) {
     const { id } = await params;
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
-    const interviewPreview = isInterviewPreviewEnabled() && resolvedSearchParams?.interviewPreview === "1";
     const tourPreview = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview')
         && resolvedSearchParams?.tourPreview === "1";
     const addLinkPrefill = getAddLinkPrefill(resolvedSearchParams?.addLink);
@@ -189,7 +184,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const profile = (
         <ArtistProfileContent
             publicAbout={directoryAbout}
-            interviewAction={!interviewPreview && !tourPreview && isClaimedByUser && onboardingState?.complete && MUSICNERD_API_INTERVIEWER_ENABLED
+            interviewAction={!tourPreview && isClaimedByUser && onboardingState?.complete
                 ? <ApiInterview key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 : null}
             artist={canEdit ? artist : publicProfile.artist}
@@ -208,7 +203,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             isPendingByUser={isPendingByUser}
             canEdit={canEdit}
             autoApprove={isAdmin || !!dbUser?.isWhiteListed}
-            researching={!interviewPreview && !tourPreview && onboardingState?.complete === false}
+            researching={!tourPreview && onboardingState?.complete === false}
         />
     );
 
@@ -230,17 +225,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     cannot be unmounted out from under the tour. */}
                 {tourPreview ? (
                     <ProfileTourPreview key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
-                ) : !interviewPreview && isClaimedByUser && onboardingState?.complete && (
+                ) : isClaimedByUser && onboardingState?.complete && (
                     <ProfileTour key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
-                )}
-
-                {/* The only part of onboarding where what lands on the page
-                    comes from the artist rather than from research. Gated the
-                    same way the tour is — onboarding finished, and their own
-                    page — and it decides for itself whether there is anything
-                    worth asking about. */}
-                {interviewPreview ? <InterviewPreview key={artist.id} artistId={artist.id} artistName={artist.name ?? "your"} /> : !tourPreview && isClaimedByUser && onboardingState?.complete && !MUSICNERD_API_INTERVIEWER_ENABLED && (
-                    <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 )}
 
                 {/* The artist page. While a fresh claim's onboarding runs, research
@@ -248,7 +234,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     gate is rendered for the claimant whatever the state, so a build
                     that completes during the visit keeps its ready card and new-item
                     marks; a page that arrives complete renders just the profile. */}
-                {!interviewPreview && !tourPreview && onboardingState ? (
+                {!tourPreview && onboardingState ? (
                     <OnboardingGate
                         artistId={artist.id}
                         state={onboardingState}

@@ -67,7 +67,6 @@ lower-case tokens; free text appears only where the table says so.
 | `claim` | Each step of the claim flow (`ClaimButton.tsx`) | `step` = `start` · `login_required` · `submitted` · `already_claimed` · `error` | client | The artist funnel's front door; `start` → `submitted` is the drop-off |
 | `ask_question` | An Ask answer or error reaches the chat (`AskAboutArtist.tsx`, after MusicNerdAPI `askArtist` and its answer route); a quota notice or a stopped wait sends nothing | `outcome` = `answered` (from our sources) · `open_web` (answered from the open web) · `error`; `sources` = number of cited sources | client | Is Ask used, and does our research answer it? A high `open_web` rate for an artist means their research is thin |
 | `latest_card_open` | A Latest card dialog opens (`LatestCards.tsx`) | `kind` = `release` · `instagram` · `interview` · `moment`; `filter` = the active tab | client | Which content kind earns a click |
-| `interview_answer` | An artist saves or skips an interview question (`actions/interviewActions.ts`) | `question` = the question key; `skipped` = true when saved without an answer | server | Are claimed artists producing "In their words" |
 | `profile_edit` | A claimed artist changes their profile | `action` = `link_add` · `link_remove` · `reorder` · `photo` · `vault_upload` · `dismiss`; `target` = platform for link actions, else `null` | server | Do artists maintain their profile after claiming |
 | `login` | A NextAuth session is created after Privy login and the page reloads (`PrivyLogin.tsx`) | `trigger` = which surface asked for login (`nav`, `search_add`, `add_link`, `claim`, `add_artist`, `dashboard`, `please_login`); `new` = Privy's `isNewUser` | client | What converts a visitor into an account; new vs returning |
 | `add_artist` | The nav **+** is clicked, signed in or not (`nav/AddArtist.tsx`), or a search result's "Add to MusicNerd" is chosen, before any login (`nav/SearchBar.tsx`) → `start`; that add resolves → exactly one of `added` · `exists` · `error`, even if the visitor closed the dialog first (a possible duplicate sends nothing until the visitor chooses) | `surface` = `nav` · `search`; `step` = `start` · `added` · `exists` · `error` | client | Do people add artists from search or the **+**, and how many who start an add finish it (`start` minus resolved = abandoned)? |
@@ -81,8 +80,7 @@ Fire points for `profile_edit`: the browser, after MusicNerdAPI answers 200: `Ad
 
 Deviations from the approved table, because of what the code knows at the fire point:
 `ask_question.outcome` distinguishes `open_web` (the route already tracks its fallback);
-`interview_answer` reports the question key and a skipped flag rather than a sitting number,
-which the action hard-codes; `claim` has no `via` because `ClaimButton` is its only caller.
+`claim` has no `via` because `ClaimButton` is its only caller.
 
 What is deliberately **not** sent: the Ask question text, the submitted link URL, any email,
 session or user id, artist source content. `search.query` is the one free-text property and is

@@ -6,15 +6,6 @@ import { tourFlagKey } from "@/app/artist/[id]/_components/onboarding/tourFlagKe
 import { tourPendingKey } from "@/app/artist/[id]/_components/onboarding/tourPendingKey";
 import { TOUR_ARMED_EVENT } from "@/app/artist/[id]/_components/onboarding/armTour";
 
-/** Fired when the tour ends, however it ends.
- *
- *  The interview is offered here rather than as a fifth card, because the four
- *  cards say "here is what we found" and the offer turns that round — it lands
- *  after the artist has seen the gaps for themselves. An event rather than a
- *  prop because the tour and the offer are siblings on the page, not nested,
- *  and the tour has no business knowing what comes after it. */
-export const TOUR_FINISHED_EVENT = "mn-tour-finished";
-
 type Stop = {
     anchor: string;
     title: string;
@@ -199,18 +190,12 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
         if (STOPS[nextIndex]) setIndex(nextIndex);
     };
 
-    const finish = (reachedTheEnd: boolean) => {
+    const finish = () => {
         try {
             sessionStorage.setItem(tourFlagKey(artistId), "1");
             sessionStorage.removeItem(tourPendingKey(artistId));
         } catch { /* private mode */ }
         setDismissed(true);
-        // Only when they walked it. Somebody who hit Skip on card one has said
-        // they do not want to be walked through anything, and following that
-        // with three questions is not reading the room.
-        if (reachedTheEnd) {
-            window.dispatchEvent(new CustomEvent(TOUR_FINISHED_EVENT, { detail: artistId }));
-        }
     };
 
     if (!armed || dismissed || !stop) return null;
@@ -258,7 +243,7 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
                     <div className="flex items-center justify-between gap-3">
                         <p className="text-xs font-medium text-pink-500">{index + 1} of {STOPS.length}</p>
                         <button
-                            onClick={() => finish(false)}
+                            onClick={finish}
                             className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                         >
                             Skip
@@ -290,7 +275,7 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
                             </button>
                         )}
                         <button
-                            onClick={() => (isLast ? finish(true) : goToStop(index + 1))}
+                            onClick={() => (isLast ? finish() : goToStop(index + 1))}
                             className="flex-1 button-pink bg-highlightpink hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2 rounded-lg"
                         >
                             {isLast ? "Got it" : "Next"}
