@@ -31,6 +31,9 @@ jest.mock('@privy-io/react-auth', () => ({
   getIdentityToken: jest.fn().mockResolvedValue('mock-identity-token'),
 }));
 
+const mockRequestAdminApi = jest.fn();
+jest.mock('@/lib/admin/requestAdminApi', () => ({ requestAdminApi: (...a: unknown[]) => mockRequestAdminApi(...a) }));
+
 const mockReadSession = jest.fn();
 const mockRouterRefresh = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({refresh: mockRouterRefresh}) }));
@@ -283,6 +286,23 @@ describe('PrivyLogin', () => {
       render(<PrivyLogin />);
 
       expect(screen.getByText('Admin Panel')).toBeInTheDocument();
+    });
+
+    it('asks MusicNerdAPI for the pending count with the admin token and flags pending work', async () => {
+      mockSessionData.user.isAdmin = true;
+      mockRequestAdminApi.mockResolvedValue({ ok: true, json: () => Promise.resolve({ status: 'ok', count: 2 }) });
+
+      const { container } = render(<PrivyLogin />);
+
+      await waitFor(() => expect(container.querySelector('a[href="/admin"] .bg-red-600')).toBeInTheDocument());
+      expect(mockRequestAdminApi).toHaveBeenCalledWith('/api/pendingUGCCount');
+      expect(global.fetch).not.toHaveBeenCalledWith('/api/pendingUGCCount');
+    });
+
+    it('does not ask for the pending count for non-admin users', () => {
+      render(<PrivyLogin />);
+
+      expect(mockRequestAdminApi).not.toHaveBeenCalled();
     });
 
     it('does not show Admin Panel for non-admin users', () => {

@@ -1,6 +1,7 @@
 import { approveUgcAdminAction } from '@/app/actions/serverActions';
 import { updateSourceStatus } from '@/app/actions/dashboardActions';
 import type { ReviewItem } from '@/lib/contributions/adminReviewTypes';
+import { requestAdminApi } from '@/lib/admin/requestAdminApi';
 
 export type ReviewAction = 'approved' | 'rejected' | 'resolved' | 'dismissed';
 
@@ -8,9 +9,7 @@ export type ReviewAction = 'approved' | 'rejected' | 'resolved' | 'dismissed';
 export async function reviewAdminItem(item: ReviewItem, action: ReviewAction): Promise<void> {
   if (item.type === 'corrections') {
     if (action !== 'resolved' && action !== 'dismissed') throw new Error('Invalid correction action');
-    const response = await fetch(`/api/admin/bio-corrections/${item.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: action }),
-    });
+    const response = await requestAdminApi(`/api/admin/bio-corrections/${item.id}`, { method: 'PATCH', body: { status: action } });
     if (!response.ok) throw new Error('Could not review this report.');
     return;
   }

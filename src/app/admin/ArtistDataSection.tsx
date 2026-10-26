@@ -2,6 +2,7 @@
 
 import AdminSelect from "@/components/ui/MusicNerdSelect";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { requestAdminApi } from "@/lib/admin/requestAdminApi";
 import { Button } from "@/components/ui/button";
 import styles from "@/components/community/Community.module.css";
 import type {
@@ -233,7 +234,7 @@ export default function ArtistDataSection({dataUrl="/api/admin/artist-data"}:{da
     fetchInFlight.current = true;
     try {
       if (!background) { setLoading(true); setError(""); }
-      const res = await fetch(dataUrl);
+      const res = await requestAdminApi(dataUrl);
       if (!res.ok) {
         if (!background) {
           const body = await res.json().catch(() => ({}));
