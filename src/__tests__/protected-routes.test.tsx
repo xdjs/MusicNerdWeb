@@ -67,7 +67,6 @@ jest.mock('@/app/_components/AutoRefresh', () => function AutoRefresh() { return
 jest.mock('@/app/artist/[id]/_components/BlurbSection', () => function BlurbSection() { return <div data-testid="blurb" />; });
 jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtistData() { return <div data-testid="add-data" />; });
 jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children }: any) { return <div data-testid="hero-section"><h1>{artistName}</h1>{children}</div>; });
-jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return null; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return null; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
 // Same reason as SeoArtistLinks: an async server component that reads the link
