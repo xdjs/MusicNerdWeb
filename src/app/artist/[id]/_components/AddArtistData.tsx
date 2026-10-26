@@ -38,6 +38,7 @@ import { LINK_NOT_SUPPORTED, LINK_TWITTER_INVALID } from "@/lib/linkSubmissionMe
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 import { trackEvent } from "@/lib/analytics/trackEvent";
 import { requestArtistLinkEdit } from "@/lib/artistLinks/requestArtistLinkEdit";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 type AddArtistDataProps = {
     artist: Artist;
@@ -79,15 +80,15 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
     useEffect(() => {
         let isMounted = true;
 
-        fetch('/api/platformRegexes')
+        fetch(musicNerdApiUrl('/api/platformRegexes'), { credentials: 'omit' })
             .then(res => {
                 if (!res.ok) throw new Error(`Platform regex request failed with ${res.status}`);
                 return res.json();
             })
             .then(data => {
-                if (!Array.isArray(data)) throw new Error('Platform regex response was not an array');
+                if (!Array.isArray(data?.regexes)) throw new Error('Platform regex response had no regexes');
                 if (!isMounted) return;
-                setPlatformRegexes(data);
+                setPlatformRegexes(data.regexes);
                 setPlatformRegexStatus("ready");
             })
             .catch(e => {
@@ -223,10 +224,11 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
         }
 
         try {
-            const response = await fetch('/api/validateLink', {
+            const response = await fetch(musicNerdApiUrl('/api/validateLink'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url }),
+                credentials: 'omit',
             });
             const data = await response.json();
             console.debug('Backend validation response:', data);

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { EditModeContext } from "./EditModeContext";
 import { requestArtistLinkEdit } from "@/lib/artistLinks/requestArtistLinkEdit";
+import { requestArtistLinkReview } from "@/lib/artistLinkReview/requestArtistLinkReview";
 import { getDisplayedCatalogId } from "@/lib/artistLinks/getDisplayedCatalogId";
 import { trackEvent } from "@/lib/analytics/trackEvent";
 
@@ -42,11 +43,7 @@ export default function EditableLinkIcon({
         setDeleting(true);
         try {
             const res = sourceId
-                ? await fetch(`/api/artist/${encodeURIComponent(artistId)}/link-suggestions`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: sourceId, kind: "source", decision: "remove" }),
-                })
+                ? await requestArtistLinkReview(artistId, { id: sourceId, kind: "source", decision: "remove" })
                 : await requestArtistLinkEdit("directEditLink", {
                     artistId, action: "clear", siteName,
                     expectedValue: getDisplayedCatalogId(siteName, href),
