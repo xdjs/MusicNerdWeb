@@ -1,3 +1,5 @@
+import { getAccessToken } from "@privy-io/react-auth";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import { runArtistResearch } from "../runArtistResearch";
 beforeEach(() => {
   jest.useFakeTimers();
@@ -53,8 +55,8 @@ it("shows persisted progress, waits, and resumes the same job instead of enqueue
     .mocked(fetch)
     .mock.calls.filter(([, opts]) => opts?.method === "POST");
   expect(posts).toHaveLength(2);
-  expect(posts[0][0]).toBe("/api/askArtist");
-  expect(posts[1][0]).toBe("/api/artist/artist/questionResearch/job/answer");
+  expect(posts[0][0]).toBe(musicNerdApiUrl("/api/askArtist"));
+  expect(posts[1][0]).toBe(musicNerdApiUrl("/api/artist/artist/questionResearch/job/answer"));
   expect(JSON.parse(posts[1][1]!.body as string)).toEqual({question:"Question?"});
 });
 it("reconnects with the saved job and never submits an initial new request", async () => {
@@ -70,7 +72,7 @@ it("reconnects with the saved job and never submits an initial new request", asy
     onProgress: () => {},
     signal: new AbortController().signal,
   });
-  expect(jest.mocked(fetch).mock.calls[0][0]).toBe("/api/artist/artist/questionResearch/saved/answer");
+  expect(jest.mocked(fetch).mock.calls[0][0]).toBe(musicNerdApiUrl("/api/artist/artist/questionResearch/saved/answer"));
   expect(JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string)).toEqual({question:"Question?"});
 });
 it("keeps polling when a concurrent worker holds the answer-check lease", async () => {
@@ -144,8 +146,8 @@ it('resumes a throttled completed answer without planning or creating another jo
  await jest.advanceTimersByTimeAsync(2999);expect(fetch).toHaveBeenCalledTimes(3);
  await jest.advanceTimersByTimeAsync(1);expect((await result).answer).toBe('The credited filmmaker.');
  const calls=jest.mocked(fetch).mock.calls;
- expect(calls.filter(([url])=>url==='/api/askArtist')).toHaveLength(1);
- expect(calls[2]).toEqual(calls[3]);expect(calls[3][0]).toBe('/api/artist/artist/questionResearch/saved/answer');
+ expect(calls.filter(([url])=>url===musicNerdApiUrl('/api/askArtist'))).toHaveLength(1);
+ expect(calls[2]).toEqual(calls[3]);expect(calls[3][0]).toBe(musicNerdApiUrl('/api/artist/artist/questionResearch/saved/answer'));
  expect(JSON.parse(calls[3][1]!.body as string)).toEqual({question:'Who filmed the PPNE NYC visualizer?'});
  expect(onCooldown).toHaveBeenCalledWith(3);
 });
@@ -158,7 +160,7 @@ it('waits through a throttled status read and keeps the existing job', async () 
   .mockResolvedValueOnce(reply({answer:'Saved answer'}));
  const result=runArtistResearch({artistId:'artist',question:'Question?',jobId:'saved',signal:new AbortController().signal,onProgress:jest.fn()});
  await jest.advanceTimersByTimeAsync(2000);expect((await result).answer).toBe('Saved answer');
- expect(jest.mocked(fetch).mock.calls.some(([url])=>url==='/api/askArtist')).toBe(false);
+ expect(jest.mocked(fetch).mock.calls.some(([url])=>url===musicNerdApiUrl('/api/askArtist'))).toBe(false);
  expect(jest.mocked(fetch).mock.calls[1]).toEqual(jest.mocked(fetch).mock.calls[2]);
 });
 
@@ -172,7 +174,7 @@ it('requests a completed acknowledgement directly and follows a server-issued co
  const promise=runArtistResearch({artistId:'artist',question:'Question?',signal:new AbortController().signal,onProgress:jest.fn()});
  await jest.advanceTimersByTimeAsync(5000);
  expect((await promise).answer).toBe('A verified answer.');
- expect(jest.mocked(fetch).mock.calls.map(([url])=>url)).toEqual(['/api/askArtist','/api/artist/artist/questionResearch/saved/answer','/api/artist/artist/questionResearch/continued','/api/artist/artist/questionResearch/continued/answer']);
+ expect(jest.mocked(fetch).mock.calls.map(([url])=>url)).toEqual([musicNerdApiUrl('/api/askArtist'),musicNerdApiUrl('/api/artist/artist/questionResearch/saved/answer'),musicNerdApiUrl('/api/artist/artist/questionResearch/continued'),musicNerdApiUrl('/api/artist/artist/questionResearch/continued/answer')]);
  expect(JSON.parse(jest.mocked(fetch).mock.calls[3][1]!.body as string)).toEqual({question:'Resolved question?'});
 });
 
@@ -198,4 +200,40 @@ it('keeps an outside-research quota and its explanatory answer on a terminal 200
  global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ answer: 'Saved sources do not cover that yet.', code: 'research_quota', resetAt, retryAfterSeconds: 60 }) });
  await expect(runArtistResearch({ artistId: 'artist', question: 'Question?', signal: new AbortController().signal, onProgress: jest.fn() }))
   .resolves.toMatchObject({ answer: 'Saved sources do not cover that yet.', quota: { code: 'research_quota', resetAt } });
+});
+
+it("asks MusicNerdAPI with the visitor's Privy token and reads the job without cookies", async () => {
+  jest.mocked(getAccessToken).mockResolvedValueOnce("visitor-token");
+  const reply = (body: unknown, status = 200) => ({ ok: true, status, json: async () => body });
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce(reply({ status: "ok", research: { jobId: "job", stage: "checking_saved", message: "Checking" } }, 202))
+    .mockResolvedValueOnce(reply({ status: "ok", jobId: "job", stage: "complete", message: "Ready", retryAfterMs: 5000 }))
+    .mockResolvedValueOnce(reply({ status: "ok", answer: "A verified answer.", sources: [] }));
+  const result = await runArtistResearch({ artistId: "artist", question: "Question?", signal: new AbortController().signal, onProgress: jest.fn() });
+  expect(result.answer).toBe("A verified answer.");
+  const [ask, poll, answer] = jest.mocked(fetch).mock.calls;
+  expect(ask[0]).toBe(musicNerdApiUrl("/api/askArtist"));
+  expect(ask[1]).toMatchObject({ method: "POST", credentials: "omit", headers: { Authorization: "Bearer visitor-token", "Content-Type": "application/json" } });
+  expect(poll[0]).toBe(musicNerdApiUrl("/api/artist/artist/questionResearch/job"));
+  expect(poll[1]).toMatchObject({ credentials: "omit", cache: "no-store" });
+  expect(answer[0]).toBe(musicNerdApiUrl("/api/artist/artist/questionResearch/job/answer"));
+  expect(answer[1]).toMatchObject({ method: "POST", credentials: "omit" });
+  expect((answer[1]!.headers as Record<string, string>).Authorization).toBeUndefined();
+});
+
+it("asks anonymously when the visitor is signed out", async () => {
+  jest.mocked(getAccessToken).mockResolvedValueOnce(null as unknown as string);
+  global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ status: "ok", answer: "Answer.", sources: [] }) });
+  await runArtistResearch({ artistId: "artist", question: "Question?", signal: new AbortController().signal, onProgress: jest.fn() });
+  const [url, init] = jest.mocked(fetch).mock.calls[0];
+  expect(url).toBe(musicNerdApiUrl("/api/askArtist"));
+  expect(init).toMatchObject({ credentials: "omit", headers: { "Content-Type": "application/json" } });
+  expect((init!.headers as Record<string, string>).Authorization).toBeUndefined();
+});
+
+it("asks anonymously when Privy cannot provide a token", async () => {
+  jest.mocked(getAccessToken).mockRejectedValueOnce(new Error("Privy not ready"));
+  global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ status: "ok", answer: "Answer.", sources: [] }) });
+  await expect(runArtistResearch({ artistId: "artist", question: "Question?", signal: new AbortController().signal, onProgress: jest.fn() })).resolves.toMatchObject({ answer: "Answer." });
+  expect((jest.mocked(fetch).mock.calls[0][1]!.headers as Record<string, string>).Authorization).toBeUndefined();
 });

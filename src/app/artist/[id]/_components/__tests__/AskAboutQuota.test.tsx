@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 import AskAboutArtist from '../AskAboutArtist';
 
 const START = new Date('2026-10-15T19:00:00Z');
@@ -91,7 +92,7 @@ it('keeps earlier answers and any new draft typed while a question is in flight'
     global.fetch = jest.fn().mockResolvedValueOnce(response({ answer: 'Their latest record is OUT HERE.' }))
         .mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }));
     render(<AskAboutArtist artistId="a1" artistName="Artist" />);
-    submit('Latest record?'); await flush(); submit();
+    submit('Latest record?'); await flush(); submit(); await flush();
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'A new draft I am writing' } });
     await act(async () => { finish(quotaReply('saved_evidence_quota')); }); await flush();
     expect(screen.getByTestId('answer')).toHaveTextContent('Their latest record is OUT HERE.');
@@ -128,7 +129,7 @@ it('starts fresh after a terminal outside quota expires, keeping the original fo
     expect(fetch).toHaveBeenCalledTimes(4);
     // Submitting the restored draft also retries the existing conversation turn.
     fireEvent.click(screen.getByRole('button', { name: 'Submit question' })); await flush();
-    expect(jest.mocked(fetch).mock.calls[4][0]).toBe('/api/askArtist');
+    expect(jest.mocked(fetch).mock.calls[4][0]).toBe(musicNerdApiUrl('/api/askArtist'));
     expect(JSON.parse(jest.mocked(fetch).mock.calls[4][1]!.body as string)).toMatchObject({
         question: QUESTION, conversation: [{ question: 'Latest record?', answer: 'Their latest record is OUT HERE.' }],
     });

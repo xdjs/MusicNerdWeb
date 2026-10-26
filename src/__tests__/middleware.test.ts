@@ -277,15 +277,3 @@ it('isolates artist-image traffic from account API limits while retaining its ow
  expect(middleware(makeRequest('/api/user/has-claim')).status).not.toBe(429);
  expect(middleware(makeRequest('/api/profile/summary')).headers.get('X-RateLimit-Remaining')).toBe('58');
 });
-
-it('does not charge saved answer collection to the new-question allowance', async () => {
- const { middleware } = await loadMiddleware();
- const resultPath='/api/artist/11111111-1111-4111-8111-111111111111/questionResearch/22222222-2222-4222-8222-222222222222/answer';
- for(let n=0;n<5;n++)expect(middleware(makeRequest('/api/askArtist')).status).not.toBe(429);
- expect(middleware(makeRequest('/api/askArtist')).status).toBe(429);
- const result=middleware(makeRequest(resultPath));expect(result.status).not.toBe(429);
- expect(result.headers.get('X-RateLimit-Limit')).toBe('60');
- for(let n=1;n<60;n++)expect(middleware(makeRequest(resultPath)).status).not.toBe(429);
- expect(middleware(makeRequest(resultPath)).status).toBe(429);
- expect(middleware(makeRequest('/api/askArtist')).status).toBe(429);
-});

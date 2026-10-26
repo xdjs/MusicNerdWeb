@@ -4,7 +4,7 @@ type CitationsMetadata = { cited: number[]; dangling: number[] };
 
 /**
  * Whether an Ask answer's citation markers point at sources it was actually given.
- * Markers are read the way the route reads them (src/app/api/askArtist/route.ts):
+ * Markers are read the way Ask reads them (MusicNerdAPI `POST /api/askArtist`):
  * a number in square brackets, "[13, 8, 86]" is three, a mixed group such as
  * "[19, 21, Artist Doc]" keeps its numbers, and "[2026-05-13]" is a date, not a citation.
  *
