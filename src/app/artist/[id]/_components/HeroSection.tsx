@@ -12,6 +12,8 @@ import ResearchPending from "./onboarding/ResearchPending";
 import ListenPicker from "./ListenPicker";
 import type { ProfileLink } from "@/lib/artist/artistProfileLinks";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/analytics/trackEvent";
+import { requestArtistImageApi } from "@/lib/artistImages/requestArtistImageApi";
 
 import type { PublicArtistAbout } from '@/lib/bio/types';
 
@@ -77,9 +79,10 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
             const fd = new FormData();
             fd.append("file", file);
             fd.append("artistId", artistId);
-            const res = await fetch("/api/artist/profile-image", { method: "POST", body: fd });
+            const res = await requestArtistImageApi("/api/artist/profile-image", { method: "POST", body: fd });
             const data = await res.json().catch(() => ({}));
             if (res.ok && data.imagePath) {
+                trackEvent("profile_edit", { action: "photo", target: null });
                 setImg(data.imagePath);
                 setPortrait(true);
                 setPosition(0);
