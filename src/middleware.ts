@@ -4,15 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 // not shared across worker instances. This provides best-effort protection for a
 // low-traffic site. For stronger guarantees, swap to @upstash/ratelimit + @upstash/redis.
 
-const STRICT_PATHS = ['/api/funFacts'];
-
-type Tier = 'strict' | 'default';
-
-function getTier(pathname: string): Tier {
-  if (STRICT_PATHS.some((p) => pathname.startsWith(p))) return 'strict';
-  return 'default';
-}
-
 function envInt(name: string, fallback: number): number {
   const val = Number(process.env[name]);
   return Number.isFinite(val) && val > 0 ? val : fallback;
@@ -20,10 +11,7 @@ function envInt(name: string, fallback: number): number {
 
 // Cached at module load so env vars aren't re-read on every request.
 // jest.resetModules() in tests causes re-evaluation, so env override tests still work.
-const LIMITS = {
-  strict: envInt('RATE_LIMIT_STRICT', 5),
-  default: envInt('RATE_LIMIT_DEFAULT', 60),
-} as const;
+const LIMIT = envInt('RATE_LIMIT_DEFAULT', 60);
 const WINDOW_MS = envInt('RATE_LIMIT_WINDOW_MS', 60_000);
 
 interface RateLimitEntry {
@@ -63,11 +51,7 @@ export function middleware(request: NextRequest): NextResponse {
   // to avoid all anonymous requests sharing one bucket.
   if (!ip) return NextResponse.next();
 
-  const pathname = request.nextUrl.pathname;
   const now = Date.now();
-  const tier = getTier(pathname);
-  const limit = LIMITS[tier];
-  const key = `${ip}:${tier}`;
 
   // Periodic cleanup to prevent memory leaks
   requestCount = (requestCount + 1) % 100;
@@ -75,13 +59,13 @@ export function middleware(request: NextRequest): NextResponse {
     cleanup(now);
   }
 
-  const entry = _rateLimitMap.get(key);
+  const entry = _rateLimitMap.get(ip);
 
   if (!entry || now >= entry.resetTime) {
     const newEntry = { count: 1, resetTime: now + WINDOW_MS };
-    _rateLimitMap.set(key, newEntry);
+    _rateLimitMap.set(ip, newEntry);
     const response = NextResponse.next();
-    for (const [h, v] of Object.entries(rateLimitHeaders(newEntry, limit))) {
+    for (const [h, v] of Object.entries(rateLimitHeaders(newEntry, LIMIT))) {
       response.headers.set(h, v);
     }
     return response;
@@ -92,9 +76,9 @@ export function middleware(request: NextRequest): NextResponse {
   // is the first to be rejected (entry.count > limit).
   entry.count++;
 
-  const headers = rateLimitHeaders(entry, limit);
+  const headers = rateLimitHeaders(entry, LIMIT);
 
-  if (entry.count > limit) {
+  if (entry.count > LIMIT) {
     const retryAfterSec = Math.ceil((entry.resetTime - now) / 1000);
     return new NextResponse(JSON.stringify({ error: 'Too many requests' }), {
       status: 429,

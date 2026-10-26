@@ -26,7 +26,7 @@ export const Sizes = () => (
     <Button size="sm">Small</Button>
     <Button size="default">Default</Button>
     <Button size="lg">Large</Button>
-    <Button size="icon" aria-label="Bookmark">★</Button>
+    <Button size="icon" aria-label="Star">★</Button>
   </div>
 );
 
@@ -45,7 +45,7 @@ export const Disabled = () => (
 
 /**
  * The brand move: shadcn Button restyled with the pastypink token via className.
- * This is exactly how EditModeToggle and BookmarkButton apply brand color — DESIGN.md is
+ * This is exactly how EditModeToggle applies brand color — DESIGN.md is
  * explicit that identity lives at the custom-component layer, never by forking the primitive.
  */
 export const BrandAccent = () => (
@@ -62,7 +62,7 @@ export const BrandAccent = () => (
       size="sm"
       className="border-pastypink bg-pastypink text-white hover:bg-pastypink/90"
     >
-      Bookmarked
+      Selected
     </Button>
   </div>
 );

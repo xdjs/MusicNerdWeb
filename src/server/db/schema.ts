@@ -6,18 +6,6 @@ export const claimStatus = pgEnum("claim_status", ['pending', 'approved', 'rejec
 export const sourceStatus = pgEnum("source_status", ['pending', 'approved', 'rejected'])
 
 
-export const funfacts = pgTable("funfacts", {
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	id: bigint({ mode: "number" }).generatedByDefaultAsIdentity({ name: "funfacts_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
-	loreDrop: text("lore_drop"),
-	behindTheScenes: text("behind_the_scenes"),
-	recentActivity: text("recent_activity"),
-	surpriseMe: text("surprise_me").notNull(),
-	isActive: boolean("is_active").default(false),
-}, (table) => [
-	pgPolicy("Enable read access for all users", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
-]);
-
 export const aiprompts = pgTable("aiprompts", {
 	promptId: uuid("prompt_id").defaultRandom().notNull(),
 	createdAt: timestamp("created_at", { mode: 'string' }),
@@ -994,23 +982,6 @@ export const artistSelfEdits = pgTable("artist_self_edits", {
     pgPolicy("mnweb_select_artist_self_edits", { for: 'select', to: ['mnweb'], using: sql`true` }),
     pgPolicy("mnweb_reassign_artist_self_edits", { for: 'update', to: ['mnweb'], using: sql`true`, withCheck: sql`true` }),
     pgPolicy("mnweb_insert_artist_self_edits", { for: 'insert', to: ['mnweb'], withCheck: sql`true` }),
-]).enableRLS();
-
-export const userArtistBookmarks = pgTable("user_artist_bookmarks", {
-	userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-	artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
-	position: integer("position").notNull(),
-    removedAt: timestamp("removed_at", { withTimezone: true, mode: "string" }),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
-}, (table) => [
-	primaryKey({ name: "user_artist_bookmarks_pkey", columns: [table.userId, table.artistId] }),
-	index("user_artist_bookmarks_user_order_idx").on(table.userId, table.position),
-	index("user_artist_bookmarks_artist_idx").on(table.artistId),
-	check("user_artist_bookmarks_position_nonnegative", sql`${table.position} >= 0`),
-	pgPolicy("mnweb_select_user_artist_bookmarks", { for: "select", to: ["mnweb"], using: sql`true` }),
-	pgPolicy("mnweb_insert_user_artist_bookmarks", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
-	pgPolicy("mnweb_update_user_artist_bookmarks", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
-	pgPolicy("mnweb_delete_user_artist_bookmarks", { for: "delete", to: ["mnweb"], using: sql`true` }),
 ]).enableRLS();
 
 // Prospective original retention. The writer's transaction captures old eligible

@@ -30,7 +30,7 @@ The copy must match what the code does. Update the page in the same PR as any ch
 - **Account data:** the `users` row (email, username, Privy user id, optional wallet address),
   created at sign-in through Privy and kept in the session by NextAuth.
 - **Contributions:** link and Lore submissions (`ugcresearch`), artist claims, interview and
-  question answers, bookmarks and self-edits. These are attributed publicly to the username.
+  question answers and self-edits. These are attributed publicly to the username.
 - **Artist data from public sources:** profiles, posts and pages gathered by the research jobs
   in MusicNerdAPI (Tavily web search, Apify for public Instagram posts, Spotify and Deezer
   catalogue data) and summarised with AI models through Vercel AI Gateway.

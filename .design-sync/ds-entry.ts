@@ -131,7 +131,6 @@ export { ThemeToggle } from "@/app/_components/ThemeToggle";
 export { EditModeContext, EditModeProvider } from "@/app/_components/EditModeContext";
 
 export { default as EditModeToggle } from "@/app/_components/EditModeToggle";
-export { default as BookmarkButton } from "@/app/_components/BookmarkButton";
 export { default as Footer } from "@/app/_components/Footer";
 export { default as LoadingPage } from "@/app/_components/LoadingPage";
 export { default as PleaseLoginPage } from "@/app/_components/PleaseLoginPage";
