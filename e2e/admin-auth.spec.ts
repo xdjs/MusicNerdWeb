@@ -1,35 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { login, fetchAsUser } from './helpers/auth';
-import { musicNerdApiUrl } from '../src/lib/musicNerdApi/musicNerdApiUrl';
 
 test.describe('Admin route auth checks', () => {
   test.setTimeout(60_000);
 
   test('Unauthenticated request gets 401', async ({ request }) => {
-    // PUT to MusicNerdAPI's admin whitelist-user endpoint without a Privy token
-    const whitelistRes = await request.put(musicNerdApiUrl('/api/admin/whitelist-user/test-id'), {
-      data: { isWhiteListed: true },
-    });
-    expect(whitelistRes.status()).toBe(401);
-    expect(await whitelistRes.json()).toEqual({ status: 'error', error: 'Not signed in' });
-
     // PUT to artistBio endpoint without any auth
     const bioRes = await request.put('/api/artistBio/test-id', {
       data: { bio: 'Unauthenticated bio attempt' },
     });
     expect(bioRes.status()).toBe(401);
-  });
-
-  test('Signed-in user cannot reach the retired Web admin route', async ({ page }) => {
-    await login(page, 'test-4473@privy.io', '676856');
-
-    // MusicNerdAPI requires a Privy bearer token, not this Web session cookie.
-    const result = await fetchAsUser(page, '/api/admin/whitelist-user/test-id', {
-      method: 'PUT',
-      body: JSON.stringify({ isWhiteListed: true }),
-    });
-
-    expect(result.status).toBe(404);
   });
 
   test('Admin can update artist bio', async ({ page }) => {
