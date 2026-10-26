@@ -20,9 +20,6 @@ import {
   removeFromHidden as removeFromHiddenQuery,
 } from "@/server/utils/queries/userQueries";
 
-import {
-  getUgcStatsInRange as getUgcStatsInRangeQuery,
-} from "@/server/utils/queries/getUgcStatsInRange";
 import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
 
 // ---- Types re-exported for client files ----
@@ -55,13 +52,6 @@ export async function addUsersToAdminAction(wallets: string[]) {
 
 export async function removeFromAdminAction(userIds: string[]) {
   return removeFromAdminQuery(userIds);
-}
-
-export async function getUgcStatsInRangeAction(
-  date: Parameters<typeof getUgcStatsInRangeQuery>[0],
-  wallet: string | null = null,
-) {
-  return getUgcStatsInRangeQuery(date, wallet);
 }
 
 export async function addUsersToHiddenAction(wallets: string[]) {
