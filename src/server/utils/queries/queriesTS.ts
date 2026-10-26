@@ -3,7 +3,6 @@ export * from "./artistQueries";
 export * from "./getLeaderboard";
 export * from "./getLeaderboardInRange";
 export * from "./getUgcStats";
-export * from "./getUgcStatsInRange";
 export * from "./leaderboardTypes";
 export * from "./userQueries";
 export * from "./discord";

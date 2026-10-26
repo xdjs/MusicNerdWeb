@@ -4,6 +4,5 @@ export * from "@/server/utils/queries/userQueries";
 export * from "./getLeaderboard";
 export * from "./getLeaderboardInRange";
 export * from "./getUgcStats";
-export * from "./getUgcStatsInRange";
 export * from "./leaderboardTypes";
 export * from "@/server/utils/queries/discord";
