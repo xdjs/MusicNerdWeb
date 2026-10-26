@@ -23,13 +23,6 @@ test.describe('Unauthenticated route behavior', () => {
     expect(data).toEqual({ count: 0 });
   });
 
-  test('GET /api/approvedUGCCount unauthenticated returns { count: 0 }', async ({ request }) => {
-    const res = await request.get('/api/approvedUGCCount');
-    expect(res.status()).toBe(200);
-    const data = await res.json();
-    expect(data).toEqual({ count: 0 });
-  });
-
   for (const route of ['removeArtistData', 'directEditLink']) {
     test(`POST MusicNerdAPI /api/${route} unauthenticated returns 401`, async ({ request }) => {
       const res = await request.post(musicNerdApiUrl(`/api/${route}`), {
@@ -62,12 +55,6 @@ test.describe('Regular user route behavior', () => {
     const pendingRes = await fetchAsUser(page, '/api/pendingUGCCount');
     expect(pendingRes.status).toBe(200);
     expect(pendingRes.body).toEqual({ count: 0 });
-
-    // GET /api/approvedUGCCount — authenticated user gets a numeric count
-    const approvedRes = await fetchAsUser(page, '/api/approvedUGCCount');
-    expect(approvedRes.status).toBe(200);
-    expect(approvedRes.body).toHaveProperty('count');
-    expect(typeof approvedRes.body.count).toBe('number');
 
     // The Web route is retired. A 404 must not count as successful API auth:
     // MusicNerdAPI requires a Privy bearer token, not this Web session cookie.

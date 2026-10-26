@@ -95,13 +95,6 @@ The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHan
  - Auth: Admin required (returns 0 for non-admin)
  - Error: Returns count 0 on errors
 
-**approvedUGCCount**
-
- - Type: GET
- - Response: `{count: number}` for the current user’s approved contributions
- - Auth: Session-based; returns count 0 without a session
- - Error: Returns count 0 on errors
-
 **ugcCount**
 
  - Type: GET
