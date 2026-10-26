@@ -61,15 +61,6 @@ The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHan
  - CORS: Enabled
  - Error: 400 for missing/oversized input; provider failures can return 502; POST timeout returns 408
 
-**funFacts/[type]**
-
- - Type: GET
- - Query: `?id=artistId`
- - Params: `type` (fun fact category)
- - Response: `{text: "generated fun fact"}`; this invokes generation
- - Auth: N/A
- - Error: 400 if artist id missing, 404 if artist not found, 408 for timeout
-
 ### Platform & Link Management
 
 **validateLink**
