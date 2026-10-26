@@ -14,7 +14,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { dismissLegacyLink } from '@/app/actions/dismissLegacyLink';
-import { preserveBookmarksAfterMerge } from '@/lib/bookmarks';
 
 interface LegacyAccountModalProps {
   open: boolean;
@@ -22,7 +21,7 @@ interface LegacyAccountModalProps {
 }
 
 export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
-  const { data: session, update: updateSession } = useSession();
+  const { update: updateSession } = useSession();
   const { toast } = useToast();
   const [isLinking, setIsLinking] = useState(false);
   const [isDismissing, setIsDismissing] = useState(false);
@@ -45,14 +44,9 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
           const result = await response.json();
 
           if (response.ok && result.success) {
-            let importWarning = '';
-            if (result.merged && session?.user?.id && typeof result.userId === 'string') {
-              try { preserveBookmarksAfterMerge(session.user.id, result.userId); }
-              catch { importWarning = ' Some older bookmarks remain in this browser and could not be moved automatically.'; }
-            }
             toast({
               title: result.merged ? 'Account Merged!' : 'Wallet Linked!',
-              description: result.message + importWarning,
+              description: result.message,
             });
             await updateSession();
             onClose();

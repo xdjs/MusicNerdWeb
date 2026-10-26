@@ -11,7 +11,6 @@ const B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const C = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const date = '2026-09-06T12:00:00Z';
 const stored = (artistId: string) => ({ artistId, createdAt: date });
-const view = (artistId: string) => ({ artistId, artistName: `Artist ${artistId}`, imageUrl: null });
 const dialect = new PgDialect();
 
 async function setup(results: unknown[][]) {
@@ -55,69 +54,9 @@ async function setup(results: unknown[][]) {
 describe('account bookmarks', () => {
     beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); });
 
-    it('joins current artist names and only safe stored images for the requested owner', async () => {
-        const { getUserBookmarks, conditions } = await setup([[
-            { artistId: A, artistName: 'Current name', imageUrl: '/uploaded.png' },
-            { artistId: B, artistName: null, imageUrl: 'javascript:alert(1)' },
-            { artistId: C, artistName: 'Third', imageUrl: '//other.test/picture' },
-        ]]);
-        expect(await getUserBookmarks(USER)).toEqual([
-            { artistId: A, artistName: 'Current name', imageUrl: '/uploaded.png' },
-            { artistId: B, artistName: 'Unknown Artist', imageUrl: null },
-            { artistId: C, artistName: 'Third', imageUrl: null },
-        ]);
-        expect(conditions[0].params).toEqual([USER]);
-    });
-
-    it('locks the account, prepends only missing existing artists, and preserves import order', async () => {
-        const { addUserBookmarks, inserted, updates, locks } = await setup([
-            [{ id: USER }], [stored(A)], [{ id: C }, { id: B }], [view(B), view(C), view(A)],
-        ]);
-        const nonexistent = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
-        expect(await addUserBookmarks(USER, [B, A, C, B, nonexistent])).toEqual([view(B), view(C), view(A)]);
-        expect(locks).toEqual(['update']);
-        expect(inserted).toEqual([{ userId: USER, artistId: B, position: 0 }, { userId: USER, artistId: C, position: 1 }]);
-        expect(updates[0].values.params).toEqual([B, 0, C, 1, A, 2]);
-        expect(updates[0].condition.params).toEqual([USER, B, C, A]);
-    });
-
-    it('uses only a known numeric Deezer ID for a stable image fallback', async () => {
-        const { getUserBookmarks } = await setup([[
-            { ...view(A), deezer: '27' }, { ...view(B), deezer: '../search' },
-        ]]);
-        expect((await getUserBookmarks(USER)).map(({ imageUrl }) => imageUrl)).toEqual([
-            'https://api.deezer.com/artist/27/image?size=medium', null,
-        ]);
-    });
-
-    it('repeated adds are idempotent and do not move an existing bookmark', async () => {
-        const { addUserBookmarks, inserted, updates } = await setup([[{ id: USER }], [stored(B), stored(A)], [view(B), view(A)]]);
-        expect(await addUserBookmarks(USER, [A, A])).toEqual([view(B), view(A)]);
-        expect(inserted).toEqual([]);
-        expect(updates).toEqual([]);
-    });
-
-    it('stale reorders retain concurrently added entries and cannot resurrect removed entries', async () => {
-        const { editUserBookmarks, inserted, updates, deleted } = await setup([
-            [{ id: USER }], [stored(C), stored(A)], [view(C), view(A)],
-        ]);
-        expect(await editUserBookmarks(USER, [B, A], [B])).toEqual([view(C), view(A)]);
-        expect(inserted).toEqual([]);
-        expect(deleted[0].params).toEqual([USER, B]);
-        expect(updates[0].values.params).toEqual([C, 0, A, 1]);
-    });
-
-    it('removing an already absent bookmark leaves surviving entries intact', async () => {
-        const { removeUserBookmark, deleted } = await setup([[{ id: USER }], [stored(A)], [view(A)]]);
-        expect(await removeUserBookmark(USER, B)).toEqual([view(A)]);
-        expect(deleted[0].params).toEqual([USER, B]);
-    });
-
-    it('does not write for an account removed since the session was issued', async () => {
-        const { addUserBookmarks, inserted, updates } = await setup([[]]);
-        await expect(addUserBookmarks(USER, [A])).rejects.toThrow('Bookmark account no longer exists');
-        expect(inserted).toEqual([]);
-        expect(updates).toEqual([]);
+    it('rejects an account removed since the session was issued', async () => {
+        const { lockBookmarkUsers, tx } = await setup([[{ id: USER }]]);
+        await expect(lockBookmarkUsers(tx, [USER, LEGACY])).rejects.toThrow('Bookmark account no longer exists');
     });
 
     it('locks both merging account rows in a stable order', async () => {

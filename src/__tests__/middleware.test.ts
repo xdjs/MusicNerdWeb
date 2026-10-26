@@ -274,7 +274,7 @@ it('isolates artist-image traffic from account API limits while retaining its ow
  const image='/api/artist/6cb3d81a-3d02-4c57-a711-bb7902a9af1b/image';
  for(let i=0;i<180;i++)expect(middleware(makeRequest(image)).status).not.toBe(429);
  expect(middleware(makeRequest(image)).status).toBe(429);
- expect(middleware(makeRequest('/api/bookmarks')).status).not.toBe(429);
+ expect(middleware(makeRequest('/api/user/has-claim')).status).not.toBe(429);
  expect(middleware(makeRequest('/api/profile/summary')).headers.get('X-RateLimit-Remaining')).toBe('58');
 });
 

@@ -232,8 +232,6 @@ an automatic refresh introduced by this feature.
 - Older posts without retained thumbnails can still have expired Instagram image URLs. They
   need an authorized ingestion or image-only refresh; visiting the profile does not refresh them.
 - This section does not refresh Instagram data or implement notification subscriptions.
-- The initial audit found browser-only bookmarks. Pete clarified that they must sync by account;
-  that implementation and its separate migration are documented in [account-bookmarks.md](account-bookmarks.md).
 - These are preview limits, not reasons to silently add new storage, migrations or services.
 
 ## Verification

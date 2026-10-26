@@ -114,7 +114,6 @@ The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHan
 
 | Area | Entry points |
 | --- | --- |
-| Account bookmarks (local feature; check migration/release status) | [Local feature contract](docs/account-bookmarks.md); `/api/bookmarks` is not in this docs release |
 | Account login and wallet linking | [Auth reference](docs/development.md#architecture-and-integration-map), [link handler](src/app/api/auth/link-wallet/route.ts) |
 | Artist questions and interview | [Ask](src/app/api/askArtist/route.ts), [interview chat](src/app/api/onboarding/[artistId]/chat/route.ts) |
 | Source research and stored knowledge | [Lore URL suggestions](src/app/api/artist/[id]/lore-suggestions/route.ts), [research refresh](src/app/api/artist/[id]/research/refresh/route.ts), [scheduler](src/app/api/research/advance/route.ts), [knowledge export](src/app/api/artist/[id]/knowledge-doc/export/route.ts) |

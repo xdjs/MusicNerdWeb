@@ -517,9 +517,7 @@ Original checkout: `/Users/peterarango/cursor experiments/MusicNerdWeb`, branch
 - [Latest](docs/artist-latest.md): local horizontal gallery with release/social/interview cards.
   Dev read-only desktop/mobile checks passed using the development auth fallback, not real
   Privy login. Durable Instagram image retention remains unresolved.
-- [Account bookmarks](docs/account-bookmarks.md): local account-backed storage, shared state,
-  legacy import and merge preservation. Local Postgres checks passed; the real two-browser
-  dev flow has not run. Wallet linking has unit coverage, not real-provider E2E evidence.
+- Wallet linking has unit coverage, not real-provider E2E evidence.
 - Pending `0024_user_artist_bookmarks` is **not applied to dev or production**. It conflicts
   with released `0024_artist_profile_protection`: rebase/renumber and regenerate metadata
   before its separately authorized migration. Do not replay historical migrations.

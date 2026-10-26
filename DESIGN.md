@@ -386,7 +386,6 @@ Additional stock primitives present but not individually styled: `aspect-ratio`,
 - **EditableLinkIcon** — editable glass tile; adds a red `-top-1 -right-1` delete `X` gated on `EditModeContext.isEditing`, posting to `/api/directEditLink`.
 - **ThemeToggle** — a **fully custom animated pill switch** (not Radix Switch). Mobile `w-12 h-12` circle and desktop `w-28 h-8` pill with sliding knob + "Dark Mode"/"Light Mode" labels; Moon/Sun icons. Colors hardcoded inline (`#2d3748`/`#f3f4f6` track, `#2ad4fc` moon = `pastyblue` value).
 - **EditModeToggle** — wraps shadcn `<Button variant="outline" size="sm">`, restyled with brand `pastypink` (`border-pastypink/50 text-pastypink hover:bg-pastypink hover:text-white`); Pencil/Check icons.
-- **BookmarkButton** — wraps shadcn `<Button variant="outline" size="sm">`, `localStorage`-backed toggle, fixed `w-[120px]`, `pastypink` fill/border states.
 - **SlidingText** — vertical text carousel cycling `ReactNode[]` via `translateY`. Uses `.home-text-height`. **Dead code (imported nowhere).**
 - **TypeWriter** — char-by-char typewriter (`startDelay=1000ms`, `typingDelay=80ms`). **Dead code (imported nowhere).**
 - **LoginBtn** (`buttons/LoginBtn/index.tsx`) — **legacy pre-shadcn button**: raw `<button className="pink-btn">` (`background #EDADF8`, maroon `#422B46` text, KoHo font, `5px` radius, 18px). Evidence of an older button system still in the tree.
@@ -397,7 +396,7 @@ Additional stock primitives present but not individually styled: `aspect-ratio`,
 - The shadcn primitives are **~70% stock generated code.** Meaningful hand-edits: Button (removed default hover), Input (stripped border/height/ring), Textarea (`min-h-[50px]`, missing ring width), Dialog (`dark:bg-gray-900`), Table (truncating cells, tighter padding).
 - **Three parallel button systems** coexist: the cva `Button`, the legacy `.pink-btn` global class, and the fully-custom `ThemeToggle` `<button>`.
 - **Two artist-link renderers** coexist: `ArtistLinks` (list rows) and `ArtistLinksGrid` (glass icon grid).
-- Brand color is applied **two ways**: via Tailwind tokens (`pastypink`, `pastyblue`) in `EditModeToggle`/`BookmarkButton`, and via hardcoded hex (`#ff9ce3`, `#2d3748`, `#EDADF8`) in `HomePageSplash`, `ThemeToggle`, `.pink-btn`.
+- Brand color is applied **two ways**: via Tailwind tokens (`pastypink`, `pastyblue`) in `EditModeToggle`, and via hardcoded hex (`#ff9ce3`, `#2d3748`, `#EDADF8`) in `HomePageSplash`, `ThemeToggle`, `.pink-btn`.
 - **A dead pre-shadcn utility-class layer survives** in `globals.css:679–738`: `@apply`-based legacy classes `.navbar`, `.logo`, `.login-button` (`bg-purple-600`), `.support-button`/`.sound-button`/`.world-button` (`bg-green-500`), `.play-button` (`bg-pink-500`), `.support-input`, `.scroll-text`, and a duplicate `.search-bar { @apply p-2 border rounded }` that conflicts with the earlier `.search-bar { border-radius: 5px }`. Evidence of an older styling system predating shadcn, still in the tree.
 
 ---

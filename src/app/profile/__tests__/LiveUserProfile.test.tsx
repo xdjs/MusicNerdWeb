@@ -7,7 +7,6 @@ import LiveUserProfile from '../LiveUserProfile';
 const mockUpdate = jest.fn().mockResolvedValue(null);
 let mockModel: LiveProfileModel;
 jest.mock('next-auth/react', () => ({ useSession: () => ({ update: mockUpdate, status: 'authenticated', data: {user: {id: 'account'}} }) }));
-jest.mock('@/hooks/useBookmarks', () => ({ useBookmarks: () => ({ bookmarks: [], canMutate: true, isLoading: false }) }));
 jest.mock('../ProfileConcept', () => ({ __esModule: true, default: ({live}: {live: LiveProfileModel}) => { mockModel = live; return null; } }));
 jest.mock('../ProfileLoading', () => ({ __esModule: true, default: () => null }));
 
