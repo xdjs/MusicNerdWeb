@@ -55,7 +55,7 @@ the same boundary `GEMINI_API_KEY` had. The stub build needs no LLM variable.
 
 ## Call sites
 
-Fourteen sites in eight files. Every column is a contract: the switch may not change a model,
+Twelve sites in eight files. Every column is a contract: the switch may not change a model,
 temperature, thinking budget, timeout, or the error a caller matches on.
 
 | # | Site | Purpose | Model | Config | Timeout → on timeout | Surface |
@@ -72,8 +72,6 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 10 | `questionGenerator.ts` verifier | Question vs source statement | flash | temp 0, JSON schema, thinking 512 | 12 s → `"verifier timeout"` | same |
 | 11 | `sourceRelevance.ts` `judgeSourceRelevance` | Is this page about this artist | flash | temp 0, JSON schema, thinking 0 | 20 s → `"relevance judge timeout"` | `vaultWebSearch` |
 | 12 | `socialCredits.ts` `extractCaptionCredits` | Credits from Instagram captions, 15 per batch | flash | temp 0, JSON schema | 90 s → `"caption extraction timed out"` | `researchRunner`, `socialIngest` |
-| 13 | ~~`onboarding/turnHandlers.ts` ack~~ | Moved to MusicNerdAPI (`lib/onboarding/generateInterviewAck.ts`) with the onboarding chat (#1365, cutover 2) | — | — | — | — |
-| 14 | ~~`api/funFacts/[type]/route.ts`~~ | Moved to MusicNerdAPI (`lib/funFacts/generateFunFact.ts`, MusicNerdAPI#80); the Web route and its unmounted Fun Facts components are deleted (#1595) | — | — | — | — |
 
 Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen).
 
