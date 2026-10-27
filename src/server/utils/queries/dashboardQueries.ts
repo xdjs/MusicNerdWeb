@@ -297,13 +297,6 @@ export async function getVaultSourceByIdAndArtist(sourceId: string, artistId: st
     }
 }
 
-/** Publication reconciliation must distinguish a missing row from a failed read. */
-export async function getVaultUploadByPath(artistId: string, filePath: string) {
-    return db.query.artistVaultSources.findFirst({
-        where: and(eq(artistVaultSources.artistId, artistId), eq(artistVaultSources.filePath, filePath)),
-    });
-}
-
 export async function getVaultSourceById(sourceId: string) {
     try {
         return await db.query.artistVaultSources.findFirst({
