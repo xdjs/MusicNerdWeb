@@ -12,6 +12,8 @@ import { getChatProgress } from "@/lib/artistChat/getChatProgress";
 import { getChatQuota } from "@/lib/artistChat/getChatQuota";
 import { getChatSources, type ChatSource } from "@/lib/artistChat/getChatSources";
 import { getMessageText } from "@/lib/artistChat/getMessageText";
+import { getWebSearchUrls } from "@/lib/artistChat/getWebSearchUrls";
+import { removeUnresolvedCitations } from "@/lib/artistChat/removeUnresolvedCitations";
 
 interface AskAboutArtistProps {
     artistId: string;
@@ -92,8 +94,10 @@ function searchedWeb(message: UIMessage): boolean {
 }
 
 function ConversationAnswer({ message }: { message: UIMessage }) {
-    const answer = getMessageText(message);
     const sources = getChatSources(message);
+    const answer = removeUnresolvedCitations(getMessageText(message), new Set(sources.map(s => s.n)));
+    const webUrls = getWebSearchUrls(message);
+    const webSources = sources.filter(s => webUrls.has(s.url)).length;
     return <div className="space-y-3 px-1">
         <p data-testid="answer" className="text-sm text-white/90 leading-relaxed whitespace-pre-line break-words">
             {renderAnswer(answer, sources)}
@@ -124,11 +128,13 @@ function ConversationAnswer({ message }: { message: UIMessage }) {
         )}
 
         <p className="text-[10px] text-white/50 italic">
-            {sources.length > 0
-                ? "Written by AI from the sources above"
-                : searchedWeb(message)
+            {sources.length === 0
+                ? "AI-generated response"
+                : webSources === sources.length
                     ? "Written by AI from a web search"
-                    : "AI-generated response"}
+                    : webSources > 0
+                        ? "Written by AI from the sources above, including a web search"
+                        : "Written by AI from the sources above"}
         </p>
     </div>;
 }

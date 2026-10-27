@@ -140,6 +140,8 @@ describe("an answer, rendered", () => {
         expect(screen.getByTestId("answer").textContent).not.toMatch(/Artist Doc|\[10\]/);
         expect(prose.getAllByRole("link")).toHaveLength(1);
         expect(screen.getByTestId("answer")).toHaveTextContent("[2026-05-13]");
+        // The dropped marker takes the space before it, so no " ," is left behind.
+        expect(screen.getByTestId("answer").textContent).toContain("Kilo Kish, on");
     });
 
     it("lists the cited sources only, dated when they are posts on one site", () => {
@@ -149,13 +151,28 @@ describe("an answer, rendered", () => {
         expect(screen.getByText("Written by AI from the sources above")).toBeVisible();
     });
 
-    it("says an answer came from a web search when it did", () => {
-        state({ messages: [user("Q"), assistant([
-            { type: "tool-webSearch", toolCallId: "t1", state: "output-available", input: { query: "q" }, output: { results: [] } },
-            { type: "text", text: "Nothing in the saved sources." },
-        ])] });
+    const webSearch = (urls: string[]) => ({ type: "tool-webSearch", toolCallId: "w", state: "output-available", input: { query: "q" },
+        output: { results: urls.map((url, i) => ({ n: i + 1, title: url, url, snippet: "" })) } });
+
+    it("says an answer came from a web search when its sources did", () => {
+        state({ messages: [user("Q"), assistant([webSearch(["https://web.example/1"]), source(1, "https://web.example/1"),
+            { type: "text", text: "On the web [1]." }])] });
         renderChat();
         expect(screen.getByText("Written by AI from a web search")).toBeVisible();
+    });
+
+    it("says a web search was among the sources when it was one of several", () => {
+        state({ messages: [user("Q"), assistant([source(1), webSearch(["https://web.example/2"]), source(2, "https://web.example/2"),
+            { type: "text", text: "Saved [1] and web [2]." }])] });
+        renderChat();
+        expect(screen.getByText("Written by AI from the sources above, including a web search")).toBeVisible();
+    });
+
+    it("does not credit a web search that found nothing", () => {
+        state({ messages: [user("Q"), assistant([webSearch([]), { type: "text", text: "I couldn't find that." }])] });
+        renderChat();
+        expect(screen.getByText("AI-generated response")).toBeVisible();
+        expect(screen.queryByText(/web search/)).not.toBeInTheDocument();
     });
 
     it("shows an error with an explicit retry", () => {
