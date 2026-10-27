@@ -22,7 +22,6 @@ import { artists, artistIdMappings, ugcresearch } from "@/server/db/schema";
 import { Artist, UrlMap } from "@/server/db/DbTypes";
 import { isObjKey, extractArtistId } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
-import { PgColumn } from "drizzle-orm/pg-core";
 
 import { getUserById, getUserDisplayName } from "@/server/utils/queries/userQueries";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
@@ -40,13 +39,6 @@ import {
 // ----------------------------------
 // Types
 // ----------------------------------
-
-type getResponse<T> = {
-    isError: boolean;
-    message: string;
-    data: T | null;
-    status: number;
-};
 
 export type ArtistLink = UrlMap & {
     artistUrl: string;
@@ -115,29 +107,6 @@ export type RemoveArtistDataResp = {
 // ----------------------------------
 // Artist helpers & basic look-ups
 // ----------------------------------
-
-export async function getArtistByProperty(column: PgColumn<any>, value: string): Promise<getResponse<Artist>> {
-    try {
-        const result = await db.query.artists.findFirst({
-            where: eq(column, value),
-        });
-        if (!result)
-            return {
-                isError: true,
-                status: 404,
-                message: "The artist you're searching for is not found",
-                data: null,
-            };
-        return { isError: false, message: "", data: result, status: 200 };
-    } catch {
-        return {
-            isError: true,
-            message: "Something went wrong on our end",
-            data: null,
-            status: 404,
-        };
-    }
-}
 
 // Searches for artists in the database by name using fuzzy matching and similarity scoring
 export async function searchForArtistByName(name: string) {

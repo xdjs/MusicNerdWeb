@@ -235,7 +235,6 @@ jest.mock('@/server/utils/musicPlatform', () => ({
 
 // Mock server actions to prevent function not found errors
 jest.mock('@/app/actions/serverActions', () => ({
-    getUgcStatsInRangeAction: jest.fn().mockResolvedValue({ ugcCount: 0, artistsCount: 0 }),
     addArtistDataAction: jest.fn(),
     approveUgcAdminAction: jest.fn(),
     searchForUsersByWalletAction: jest.fn(),

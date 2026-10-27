@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Leaderboard from '../Leaderboard';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
 jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api.test${path}` }));
 
@@ -37,7 +38,7 @@ it('resets pagination with a new period, retains an empty state, and retries a f
   fireEvent.click(await screen.findByRole('button', {name:'Try again'}));
   expect(await screen.findByText('No contributions in this period yet.')).toBeInTheDocument();
   expect(screen.queryByRole('button', {name:'Next'})).not.toBeInTheDocument();
-  await waitFor(()=>expect(fetch).toHaveBeenLastCalledWith('/api/leaderboard', expect.anything()));
+  await waitFor(()=>expect(fetch).toHaveBeenLastCalledWith(musicNerdApiUrl('/api/leaderboard'), expect.anything()));
 });
 
 it('ignores a superseded period response', async () => {

@@ -12,14 +12,12 @@ const database = { execute: async (q: SQL) => (await driver.execute(q)).rows, tr
 const id='00000000-0000-4000-8000-000000000001';
 const other='00000000-0000-4000-8000-000000000002';
 let setName: typeof import('../setUserName').setUserName;
-let getLeaderboard: typeof import('../../queries/getLeaderboard').getLeaderboard;
 let addSourceContributors: typeof import('../../source/addSourceContributors').addSourceContributors;
 const artist='00000000-0000-4000-8000-000000000003';
 const event='00000000-0000-4000-8000-000000000004';
 const source={id:'source',artistId:artist,activityId:event,origin:'submission'} as ArtistVaultSource;
 beforeAll(async () => {
   jest.resetModules(); ({setUserName:setName}=await import('../setUserName'));
-  ({getLeaderboard}=await import('../../queries/getLeaderboard'));
   ({addSourceContributors}=await import('../../source/addSourceContributors'));
   await client.exec(`create table users (id uuid primary key, username text, wallet text, updated_at timestamptz default now(), email text, is_hidden boolean default false);
     create table artist_activity_events (id uuid primary key, artist_id uuid, actor_user_id uuid, actor_kind text);
@@ -41,7 +39,6 @@ it('generates once, preserves chosen names, confirms and rejects duplicate/priva
  expect(account).toEqual({id,username:first.username,usernameNeedsConfirmation:true,usernamePromptedAt:null});
  expect(first.username).toMatch(/^\S+ \S+$/);expect(first.usernameNeedsConfirmation).toBe(true);
  expect((await setName(id)).username).toBe(first.username);
- expect((await getLeaderboard())[0].username).toBe(first.username);
  expect((await addSourceContributors(artist,[source]))[0].contributorName).toBe(first.username);
  expect((await setName(other)).username).toBe('Chosen Name');
  await expect(setName(id,' chosen name ')).rejects.toThrow('already taken');
@@ -54,6 +51,4 @@ it('generates once, preserves chosen names, confirms and rejects duplicate/priva
  const repeated = await driver.execute(sql`update users set username_prompted_at=now() where id=${id} and username_prompted_at is null returning id`);
  expect(shown.rows).toHaveLength(1); expect(repeated.rows).toHaveLength(0);
  expect((await addSourceContributors(artist,[source]))[0].contributorName).toBe('New Name');
- const credits=await getLeaderboard();
- expect(credits).toEqual([expect.objectContaining({userId:id,username:'New Name',artistsCount:1,ugcCount:1})]);
 });
