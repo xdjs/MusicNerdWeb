@@ -11,7 +11,7 @@ import { withArtistOperation } from '@/server/utils/artistOperationContext';
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { sendClaimApprovedEmail } from "@/server/utils/email";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
-import { logMcpAudit } from "@/app/api/mcp/audit";
+import { logMcpAudit } from "@/server/utils/logMcpAudit";
 import { getSupabaseAdmin, VAULT_BUCKET } from "@/server/lib/supabase";
 
 async function requireAdminSession() {

@@ -152,8 +152,7 @@
 
 
 /* Dark mode overrides for Leaderboard - consolidated */
-/* Note: Fun Facts buttons should keep the same border color in both modes */
-.dark .border-\[#9b83a0\]:not(.fun-facts-button) {
+.dark .border-\[#9b83a0\] {
   border-color: #6f4b75 !important;
 }
 

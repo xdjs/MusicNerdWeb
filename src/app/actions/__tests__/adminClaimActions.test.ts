@@ -26,7 +26,7 @@ jest.mock("@/server/utils/queries/researchJobQueries", () => ({
 jest.mock("@/server/utils/queries/discord", () => ({
     sendDiscordMessage: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock("@/app/api/mcp/audit", () => ({
+jest.mock("@/server/utils/logMcpAudit", () => ({
     logMcpAudit: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock("@/server/lib/supabase", () => {
