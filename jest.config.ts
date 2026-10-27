@@ -39,6 +39,7 @@ const customJestConfig: Config = {
         // ESM-only AI SDK packages; the real wrappers are unit-tested with explicit jest.mock factories
         '^ai$': '<rootDir>/src/test/__mocks__/ai.ts',
         '^@ai-sdk/google$': '<rootDir>/src/test/__mocks__/ai-sdk-google.ts',
+        '^@ai-sdk/react$': '<rootDir>/src/test/__mocks__/ai-sdk-react.ts',
         // Handle CSS imports
         '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
         // Handle image imports

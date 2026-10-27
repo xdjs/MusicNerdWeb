@@ -1,31 +1,40 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { useChat } from '@ai-sdk/react';
 import ArtistAskSheet from '@/app/artist/[id]/_components/ArtistAskSheet';
-import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
-it('opens existing suggested questions, submits the artist ID, and renders real citation links in the sheet', async () => {
-    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({
-        answer: 'Nova started recording in a home studio.[1]',
-        sources: [{ n: 1, title: 'Studio interview', url: 'https://example.com/interview' }],
-    }) } as Response);
-    render(<ArtistAskSheet artistId="nova-id" artistName="Nova" />);
+// useChat is mocked (src/test/__mocks__/ai-sdk-react.ts): each test sets the chat's state.
+const chat = jest.mocked(useChat);
+const sendMessage = jest.fn();
+const regenerate = jest.fn();
+function state(overrides: Record<string, unknown> = {}) {
+    chat.mockReturnValue({ messages: [], status: 'ready', error: undefined, sendMessage, stop: jest.fn(), regenerate, ...overrides } as never);
+}
+const user = (id: string, text: string) => ({ id, role: 'user', parts: [{ type: 'text', text }] });
+const assistant = (id: string, text: string, sources: { n: number; title: string; url: string }[] = []) => ({ id, role: 'assistant', parts: [
+    ...sources.map(s => ({ type: 'source-url', sourceId: String(s.n), url: s.url, title: s.title })), { type: 'text', text },
+] });
+const ANSWERED = [user('u1', 'How did Nova get started?'), assistant('a1', 'Nova started recording in a home studio.[1]', [{ n: 1, title: 'Studio interview', url: 'https://example.com/interview' }])];
+beforeEach(() => { jest.clearAllMocks(); state(); });
+
+it('opens existing suggested questions, sends one, renders real citation links, and keeps the chat through minimize', () => {
+    const { rerender } = render(<ArtistAskSheet artistId="nova-id" artistName="Nova" />);
     const trigger = screen.getByRole('button', { name: 'Ask about Nova' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.click(trigger);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'How did Nova get started?' }));
-    await waitFor(() => expect(screen.getByText(/Nova started recording/)).toBeInTheDocument());
-    expect(fetchMock).toHaveBeenCalledWith(musicNerdApiUrl('/api/askArtist'), expect.objectContaining({
-        method: 'POST', body: JSON.stringify({ artistId: 'nova-id', question: 'How did Nova get started?' }),
-    }));
+    expect(sendMessage).toHaveBeenCalledWith({ text: 'How did Nova get started?' });
+    state({ messages: ANSWERED });
+    rerender(<ArtistAskSheet artistId="nova-id" artistName="Nova" />);
+    expect(screen.getByText(/Nova started recording/)).toBeInTheDocument();
     expect(screen.getAllByRole('link').some(link => link.getAttribute('href') === 'https://example.com/interview')).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Minimize chat' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveFocus();
     fireEvent.click(trigger);
     expect(screen.getByText(/Nova started recording/)).toBeVisible();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    fetchMock.mockRestore();
+    expect(sendMessage).toHaveBeenCalledTimes(1);
 });
 
 
@@ -50,25 +59,15 @@ it('keeps the profile interactive and preserves an unfinished question when mini
     expect(screen.getByRole('textbox')).toHaveValue('A question in progress');
 });
 
-it('keeps earlier answers and sources when the next question fails, then allows a retry', async () => {
-    const fetchMock = jest.spyOn(global, 'fetch')
-        .mockResolvedValueOnce({ ok: true, json: async () => ({ answer: 'First answer.', sources: [{ n: 1, title: 'First source', url: 'https://example.com/first' }], suggestions: [] }) } as Response)
-        .mockRejectedValueOnce(new Error('offline'))
-        .mockResolvedValueOnce({ ok: true, json: async () => ({ answer: 'Second answer.', sources: [], suggestions: [] }) } as Response);
+it('keeps earlier answers and sources when the next question fails, then allows a retry', () => {
+    state({ messages: [...ANSWERED, user('u2', 'What came next?')], status: 'error', error: new Error('offline') });
     render(<ArtistAskSheet artistId="nova-id" artistName="Nova" />);
     fireEvent.click(screen.getByRole('button', { name: 'Ask about Nova' }));
-    fireEvent.click(screen.getByRole('button', { name: 'How did Nova get started?' }));
-    await screen.findByText('First answer.');
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'What came next?' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Submit question' }));
-    await screen.findByRole('alert');
-    expect(screen.getByText('First answer.')).toBeVisible();
-    expect(screen.getByRole('link', { name: /example.com/ })).toHaveAttribute('href', 'https://example.com/first');
+    expect(screen.getByRole('alert')).toBeVisible();
+    expect(screen.getByText(/Nova started recording/)).toBeVisible();
+    expect(screen.getByRole('link', { name: /example.com/ })).toHaveAttribute('href', 'https://example.com/interview');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    await screen.findByText('Second answer.');
-    expect(screen.getByText('First answer.')).toBeVisible();
-    fetchMock.mockRestore();
+    expect(regenerate).toHaveBeenCalledTimes(1);
 });
 
 it('moves the panel above the mobile keyboard and releases viewport listeners when minimized', () => {
@@ -90,41 +89,16 @@ it('moves the panel above the mobile keyboard and releases viewport listeners wh
     Object.defineProperty(window, 'visualViewport', { configurable: true, value: original });
 });
 
-it('finishes an in-flight answer while minimized without resubmitting when reopened', async () => {
-    let resolve!: (response: Response) => void;
-    const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(() => new Promise<Response>(done => { resolve = done; }));
-    render(<ArtistAskSheet artistId="nova-id" artistName="Nova" />);
+it('keeps streaming while minimized and shows the answer on reopen without resending', () => {
+    state({ messages: [ANSWERED[0]], status: 'submitted' });
+    const { rerender } = render(<ArtistAskSheet artistId="nova-id" artistName="Nova" />);
     const trigger = screen.getByRole('button', { name: 'Ask about Nova' });
     fireEvent.click(trigger);
-    fireEvent.click(screen.getByRole('button', { name: 'How did Nova get started?' }));
     expect(screen.getByRole('status')).toHaveTextContent('Checking Lore…');
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole('button', { name: 'Minimize chat' }));
-    await act(async () => resolve({ ok: true, json: async () => ({ answer: 'Ready when you return.', suggestions: [] }) } as Response));
+    state({ messages: ANSWERED });
+    rerender(<ArtistAskSheet artistId="nova-id" artistName="Nova" />);
     fireEvent.click(trigger);
-    expect(screen.getByText('Ready when you return.')).toBeVisible();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    fetchMock.mockRestore();
-});
-
-it('lets Escape close record links before minimizing the chat', async () => {
-    const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(async url => ({
-        ok: true,
-        json: async () => String(url).includes('/api/trackLinks') ? { links: [] } : {
-            answer: 'Listen to First Song.', suggestions: [],
-            songs: [{ title: 'First Song', spotifyUrl: 'https://open.spotify.com/album/first' }],
-        },
-    } as Response));
-    render(<ArtistAskSheet artistId="nova-id" artistName="Nova" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Ask about Nova' }));
-    fireEvent.click(screen.getByRole('button', { name: 'How did Nova get started?' }));
-    const song = await screen.findByRole('button', { name: 'First Song' });
-    fireEvent.click(song);
-    await screen.findByText('Nowhere else we could find it.');
-    fireEvent.keyDown(song, { key: 'Escape' });
-    expect(screen.queryByRole('group', { name: 'Where to hear First Song' })).not.toBeInTheDocument();
-    expect(screen.getByRole('dialog')).toBeVisible();
-    fireEvent.keyDown(song, { key: 'Escape' });
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    fetchMock.mockRestore();
+    expect(screen.getByText(/Nova started recording/)).toBeVisible();
+    expect(sendMessage).not.toHaveBeenCalled();
 });

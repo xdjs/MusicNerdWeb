@@ -8,3 +8,7 @@ export const Output = {
     object: jest.fn((options: unknown) => ({ type: "object", options })),
     array: jest.fn((options: unknown) => ({ type: "array", options })),
 };
+/** Records its options, so a test can check where the chat sends and with which headers. */
+export class DefaultChatTransport {
+    constructor(public options: Record<string, unknown>) {}
+}
