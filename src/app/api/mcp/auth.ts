@@ -2,7 +2,6 @@ import crypto from "crypto";
 import { db } from "@/server/db/drizzle";
 import { mcpApiKeys } from "@/server/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
-import { mcpRequestContext } from "./request-context";
 
 export function hashApiKey(key: string): string {
   return crypto.createHash("sha256").update(key).digest("hex");
@@ -24,19 +23,4 @@ export async function validateMcpApiKey(request: Request): Promise<string | null
   });
 
   return row ? keyHash : null;
-}
-
-export class McpAuthError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "McpAuthError";
-  }
-}
-
-export function requireMcpAuth(): string {
-  const ctx = mcpRequestContext.getStore();
-  if (!ctx?.apiKeyHash) {
-    throw new McpAuthError("Authentication required");
-  }
-  return ctx.apiKeyHash;
 }
