@@ -2,8 +2,6 @@ import { enqueueClaimInterview } from '../enqueueClaimInterview';
 import { withScopedArtistWrite } from '../ownershipWrites';
 import { recordArtistActivity } from '../../activity/recordArtistActivity';
 
-let mockEnabled = true;
-jest.mock('@/env', () => ({ get MUSICNERD_API_INTERVIEWER_ENABLED() { return mockEnabled; } }));
 jest.mock('../ownershipWrites', () => ({ withScopedArtistWrite: jest.fn() }));
 jest.mock('../../activity/recordArtistActivity', () => ({ recordArtistActivity: jest.fn() }));
 
@@ -34,9 +32,3 @@ it('reports a competing job instead of pretending preparation was queued', async
   expect(await enqueueClaimInterview('artist', 'claim', 'claimant')).toBe(false);
 });
 
-it('does not enqueue while the interviewer is disabled', async () => {
-  mockEnabled = false;
-  expect(await enqueueClaimInterview('artist', 'claim', 'claimant')).toBe(true);
-  expect(withScopedArtistWrite).not.toHaveBeenCalled();
-  mockEnabled = true;
-});

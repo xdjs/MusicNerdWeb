@@ -26,7 +26,7 @@ export type LatestRefreshState = {
   spotify?: string;
   deezer?: string;
   sources: Record<LatestSource, SourceResult>;
-  /** Server-only diagnostic; never returned by getLatestRefresh. */
+  /** Server-only diagnostic; never returned by MusicNerdAPI's latest-refresh endpoint. */
   instagramFailure?: { phase: "status" | "collection"; reason: string; at: string };
   providerStarted?: boolean;
   runId?: string;

@@ -36,6 +36,10 @@ MusicNerdAPI#13): its Instagram check, with the ownership and identity check bef
 slice. The edit-mode pump posts to MusicNerdAPI's `/api/research/advance`. This app's worker,
 `/api/artist/[id]/latest-refresh/advance` and its cron are gone.
 
+October 22, 2026 (#1595, row N): MusicNerdAPI also serves `GET`/`POST /api/artist/{id}/latest-refresh`
+(MusicNerdAPI#72). `LatestRefreshControl` calls it with the Privy token (`src/lib/latest/requestLatestRefresh.ts`);
+this app's route and its `src/server/utils/latest` request/read code are gone.
+
 ## Verification contract
 
 Test real PostgreSQL request coalescing/cooldowns and ownership; anonymous/non-owner

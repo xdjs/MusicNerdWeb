@@ -75,7 +75,6 @@ jest.mock('@/app/artist/[id]/_components/onboarding/ProfileTour', () => ({
     default: function ProfileTour({ hasSupportLinks }: { hasSupportLinks: boolean }) {
         return <div data-testid="profile-tour" data-has-support={String(hasSupportLinks)} />;
     },
-    TOUR_FINISHED_EVENT: 'mn-tour-finished',
 }));
 // Same reason as SeoArtistLinks: an async server component that reads the link
 // table, which this suite does not stand up.

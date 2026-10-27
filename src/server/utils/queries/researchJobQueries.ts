@@ -7,7 +7,7 @@ import { recordArtistActivity } from '../activity/recordArtistActivity';
  * failure in this subsystem has never been the work — it has been not knowing
  * whether the work ran. `status` answers that; row counts never could.
  */
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
 import { withResearchJobWrite, withScopedArtistWrite, lockScopedArtistWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
 import { artistResearchJobs } from "@/server/db/schema";
@@ -315,8 +315,7 @@ export async function getResearchJobs(artistId: string): Promise<ResearchJob[]> 
  *
  *  NOT THE GUARD YOU WANT FOR "should I wait". Its negation is true both for
  *  work in progress AND for work that was never enqueued, so gating on
- *  `!isResearchComplete` blocks an artist with no Instagram handle forever.
- *  Use `isResearchInFlight` below, which asks the question directly. */
+ *  `!isResearchComplete` blocks an artist with no Instagram handle forever. */
 export async function isResearchComplete(artistId: string, kind: JobKind): Promise<boolean> {
     if (!artistId) return false;
     try {
@@ -328,48 +327,6 @@ export async function isResearchComplete(artistId: string, kind: JobKind): Promi
     } catch (e) {
         console.error("[isResearchComplete] Error:", e);
         return false;
-    }
-}
-
-/**
- * True when ANY of these kinds of work is QUEUED OR RUNNING for this artist.
- *
- * TAKES A LIST BECAUSE ONE STAGE IS NOT THE QUESTION. `caption_extract` is
- * enqueued only after `social_ingest` completes (runIngest, above), so while
- * the scrape is running there is no extraction row to find. Asking only about
- * extraction answers "false" for the entire scrape — which is the exact window
- * Pete Rango's sitting fell into: questions at 13:18:08, ingest still running,
- * extraction not queued until 13:19:16. A guard that checks one stage misses
- * the state the incident actually happened in.
- *
- * Deliberately not `!isResearchComplete`. An artist with no job row at all —
- * no Instagram handle, nothing ever enqueued — is not in flight, and inverting
- * the completion check would block them from an interview forever.
- *
- * FAILS CLOSED, unlike everything else in this file. A read error returns
- * `true` (treat as in flight), because the two mistakes are not symmetrical:
- * wrongly blocking costs one page load and retries on the next, while wrongly
- * proceeding persists a static-bank sitting under (artist_id, question_key)
- * that sets `since` and gates every later sitting. One is a delay; the other
- * is permanent.
- */
-export async function isResearchInFlight(artistId: string, kinds: JobKind | JobKind[]): Promise<boolean> {
-    if (!artistId) return false;
-    const wanted = Array.isArray(kinds) ? kinds : [kinds];
-    if (wanted.length === 0) return false;
-    try {
-        const rows = await db.select({ status: artistResearchJobs.status })
-            .from(artistResearchJobs)
-            .where(and(
-                eq(artistResearchJobs.artistId, artistId),
-                inArray(artistResearchJobs.kind, wanted),
-                inArray(artistResearchJobs.status, ["pending", "running"]),
-            ))
-            .limit(1);
-        return rows.length > 0;
-    } catch (e) {
-        console.error("[isResearchInFlight] Error:", e);
-        return true;
     }
 }
 

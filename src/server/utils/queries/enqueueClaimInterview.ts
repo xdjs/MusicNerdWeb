@@ -1,11 +1,9 @@
 import { sql } from 'drizzle-orm';
-import { MUSICNERD_API_INTERVIEWER_ENABLED } from '@/env';
 import { withScopedArtistWrite } from './ownershipWrites';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 
 /** Claim approval queues private preparation; it never offers questions to the artist. */
 export async function enqueueClaimInterview(artistId: string, claimId: string, userId: string): Promise<boolean> {
-  if (!MUSICNERD_API_INTERVIEWER_ENABLED) return true;
   return withScopedArtistWrite(artistId, async tx => {
     const existing = await tx.execute(sql`select id from artist_research_jobs
       where artist_id=${artistId}::uuid and kind='interview_prepare'
