@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AgentWorkSummary, AgentWorkDetails } from "@/server/utils/queries/agentWorkQueries";
-import type { AgentRun } from "@/server/utils/queries/runQueries";
+import type { AgentRun } from "@/server/utils/queries/agentWorkQueries";
 
 const formatDate = (value: string | null | undefined): string => {
   if (!value) return "";

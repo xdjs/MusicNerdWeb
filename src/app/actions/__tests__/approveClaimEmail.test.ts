@@ -14,7 +14,7 @@ jest.mock('@/server/utils/queries/vaultWebSearch', () => ({ searchAndPopulateVau
 jest.mock('@/server/utils/queries/discord', () => ({ sendDiscordMessage: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('@/server/utils/email', () => ({ sendClaimApprovedEmail: jest.fn().mockResolvedValue(true) }));
 jest.mock('@/server/utils/queries/artistQueries', () => ({ getArtistById: jest.fn() }));
-jest.mock('@/app/api/mcp/audit', () => ({ logMcpAudit: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('@/server/utils/logMcpAudit', () => ({ logMcpAudit: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('@/server/lib/supabase', () => ({ getSupabaseAdmin: jest.fn(), VAULT_BUCKET: 'vault' }));
 
 describe('approveClaimAction sends the approval email', () => {

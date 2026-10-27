@@ -33,6 +33,5 @@ Get exact inputs from the server's `tools/list` response or MusicNerdAPI's `lib/
 
 ## What stays in this repo
 
-- [auth.ts](../src/app/api/mcp/auth.ts): `hashApiKey` (Admin → MCP Keys) and
-  `validateMcpApiKey` (the `agent/*` routes).
-- [audit.ts](../src/app/api/mcp/audit.ts): `logMcpAudit`, used by admin claim actions.
+- [logMcpAudit.ts](../src/server/utils/logMcpAudit.ts): `logMcpAudit`, used by admin claim actions.
+  Key hashing and validation live in MusicNerdAPI.

@@ -10,7 +10,7 @@ describe("MCP audit logging", () => {
     const mockReturning = jest.fn().mockResolvedValue([]);
     const mockValues = jest.fn().mockReturnValue({ returning: mockReturning });
     (db as any).insert = jest.fn().mockReturnValue({ values: mockValues });
-    const { logMcpAudit } = await import("../audit");
+    const { logMcpAudit } = await import("../logMcpAudit");
     return { db, logMcpAudit, mockValues };
   }
 
