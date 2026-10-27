@@ -5,7 +5,7 @@ const PDF_PARSE_TIMEOUT_MS = 10_000;
 /**
  * Extract text from a PDF buffer. Returns null on failure or empty result so
  * the upload still succeeds (the file is stored regardless) — we just lose the
- * text context for bio/funFacts generation.
+ * text context for bio generation.
  *
  * Imports the lib entry directly: pdf-parse's index.js runs a debug block that
  * reads a bundled test PDF from disk and throws ENOENT in serverless.

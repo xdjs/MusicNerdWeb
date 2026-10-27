@@ -19,7 +19,6 @@ async function loadMiddleware() {
 beforeEach(() => {
   jest.useFakeTimers();
   delete process.env.RATE_LIMIT_DEFAULT;
-  delete process.env.RATE_LIMIT_STRICT;
   delete process.env.RATE_LIMIT_WINDOW_MS;
 });
 
@@ -45,16 +44,6 @@ describe('middleware rate limiting', () => {
     expect(res.status).toBe(429);
   });
 
-  it('strict paths have lower limits (5/min)', async () => {
-    const { middleware } = await loadMiddleware();
-    for (let i = 0; i < 5; i++) {
-      const res = middleware(makeRequest('/api/funFacts/random'));
-      expect(res.status).not.toBe(429);
-    }
-    const res = middleware(makeRequest('/api/funFacts/random'));
-    expect(res.status).toBe(429);
-  });
-
   it('window resets after expiry', async () => {
     const { middleware } = await loadMiddleware();
     for (let i = 0; i < 60; i++) {
@@ -69,27 +58,27 @@ describe('middleware rate limiting', () => {
   });
 
   it('env vars override defaults', async () => {
-    process.env.RATE_LIMIT_STRICT = '10';
+    process.env.RATE_LIMIT_DEFAULT = '10';
     const { middleware } = await loadMiddleware();
 
     for (let i = 0; i < 10; i++) {
-      const res = middleware(makeRequest('/api/funFacts/random'));
+      const res = middleware(makeRequest('/api/leaderboard'));
       expect(res.status).not.toBe(429);
     }
-    const res = middleware(makeRequest('/api/funFacts/random'));
+    const res = middleware(makeRequest('/api/leaderboard'));
     expect(res.status).toBe(429);
   });
 
   it('invalid env var values fall back to defaults', async () => {
-    process.env.RATE_LIMIT_STRICT = '0';
+    process.env.RATE_LIMIT_DEFAULT = '0';
     const { middleware } = await loadMiddleware();
 
-    // Should use the default of 5, not 0
-    for (let i = 0; i < 5; i++) {
-      const res = middleware(makeRequest('/api/funFacts/random'));
+    // Should use the default of 60, not 0
+    for (let i = 0; i < 60; i++) {
+      const res = middleware(makeRequest('/api/leaderboard'));
       expect(res.status).not.toBe(429);
     }
-    const res = middleware(makeRequest('/api/funFacts/random'));
+    const res = middleware(makeRequest('/api/leaderboard'));
     expect(res.status).toBe(429);
   });
 
@@ -190,8 +179,8 @@ describe('middleware rate limiting', () => {
       middleware(makeRequest('/api/leaderboard', '99.99.99.99'));
     }
 
-    expect(_rateLimitMap.has('10.0.0.0:default')).toBe(false);
-    expect(_rateLimitMap.has('99.99.99.99:default')).toBe(true);
+    expect(_rateLimitMap.has('10.0.0.0')).toBe(false);
+    expect(_rateLimitMap.has('99.99.99.99')).toBe(true);
   });
 
   it('skips rate limiting when IP cannot be determined', async () => {
@@ -223,7 +212,6 @@ describe('middleware rate limiting', () => {
 
     // Regular API paths should match
     expect(matcher.test('/api/leaderboard')).toBe(true);
-    expect(matcher.test('/api/funFacts/random')).toBe(true);
   });
 
   it('covers the LLM-facing routes, which are not under /api', async () => {

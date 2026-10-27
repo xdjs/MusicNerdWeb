@@ -20,8 +20,8 @@ export default function PrivacyPolicy() {
           suggest, your sign-in provider&rsquo;s user id, and a wallet address if you linked one.
         </li>
         <li>
-          <strong>What you contribute.</strong> Links, Lore, sources, edits, artist claims, interview answers and
-          bookmarks. Contributions other than bookmarks are shown publicly with your username.
+          <strong>What you contribute.</strong> Links, Lore, sources, edits, artist claims and interview
+          answers. Contributions are shown publicly with your username.
         </li>
         <li>
           <strong>How the site is used.</strong> We use Vercel Web Analytics, which does not use cookies. It

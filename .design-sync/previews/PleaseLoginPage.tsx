@@ -24,7 +24,7 @@ export const Default = () => (
 
 /**
  * `text` is the only prop, and every real call site overrides it to name the thing being
- * gated (profile, bookmarks, the add-artist flow) rather than leaving the generic string.
+ * gated (profile, the add-artist flow) rather than leaving the generic string.
  */
 export const CustomCopy = () => (
   <Page>

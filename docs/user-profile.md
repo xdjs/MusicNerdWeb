@@ -9,7 +9,7 @@ The regular `/profile` requires a real MusicNerd session. It renders the approve
 - Your artists lists distinct artists added by the user, with approved UGC by that user, or with recorded self-edits by that user. Pending/unapproved suggestions alone do not qualify. See [the contribution contract](contribution-artists.md).
 - Your artists lately uses the same eligible artist query, with six-artist windows, two updates per artist after filtering, and explicit partial coverage. No scraping or new research is triggered by reading the profile.
 - The collection has server-side search across all eligible artists and 24-artist pages. Artist names/photos open their canonical profiles. No save/remove action is required.
-- Bookmarks are removed from the current UI. Existing records and the account bookmark API are retained; the live profile performs no bookmark imports or writes.
+- Bookmarks are removed: the UI, the account bookmark API and, as of #1595 P5 (October 26, 2026), the `user_artist_bookmarks` table.
 - Profile edits and errors retain their existing behavior. A collection/feed failure does not block identity or contribution history.
 
 ## API access — October 14, 2026

@@ -141,7 +141,7 @@ export async function POST(req: Request) {
             .getPublicUrl(storagePath);
         const publicUrl = urlData.publicUrl;
 
-        // Extract text content for LLM access (bio + funFacts + askArtist context)
+        // Extract text content for LLM access (bio + askArtist context)
         let extractedText: string | undefined;
         if (
             resolvedType === "text/plain" ||
