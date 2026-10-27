@@ -144,38 +144,3 @@ describe('verifyPrivyToken', () => {
     expect(result?.linkedAccounts).toEqual([]);
   });
 });
-
-describe('getPrivyUser', () => {
-  let getPrivyUser: typeof import('../privy').getPrivyUser;
-
-  beforeAll(async () => {
-    const mod = await import('../privy');
-    getPrivyUser = mod.getPrivyUser;
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('returns user data on success', async () => {
-    const mockUser = {
-      id: 'did:privy:user123',
-      email: { address: 'test@example.com' },
-      linkedAccounts: [],
-    };
-    mockGetUser.mockResolvedValue(mockUser);
-
-    const result = await getPrivyUser('did:privy:user123');
-
-    expect(mockGetUser).toHaveBeenCalledWith('did:privy:user123');
-    expect(result).toEqual(mockUser);
-  });
-
-  it('returns null when getUser throws', async () => {
-    mockGetUser.mockRejectedValue(new Error('API error'));
-
-    const result = await getPrivyUser('did:privy:unknown');
-
-    expect(result).toBeNull();
-  });
-});

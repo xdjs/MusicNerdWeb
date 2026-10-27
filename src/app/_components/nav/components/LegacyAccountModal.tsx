@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { dismissLegacyLink } from '@/app/actions/dismissLegacyLink';
+import { requestLinkWallet } from '@/lib/account/requestLinkWallet';
 
 interface LegacyAccountModalProps {
   open: boolean;
@@ -33,13 +34,7 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
     onSuccess: async ({ linkedAccount }) => {
       if (linkedAccount.type === 'wallet') {
         try {
-          const response = await fetch('/api/auth/link-wallet', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              walletAddress: (linkedAccount as { address?: string }).address
-            }),
-          });
+          const response = await requestLinkWallet((linkedAccount as { address?: string }).address);
 
           const result = await response.json();
 
