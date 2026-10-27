@@ -7,6 +7,8 @@ const refresh = jest.fn();
 jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
 jest.mock("next-auth/react", () => ({ useSession: jest.fn() }));
+jest.mock("@privy-io/react-auth", () => ({ getAccessToken: jest.fn(async () => "private-token") }));
+jest.mock("@/lib/musicNerdApi/musicNerdApiUrl", () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
 jest.mock("@/app/_components/nav/components/requestLogin", () => ({ requestLogin: jest.fn() }));
 
 const artistId = "8b3d9163-a184-468e-8772-cdd73f260835";
@@ -43,6 +45,9 @@ describe("SuggestLoreSource", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ url: "https://pitchfork.com/bike-lane" });
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({ url: "https://example.com/interview" });
+    expect(fetchMock).toHaveBeenCalledWith(`https://api-preview.test/api/artist/${artistId}/lore-suggestions`, expect.objectContaining({
+      method: "POST", credentials: "omit", headers: expect.objectContaining({ Authorization: "Bearer private-token" }),
+    }));
 
     await waitFor(() => expect(dialog.querySelector("form")).toHaveAttribute("aria-busy", "false"));
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
@@ -78,7 +83,7 @@ describe("SuggestLoreSource", () => {
 
   it.each([true, false])("adds trusted Lore without an artist-review message (claimed: %s)", async isClaimed => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "trusted" } }, status: "authenticated" });
-    jest.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ success: true, status: "approved" }) } as Response);
+    jest.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ status: "ok", success: true, sourceStatus: "approved" }) } as Response);
     render(<SuggestLoreSource artistId={artistId} isClaimed={isClaimed} autoApprove />);
     fireEvent.click(screen.getByRole("button", { name: "Add a Lore source" }));
     expect(screen.getByText(/approved automatically/)).toBeInTheDocument();
@@ -91,7 +96,7 @@ describe("SuggestLoreSource", () => {
 
   it("uses the returned pending status when whitelist access changed after loading", async () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "trusted" } }, status: "authenticated" });
-    jest.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ success: true, status: "pending" }) } as Response);
+    jest.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ status: "ok", success: true, sourceStatus: "pending" }) } as Response);
     render(<SuggestLoreSource artistId={artistId} isClaimed autoApprove />);
     fireEvent.click(screen.getByRole("button", { name: "Add a Lore source" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Source URL" }), { target: { value: "https://example.com/interview" } });
@@ -102,7 +107,7 @@ describe("SuggestLoreSource", () => {
 
   it("shows a saved-source refresh warning without asking the user to resubmit", async () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "visitor" } }, status: "authenticated" });
-    jest.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ success: true, status: "approved", warning: "Source saved, but the Lore refresh could not start." }) } as Response);
+    jest.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ status: "ok", success: true, sourceStatus: "approved", warning: "Source saved, but the Lore refresh could not start." }) } as Response);
     render(<SuggestLoreSource artistId={artistId} isClaimed />);
     fireEvent.click(screen.getByRole("button", { name: "Suggest a Lore source" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Source URL" }), { target: { value: "https://example.com/interview" } });

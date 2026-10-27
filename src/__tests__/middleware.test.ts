@@ -21,7 +21,6 @@ beforeEach(() => {
   delete process.env.RATE_LIMIT_DEFAULT;
   delete process.env.RATE_LIMIT_ARTIST_IMAGE;
   delete process.env.RATE_LIMIT_STRICT;
-  delete process.env.RATE_LIMIT_MEDIUM;
   delete process.env.RATE_LIMIT_WINDOW_MS;
 });
 
@@ -54,25 +53,6 @@ describe('middleware rate limiting', () => {
       expect(res.status).not.toBe(429);
     }
     const res = middleware(makeRequest('/api/funFacts/random'));
-    expect(res.status).toBe(429);
-  });
-
-  it('strict limit applies to artistBio path', async () => {
-    const { middleware } = await loadMiddleware();
-    for (let i = 0; i < 5; i++) {
-      middleware(makeRequest('/api/artistBio/123'));
-    }
-    const res = middleware(makeRequest('/api/artistBio/123'));
-    expect(res.status).toBe(429);
-  });
-
-  it('medium paths have their own limit (20/min)', async () => {
-    const { middleware } = await loadMiddleware();
-    for (let i = 0; i < 20; i++) {
-      const res = middleware(makeRequest('/api/artist/a1/lore-suggestions'));
-      expect(res.status).not.toBe(429);
-    }
-    const res = middleware(makeRequest('/api/artist/a1/lore-suggestions'));
     expect(res.status).toBe(429);
   });
 

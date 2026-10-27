@@ -2,6 +2,7 @@
 import { useContext, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { EditModeContext } from "@/app/_components/EditModeContext";
+import { requestDirectoryDiscovery } from "@/lib/artist/requestDirectoryDiscovery";
 
 /** Observe saved destinations only. Durable workers run independently of this page. */
 export default function DirectoryDiscoveryObserver({
@@ -45,12 +46,12 @@ export default function DirectoryDiscoveryObserver({
       request = controller;
       const timeout = setTimeout(() => controller.abort(), 8000);
       try {
-        const response = await fetch(
-          `/api/artist/${encodeURIComponent(artistId)}/directory-discovery`,
-          { cache: "no-store", signal: controller.signal },
+        const response = await requestDirectoryDiscovery(
+          artistId,
+          controller.signal,
         );
         if (cancelled || controller.signal.aborted) return;
-        if ([401, 403, 404].includes(response.status)) {
+        if (!response || [401, 403, 404].includes(response.status)) {
           finished.current = true;
           return;
         }

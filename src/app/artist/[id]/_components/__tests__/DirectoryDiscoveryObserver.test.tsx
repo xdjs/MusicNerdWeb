@@ -6,6 +6,11 @@ jest.mock("@/app/_components/EditModeContext", () => {
   const React = jest.requireActual("react");
   return { EditModeContext: React.createContext({ isEditing: false }) };
 });
+const mockToken = jest.fn();
+jest.mock("@privy-io/react-auth", () => ({ getAccessToken: () => mockToken() }));
+jest.mock("@/lib/musicNerdApi/musicNerdApiUrl", () => ({
+  musicNerdApiUrl: (path: string) => `https://api-preview.test${path}`,
+}));
 const response = (revision: string, state = "active") => ({
   ok: true,
   json: async () => ({ revision, state }),
@@ -15,6 +20,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   global.fetch = fetchMock;
   fetchMock.mockReset();
+  mockToken.mockReset().mockResolvedValue("private-token");
   refresh.mockClear();
   Object.defineProperty(document, "visibilityState", {
     value: "visible",
@@ -108,4 +114,28 @@ it("refreshes once on terminal completion even with unchanged links, to display 
   await tick(30000);
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+it("reads the status from MusicNerdAPI with the Privy token", async () => {
+  fetchMock.mockResolvedValue({
+    ok: true,
+    json: async () => ({ status: "ok", revision: "a", state: "active" }),
+  });
+  render(<DirectoryDiscoveryObserver artistId="artist" initialRevision="a" />);
+  await tick();
+  expect(fetchMock).toHaveBeenCalledWith(
+    "https://api-preview.test/api/artist/artist/directory-discovery",
+    expect.objectContaining({
+      credentials: "omit",
+      headers: { Authorization: "Bearer private-token" },
+    }),
+  );
+});
+
+it("stops without a request when no account is signed in", async () => {
+  mockToken.mockResolvedValue(null);
+  render(<DirectoryDiscoveryObserver artistId="artist" initialRevision="a" />);
+  await tick(30000);
+  expect(fetchMock).not.toHaveBeenCalled();
+  expect(mockToken).toHaveBeenCalledTimes(1);
 });
