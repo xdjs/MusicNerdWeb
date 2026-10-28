@@ -190,7 +190,7 @@ export default function ClaimButton({
                                 href="https://www.instagram.com/musicnerdnet/"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-2 w-full rounded-lg border border-pastypink/50 px-4 py-2 text-sm font-medium text-pastypink hover:bg-pastypink/10 transition-colors"
+                                className="flex items-center justify-center gap-2 w-full rounded-lg border border-pastypink/50 px-4 py-2 text-sm font-medium text-foreground hover:bg-pastypink/10 transition-colors"
                             >
                                 Open @musicnerdnet on Instagram
                                 <ExternalLink size={14} />

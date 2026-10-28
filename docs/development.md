@@ -339,3 +339,18 @@ search remains `Research requested by {actor}`. Direct contributions remain
 origin/actor information stays unknown; missing or unrecorded research reasons use the
 neutral `Recorded account` label. This is presentation only: actor IDs, triggers,
 submission timestamps, claim records, and research execution are unchanged.
+
+## Dialog theme consistency
+
+Issue #1623: dialog content follows the shared Music Nerd light/dark surface. Use
+`text-foreground` for labels and values, `text-muted-foreground` for supporting text
+and placeholders, and theme-aware borders and hover fills. Keep inverse text only
+on an explicitly dark child surface (such as an artwork overlay). Form dialogs use
+`mn-themed-dialog` for the existing input/focus treatment and mobile geometry.
+Check expanded examples, validation/status messages, loading and hover states as
+well as the initial dialog, at 390px and 832px in both themes. This is presentation
+only; authentication, routes, persistence, jobs and external services are unchanged.
+
+`text-destructive` uses `--destructive-text` (red-700 light / red-400 dark),
+independent of destructive button backgrounds. The shared FormMessage and
+photo/user-name errors therefore keep readable contrast on both dialog surfaces.

@@ -202,7 +202,7 @@ export default function AddArtist() {
                         <div
                             role="status"
                             aria-live="polite"
-                            className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-neutral-950/95 p-6 text-center text-white"
+                            className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-background p-6 text-center text-foreground"
                         >
                             <p className="font-semibold">Creating separate artist…</p>
                             <p className="mt-1 text-sm text-muted-foreground">
@@ -283,8 +283,8 @@ export default function AddArtist() {
                                                 aria-live="polite"
                                                 className={cn(
                                                     addArtistStatus.status === "error" || addArtistStatus.status === "conflict"
-                                                        ? "mt-3 text-sm text-red-400"
-                                                        : "mt-3 text-sm text-green-400",
+                                                        ? "mt-3 text-sm text-red-700 dark:text-red-400"
+                                                        : "mt-3 text-sm text-green-700 dark:text-green-400",
                                                 )}
                                             >
                                                 {addArtistStatus.message}
@@ -294,7 +294,7 @@ export default function AddArtist() {
                                             {addedArtist &&
                                                 <>
                                                     <p role="status" aria-label="Opening artist profile" className="text-sm">Opening {addedArtist.artistName || "artist profile"}…</p>
-                                                    <Button asChild variant="glass" className="border-white/15 bg-white/5 text-foreground hover:bg-white/10 hover:text-white">
+                                                    <Button asChild variant="glass" className="text-foreground">
                                                         <Link onClick={() => closeModal(false)} href={`/artist/${addedArtist.artistId}`}>
                                                             Open {addedArtist.artistName} profile
                                                         </Link>
