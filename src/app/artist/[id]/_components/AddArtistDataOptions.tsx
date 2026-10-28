@@ -22,14 +22,14 @@ export default function AddArtistDataOptions({ availableLinks, setOption }: { av
                 aria-expanded={isOpen}
                 aria-controls={examplesId}
                 onClick={() => setIsOpen(open => !open)}
-                className="h-11 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs text-white/75 hover:bg-white/10 hover:text-white focus-visible:ring-pastypink"
+                className="h-11 rounded-lg border border-input bg-black/[0.03] dark:bg-white/5 px-3 text-xs text-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground focus-visible:ring-pastypink"
             >
                 {TIPS_BUTTON_LABEL}
                 <ChevronDown aria-hidden="true" className={`ml-2 h-4 w-4 ${isOpen ? "rotate-180" : ""}`} />
             </Button>
             {isOpen && (
-                <div id={examplesId} className="mt-2 rounded-xl border border-white/15 bg-white/[0.03] p-2">
-                    <p className="px-2 py-1 text-xs leading-relaxed text-white/50">Choose an example, then replace it with the artist’s profile URL.</p>
+                <div id={examplesId} className="mt-2 rounded-xl border border-input bg-black/[0.03] dark:bg-white/5 p-2">
+                    <p className="px-2 py-1 text-xs leading-relaxed text-muted-foreground">Choose an example, then replace it with the artist’s profile URL.</p>
                     <ul className="scrollbar-glass max-h-[min(28dvh,14rem)] overflow-y-auto overscroll-contain">
                         {sortedLinks.map(link => {
                             // Older urlmap rows use ARTIST_NAME, but Spotify artist URLs require an ID.
@@ -40,7 +40,7 @@ export default function AddArtistDataOptions({ availableLinks, setOption }: { av
                                 <li key={link.id}>
                                     <button
                                         type="button"
-                                        className="min-h-11 w-full rounded-lg px-2 py-2 text-left text-sm text-white/80 [overflow-wrap:anywhere] hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink"
+                                        className="min-h-11 w-full rounded-lg px-2 py-2 text-left text-sm text-foreground [overflow-wrap:anywhere] hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink"
                                         onClick={() => { setIsOpen(false); setOption(example); }}
                                     >
                                         {example}
