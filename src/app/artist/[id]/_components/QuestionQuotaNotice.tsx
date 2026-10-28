@@ -5,13 +5,11 @@ const MESSAGES: Record<QuestionQuota['code'], string> = {
     question_planning_quota: 'Music Nerd has reached its daily chat allowance.',
     saved_evidence_quota: 'Music Nerd has reached its daily saved-source answer limit.',
     research_quota: 'Music Nerd has reached its outside research limit. You can still ask about saved sources.',
-    unknown_quota: 'Music Nerd has reached a temporary chat limit.',
 };
 
-export default function QuestionQuotaNotice({ quota, now, explanation, disabled, onRetry }: {
+export default function QuestionQuotaNotice({ quota, now, disabled, onRetry }: {
     quota: QuestionQuota;
     now: number;
-    explanation?: string;
     disabled: boolean;
     onRetry: () => void;
 }) {
@@ -22,7 +20,7 @@ export default function QuestionQuotaNotice({ quota, now, explanation, disabled,
         ? `${Math.floor(minutes / 60)}h ${minutes % 60}m`
         : remaining >= 60 ? `${Math.floor(remaining / 60)}m ${remaining % 60}s` : `${remaining}s`;
     return <div className="space-y-2 rounded-xl border border-pastypink/20 bg-pastypink/5 p-3 text-sm leading-relaxed text-white/85">
-        <p>{explanation || MESSAGES[quota.code]}</p>
+        <p>{MESSAGES[quota.code]}</p>
         {/* The surrounding log announces the notice once. A per-second live
             region would repeatedly interrupt the visitor or screen reader. */}
         <div aria-live="off" className="text-xs text-white/65">

@@ -1,5 +1,26 @@
 # Ask About and discovery review through MusicNerdAPI
 
+## Streaming chat (2026-10-27)
+
+Ask About is one streaming chat ([#1629](https://github.com/xdjs/MusicNerdWeb/issues/1629)).
+`AskAboutArtist` sends the conversation with `useChat` (`@ai-sdk/react`) and `DefaultChatTransport`
+to MusicNerdAPI's `POST /api/artist/{id}/chat`: body `{ messages }`, `credentials: "omit"`, and the
+Privy access token as `Authorization: Bearer` when signed in (the hourly allowance counts per account;
+signed out, per IP). The answer streams as AI SDK UI message parts and renders as they arrive:
+
+| Part | Rendered as |
+| --- | --- |
+| `tool-searchSources`, `tool-readSource`, `tool-webSearch` | the status line: "Searching saved sources…", "Reading <title>…", "Searching the web…" |
+| `source-url` (`sourceId` = n) | the `[n]` citation links and the Sources pills, for the numbers the text cites |
+| `text` | the answer, as it streams |
+
+Stop calls `stop()`; "Try again" calls `regenerate()`. A 429 shows the allowance notice from its body
+(`code`, `resetAt`, `retryAfterSeconds`; `src/lib/artistChat/getChatQuota.ts`). One request per turn,
+no job, no polling: `runArtistResearch`, its cooldown retry and the "Read passage" reader are deleted.
+Record links ("Where to hear"), people and Instagram-handle links, server follow-up suggestions and the
+pending-review label needed `askArtist`-only fields and are not rendered; the four default suggestions remain.
+The sections below record the replaced job path.
+
 Refs #1424 and #1422. Fourth accepted delivery slice; depends on [API#24](https://github.com/xdjs/MusicNerdAPI/pull/24) and [Docs#8](https://github.com/xdjs/MusicNerdDocs/pull/8). Not released.
 
 ## Asking a question

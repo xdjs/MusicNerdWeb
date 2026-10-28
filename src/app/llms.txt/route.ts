@@ -65,9 +65,11 @@ ${sitemapLines}
 
 ## Asking a question instead
 
-POST https://api.musicnerd.net/api/askArtist with {"artistId": "<id>", "question": "..."} answers
-from the same document. Use the markdown when you want the whole picture and its
-sources; use this when you want one thing.
+POST https://api.musicnerd.net/api/artist/<id>/chat with
+{"messages": [{"id": "1", "role": "user", "parts": [{"type": "text", "text": "..."}]}]}
+streams an answer (an AI SDK UI message stream) from the artist's saved sources, citing
+them as [n]. Use the markdown when you want the whole picture and its sources; use this
+when you want one thing.
 `;
     return new Response(body, {
         headers: {

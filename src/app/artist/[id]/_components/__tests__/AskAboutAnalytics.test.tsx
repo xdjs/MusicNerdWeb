@@ -1,47 +1,46 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import { useChat } from '@ai-sdk/react';
 import AskAboutArtist from '../AskAboutArtist';
-import { runArtistResearch } from '@/lib/questionResearch/runArtistResearch';
+
 const mockTrackEvent = jest.fn();
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...args: unknown[]) => mockTrackEvent(...args) }));
-jest.mock('@/lib/questionResearch/runArtistResearch', () => ({ runArtistResearch: jest.fn() }));
-const research = jest.mocked(runArtistResearch);
-beforeEach(() => { research.mockReset(); mockTrackEvent.mockReset(); });
-function ask() {
-    render(<AskAboutArtist artistId="a1" artistName="Artist" />);
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Who played drums?' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Submit question' }));
-}
-const source = (n: number) => ({ n, title: `Source ${n}`, url: `https://example.com/${n}` });
+const chat = jest.mocked(useChat);
 
-it('sends ask_question answered with the cited source count once the API answers', async () => {
-    research.mockResolvedValue({ answer: 'The drummer.[1][2]', sources: [source(1), source(2)] });
-    ask();
-    await screen.findByTestId('answer');
+type Callbacks = { onFinish: (event: Record<string, unknown>) => void; onError: (error: Error) => void };
+function callbacks(): Callbacks {
+    chat.mockReturnValue({ messages: [], status: 'ready', sendMessage: jest.fn(), stop: jest.fn(), regenerate: jest.fn() } as never);
+    render(<AskAboutArtist artistId="a1" artistName="Artist" />);
+    return chat.mock.calls.at(-1)![0] as unknown as Callbacks;
+}
+const source = (n: number) => ({ type: 'source-url', sourceId: String(n), url: `https://example.com/${n}`, title: `Source ${n}` });
+const answer = (parts: unknown[]) => ({ id: 'a1', role: 'assistant', parts });
+const finished = { isAbort: false, isDisconnect: false, isError: false };
+
+beforeEach(() => { jest.clearAllMocks(); });
+
+it('sends ask_question answered with the cited source count when the stream finishes', () => {
+    callbacks().onFinish({ ...finished, message: answer([source(1), source(2), source(3), { type: 'text', text: 'The drummer.[1][2]' }]) });
     expect(mockTrackEvent).toHaveBeenCalledTimes(1);
     expect(mockTrackEvent).toHaveBeenCalledWith('ask_question', { outcome: 'answered', sources: 2 });
 });
 
-it('sends ask_question open_web when the answer came from the open web', async () => {
-    research.mockResolvedValue({ answer: 'From the web.', sources: [source(1)], fromOpenWeb: true });
-    ask();
-    await screen.findByTestId('answer');
+it('sends ask_question open_web when the answer searched the web', () => {
+    callbacks().onFinish({ ...finished, message: answer([{ type: 'tool-webSearch', toolCallId: 't', state: 'output-available', input: {}, output: {} },
+        source(1), { type: 'text', text: 'From the web [1].' }]) });
     expect(mockTrackEvent).toHaveBeenCalledWith('ask_question', { outcome: 'open_web', sources: 1 });
 });
 
-it.each([
-    ['an error body', () => research.mockResolvedValue({ error: 'Research could not finish.' })],
-    ['a failed request', () => research.mockRejectedValue(new Error('offline'))],
-])('sends ask_question error for %s', async (_label, arrange) => {
-    arrange();
-    ask();
-    await screen.findByRole('button', { name: 'Try again' });
-    expect(mockTrackEvent).toHaveBeenCalledWith('ask_question', { outcome: 'error', sources: 0 });
+it('sends nothing for a stopped stream, and leaves an error to onError', () => {
+    const { onFinish } = callbacks();
+    onFinish({ ...finished, isAbort: true, message: answer([]) });
+    onFinish({ ...finished, isError: true, message: answer([]) });
+    expect(mockTrackEvent).not.toHaveBeenCalled();
 });
 
-it('sends nothing for a quota notice, which is not an answer', async () => {
-    research.mockResolvedValue({ quota: { code: 'visitor_question_quota' }, error: 'Limit reached.' });
-    ask();
-    await waitFor(() => expect(research).toHaveBeenCalled());
-    await screen.findByText(/question limit/i);
+it('sends error for a failed request but nothing for a quota notice, which is not an answer', () => {
+    const { onError } = callbacks();
+    onError(Object.assign(new Error('quota'), { statusCode: 429, responseBody: JSON.stringify({ code: 'visitor_question_quota' }) }));
     expect(mockTrackEvent).not.toHaveBeenCalled();
+    onError(new Error('offline'));
+    expect(mockTrackEvent).toHaveBeenCalledWith('ask_question', { outcome: 'error', sources: 0 });
 });

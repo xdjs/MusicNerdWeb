@@ -62,7 +62,7 @@ export default function ArtistAskSheet({ artistId, artistName, researching = fal
         <aside ref={panelRef} role="dialog" data-analytics-surface="ask" aria-modal="false" aria-labelledby="artist-ask-title" aria-describedby="artist-ask-description"
                 data-state={open ? "open" : "closed"}
                 onKeyDown={event => {
-                    if (event.key !== "Escape" || (event.target as HTMLElement).closest('[data-song-menu-open="true"]')) return;
+                    if (event.key !== "Escape") return;
                     event.stopPropagation();
                     minimize();
                 }}
