@@ -407,6 +407,20 @@
       "when": 1793040104782,
       "tag": "0057_drop_funfacts_bookmarks",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793208147927,
+      "tag": "0058_catalog_automatic_reconnect_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793209283097,
+      "tag": "0059_catalog_counterpart_jobs",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,14 @@
+## Catalog counterpart recovery and chat recency — October 28
+
+Locally implemented only, on `codex/deezer-latest-oct28`; no push, migration apply,
+backfill or release. [Contract](docs/catalog-counterparts-and-chat-recency.md): API
+chat uses dated stored-source retrieval, and API catalog jobs verify either direction.
+Web owns migrations 0058/0059 and creation lineage; auth and UI work are untouched.
+Legacy neither-provider rows need identity anchors; historical exclusions remain
+review-required even after fresh verification. Explicit disconnects block recovery.
+Existing rows require a separately reviewed enqueue/repair manifest. Tracking issue
+publication is not authorized; local drafts exist and historical issues retain scope.
+
 ## Artist share images — October 22
 
 The selected “Nerd out on” card and complete-glasses fallback shipped through
