@@ -747,11 +747,13 @@ export const artistResearchJobs = pgTable("artist_research_jobs", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
-	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research', 'spotify_match', 'interview_prepare')`),
+	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research', 'spotify_match', 'interview_prepare', 'catalog_match')`),
 	check("artist_research_jobs_status_check", sql`${table.status} in ('pending','running','done','failed') or (${table.status} = 'queued' and ${table.kind} = 'source_extract' and coalesce(${table.state}->>'version','') = '2' and coalesce(${table.state}->>'autoSourceId','') <> '')`),
 	uniqueIndex("artist_research_jobs_one_live").on(table.artistId, table.kind).where(sql`${table.status} in ('pending', 'running')`),
 	uniqueIndex("artist_research_jobs_auto_source_live").on(table.artistId, sql`(${table.state}->>'autoSourceId')`)
 		.where(sql`${table.kind} = 'source_extract' and ${table.state}->>'version' = '2' and ${table.status} in ('queued','pending','running')`),
+	uniqueIndex("artist_research_jobs_catalog_single_worker").on(table.kind).where(sql`${table.kind} = 'catalog_match' and ${table.status} = 'running'`),
+	index("artist_research_jobs_catalog_anchor").on(table.artistId, sql`(${table.state}->'anchor')`).where(sql`${table.kind} = 'catalog_match'`),
 	index("artist_research_jobs_question_created").on(table.createdAt).where(sql`${table.kind} = 'question_research'`),
 	index("artist_research_jobs_claimable").using("btree", table.status.asc().nullsLast(), table.claimedAt.asc().nullsLast(), table.createdAt.asc().nullsLast()),
 	foreignKey({
