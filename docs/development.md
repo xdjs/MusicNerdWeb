@@ -350,3 +350,7 @@ on an explicitly dark child surface (such as an artwork overlay). Form dialogs u
 Check expanded examples, validation/status messages, loading and hover states as
 well as the initial dialog, at 390px and 832px in both themes. This is presentation
 only; authentication, routes, persistence, jobs and external services are unchanged.
+
+`text-destructive` uses `--destructive-text` (red-700 light / red-400 dark),
+independent of destructive button backgrounds. The shared FormMessage and
+photo/user-name errors therefore keep readable contrast on both dialog surfaces.

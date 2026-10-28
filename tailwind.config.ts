@@ -65,6 +65,13 @@ const config = {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      // Error labels need contrast against surfaces, independently of button fills.
+      textColor: {
+        destructive: {
+          DEFAULT: "hsl(var(--destructive-text))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
