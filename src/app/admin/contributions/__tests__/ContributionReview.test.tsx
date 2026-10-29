@@ -4,7 +4,7 @@ import type { getAdminContributions } from '@/server/utils/contributions/getAdmi
 const refresh = jest.fn();
 const push = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push }) }));
-jest.mock('@/app/actions/serverActions', () => ({ approveUgcAdminAction: jest.fn() }));
+jest.mock('@/lib/admin/approveLinkSuggestion', () => ({ approveLinkSuggestion: jest.fn() }));
 jest.mock('@/app/actions/dashboardActions', () => ({ updateSourceStatus: jest.fn() }));
 const data: Awaited<ReturnType<typeof getAdminContributions>> = {
  items: [{ id:'source', type:'lore', origin:'research', artistId:'artist', artistName:'Demo artist', title:'Interview', url:'https://example.test', userId:'account', username:'Demo user', email:null, actorKind:'user', status:'pending', createdAt:'2026-09-28T10:00:00Z', trigger:'editor_search', activityId:'event' }],
@@ -49,4 +49,12 @@ it.each([
  render(<ContributionReview data={{...data,items:[{...data.items[0],origin,type,trigger}]}} />);
  expect(screen.getByText(label)).toBeInTheDocument();
  if(origin==='research' && trigger==='claim_approval') expect(screen.getByText('Research reason: Claim approved')).toBeInTheDocument();
+});
+
+it('approves a link suggestion on its artist and shows an API error', async () => {
+ const onApproveLink = jest.fn().mockRejectedValue(new Error('A different account is already connected.'));
+ render(<ContributionReview data={{...data,items:[{...data.items[0],id:'ugc',type:'link',title:'Instagram'}]}} onApproveLink={onApproveLink} />);
+ fireEvent.click(screen.getByRole('button', {name:'Approve Instagram'}));
+ await waitFor(() => expect(onApproveLink).toHaveBeenCalledWith('artist','ugc'));
+ await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('A different account is already connected.'));
 });
