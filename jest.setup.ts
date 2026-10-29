@@ -234,12 +234,3 @@ jest.mock('@/server/utils/musicPlatform', () => ({
     ArtistMusicPlatformDataProvider: jest.fn(),
 }));
 
-// Mock server actions to prevent function not found errors
-jest.mock('@/app/actions/serverActions', () => ({
-    approveUgcAdminAction: jest.fn(),
-    searchForUsersByWalletAction: jest.fn(),
-    addUsersToWhitelistAction: jest.fn(),
-    removeFromWhitelistAction: jest.fn(),
-    addUsersToAdminAction: jest.fn(),
-    removeFromAdminAction: jest.fn(),
-}));

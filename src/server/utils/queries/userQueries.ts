@@ -60,18 +60,6 @@ export async function createUser(wallet: string) {
     }
 }
 
-export async function getWhitelistedUsers() {
-    const session = await getServerAuthSession();
-    if (!session) throw new Error("Unauthorized");
-    try {
-        const result = await db.query.users.findMany({ where: eq(users.isWhiteListed, true) });
-        return result ?? [];
-    } catch (e) {
-        console.error("error getting whitelisted users", e);
-        throw new Error("Error getting whitelisted users");
-    }
-}
-
 // Preserve existing callers while sharing the pure public-name policy.
 export function getUserDisplayName(user: Parameters<typeof publicUserName>[0]): string {
     return publicUserName(user);

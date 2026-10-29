@@ -2,7 +2,6 @@ import {render,screen,fireEvent,waitFor} from '@testing-library/react';
 import UsersSection from '../UsersSection';
 import {whitelistedColumns} from '../columns';
 import type {User} from '@/server/db/DbTypes';
-jest.mock('@/app/actions/serverActions',()=>({}));
 jest.mock('next/navigation',()=>({useRouter:()=>({refresh:jest.fn()})}));
 jest.mock('../UserSearch',()=>()=>null);
 const data:User[]=Array.from({length:12},(_,i)=>({id:`person-${i}`,username:`person-${i}`,email:`person-${i}@example.com`,wallet:`0x${i}`,isAdmin:i===0,isWhiteListed:i===0,isHidden:i===1,isSuperAdmin:false,privyUserId:null,legacyId:null,legacyLinkDismissed:false,usernameNeedsConfirmation:false,usernamePromptedAt:null,acceptedUgcCount:0,createdAt:'2026-09-26T12:00:00Z',updatedAt:'2026-09-26T12:00:00Z'}));
