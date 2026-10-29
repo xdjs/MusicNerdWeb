@@ -5,9 +5,9 @@ import HeroSection from '@/app/artist/[id]/_components/HeroSection';
 import VaultSection from '@/app/artist/[id]/_components/VaultSection';
 
 let mockPinned = false;
-const getArtistBioVersions = jest.fn(async () => ({ success: true, versions: [{ id: 'v1', artistId: 'a1', bioText: 'Selected saved version', isPinned: mockPinned, createdAt: '2026-01-01' }] }));
-const pinBioVersion = jest.fn(async () => { mockPinned = true; return { success: true }; });
-const unpinBio = jest.fn(async () => { mockPinned = false; return { success: true }; });
+const getArtistBioVersions = jest.fn(async (..._args: unknown[]) => ({ success: true, versions: [{ id: 'v1', artistId: 'a1', bioText: 'Selected saved version', isPinned: mockPinned, createdAt: '2026-01-01' }] }));
+const pinBioVersion = jest.fn(async (..._args: unknown[]) => { mockPinned = true; return { success: true }; });
+const unpinBio = jest.fn(async (..._args: unknown[]) => { mockPinned = false; return { success: true }; });
 const deleteBioVersion = jest.fn();
 jest.mock('@/lib/musicNerdApi/requestMusicNerdApi', () => ({
   requestMusicNerdApi: (path: string, init?: { method?: string; body?: { versionId?: string } }) => {
