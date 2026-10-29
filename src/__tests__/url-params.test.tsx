@@ -2,10 +2,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 
-jest.mock('@/server/auth', () => ({
-    getServerAuthSession: jest.fn(),
-}));
-
 jest.mock('@/server/utils/musicPlatform', () => ({
     deezerProvider: { getArtist: jest.fn() },
     spotifyProvider: { getArtist: jest.fn() },
@@ -27,13 +23,7 @@ jest.mock('@/app/add-artist/_components/AddArtistContent', () =>
 );
 
 import AddArtistPage from '@/app/add-artist/page';
-import { getServerAuthSession } from '@/server/auth';
 import { deezerProvider, spotifyProvider } from '@/server/utils/musicPlatform';
-
-const mockSession = {
-    user: { id: 'user-uuid', email: 'test@test.com' },
-    expires: '2026-12-31',
-};
 
 const mockPlatformArtist = {
     platform: 'spotify',
@@ -50,7 +40,6 @@ const mockPlatformArtist = {
 describe('AddArtistPage URL parameter handling', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
         (spotifyProvider.getArtist as jest.Mock).mockResolvedValue(mockPlatformArtist);
         (deezerProvider.getArtist as jest.Mock).mockResolvedValue({
             ...mockPlatformArtist,
