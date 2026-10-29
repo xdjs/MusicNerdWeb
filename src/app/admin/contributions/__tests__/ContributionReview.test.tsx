@@ -1,12 +1,14 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ContributionReview from '../ContributionReview';
-import type { getAdminContributions } from '@/server/utils/contributions/getAdminContributions';
+import type { ContributionsPage } from '@/lib/admin/adminReadTypes';
 const refresh = jest.fn();
 const push = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push }) }));
+jest.mock('@/hooks/useRefreshAdmin',()=>({useRefreshAdmin:()=>refresh}));
 jest.mock('@/app/actions/serverActions', () => ({ approveUgcAdminAction: jest.fn() }));
 jest.mock('@/app/actions/dashboardActions', () => ({ updateSourceStatus: jest.fn() }));
-const data: Awaited<ReturnType<typeof getAdminContributions>> = {
+const data: ContributionsPage = {
+ account: null,
  items: [{ id:'source', type:'lore', origin:'research', artistId:'artist', artistName:'Demo artist', title:'Interview', url:'https://example.test', userId:'account', username:'Demo user', email:null, actorKind:'user', status:'pending', createdAt:'2026-09-28T10:00:00Z', trigger:'editor_search', activityId:'event' }],
  counts:{user:{total:40,pending:30},research:{total:10,pending:2},unknown:{total:5,pending:5}},total:26,page:1,pageSize:25,userId:'account',query:'demo',origin:'research',type:'',status:'pending',
 };

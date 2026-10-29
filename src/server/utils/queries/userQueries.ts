@@ -152,18 +152,6 @@ export async function removeFromAdmin(userIds: string[]) {
     }
 }
 
-export async function getAllUsers() {
-    const session = await getServerAuthSession();
-    if (!session) throw new Error("Unauthorized");
-    try {
-        const result = await db.query.users.findMany();
-        return result ?? [];
-    } catch (e) {
-        console.error("error getting all users", e);
-        throw new Error("Error getting all users");
-    }
-}
-
 export type AddUsersToHiddenResp = {
     status: "success" | "error";
     message: string;

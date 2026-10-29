@@ -1,4 +1,4 @@
-import { fetchOnboardingState } from "@/server/utils/onboarding/fetchOnboardingState";
+import { fetchOnboardingState } from "@/lib/onboarding/fetchOnboardingState";
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 const ID = "aab92f80-f9e1-4299-aa33-7dd85c8de5d3";

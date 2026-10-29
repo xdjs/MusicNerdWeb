@@ -1,11 +1,11 @@
 'use client';
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRefreshAdmin } from '@/hooks/useRefreshAdmin';
 import { Button } from '@/components/ui/button';
 import { approveUgcAdminAction } from '@/app/actions/serverActions';
 import { updateSourceStatus } from '@/app/actions/dashboardActions';
-import type { Contribution, getAdminContributions } from '@/server/utils/contributions/getAdminContributions';
+import type { Contribution, ContributionsPage } from '@/lib/admin/adminReadTypes';
 import ContributionFilters from './ContributionFilters';
 import BulkApproveContributor from './BulkApproveContributor';
 import layout from './Contributions.module.css';
@@ -17,11 +17,11 @@ const origins = { user: 'User submissions', research: 'Automated research', unkn
 const types = { link: 'Link submission', lore: 'Lore source', upload: 'Upload' };
 
 export default function ContributionReview({ data, contributorName, onApproveLinks = approveUgcAdminAction, onReviewLore = updateSourceStatus }: {
- data: Awaited<ReturnType<typeof getAdminContributions>>;
+ data: ContributionsPage;
  contributorName?: string;
  onApproveLinks?: typeof approveUgcAdminAction; onReviewLore?: typeof updateSourceStatus;
 }) {
- const router = useRouter();
+ const refreshAdmin = useRefreshAdmin();
  const [refreshing, startRefresh] = useTransition();
  const [busy, setBusy] = useState(false);
  const inFlight = useRef(false);
@@ -38,7 +38,7 @@ export default function ContributionReview({ data, contributorName, onApproveLin
    const success = 'success' in response ? response.success : response.status === 'success';
    const error = 'error' in response ? response.error : 'message' in response ? response.message : undefined;
    setFeedback({error:!success,message:success ? `Submission ${status}.` : error || 'Could not review this submission.'});
-   startRefresh(() => router.refresh());
+   startRefresh(() => { void refreshAdmin(); });
   } catch { setFeedback({error:true,message:'Review could not be confirmed. Refresh before retrying.'}); }
   finally { inFlight.current = false; setBusy(false); }
  }

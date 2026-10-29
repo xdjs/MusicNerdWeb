@@ -10,7 +10,7 @@ import {
     useReactTable,
 } from "@tanstack/react-table";
 import { addUsersToWhitelistAction as addUsersToWhitelist, addUsersToAdminAction as addUsersToAdmin, addUsersToHiddenAction as addUsersToHidden } from "@/app/actions/serverActions";
-import { useRouter } from "next/navigation";
+import { useRefreshAdmin } from "@/hooks/useRefreshAdmin";
 import { Button } from "@/components/ui/button";
 import { removeFromWhitelistAction as removeFromWhitelist, removeFromAdminAction as removeFromAdmin, removeFromHiddenAction as removeFromHidden } from "@/app/actions/serverActions";
 import {
@@ -43,7 +43,7 @@ import SearchBar from "./UserSearch";
 
 export function AddWhitelistDialog() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const [users, setUsers] = useState<string[]>([]);
     const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
     const [query, setQuery] = useState('');
@@ -52,7 +52,7 @@ export function AddWhitelistDialog() {
         setUploadStatus({ status: "success", message: "", isLoading: true });
         const resp = await addUsersToWhitelist(users);
         if (resp.status === "success") {
-            router.refresh();
+            void refreshAdmin();
             setIsDialogOpen(false);
             setUsers([]);
         }
@@ -94,7 +94,7 @@ export function AddWhitelistDialog() {
 // Dialog for adding users to admin role
 export function AddAdminDialog() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const [users, setUsers] = useState<string[]>([]);
     const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
     const [query, setQuery] = useState('');
@@ -103,7 +103,7 @@ export function AddAdminDialog() {
         setUploadStatus({ status: "success", message: "", isLoading: true });
         const resp = await addUsersToAdmin(users);
         if (resp.status === "success") {
-            router.refresh();
+            void refreshAdmin();
             setIsDialogOpen(false);
             setUsers([]);
         }
@@ -145,7 +145,7 @@ export function AddAdminDialog() {
 // Dialog for adding users to hidden role
 export function AddHiddenDialog() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const [users, setUsers] = useState<string[]>([]);
     const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
     const [query, setQuery] = useState('');
@@ -154,7 +154,7 @@ export function AddHiddenDialog() {
         setUploadStatus({ status: "success", message: "", isLoading: true });
         const resp = await addUsersToHidden(users);
         if (resp.status === "success") {
-            router.refresh();
+            void refreshAdmin();
             setIsDialogOpen(false);
             setUsers([]);
         }
@@ -196,7 +196,7 @@ export function AddHiddenDialog() {
 // Dialog to remove by search from hidden
 export function RemoveHiddenDialog() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const [users, setUsers] = useState<string[]>([]);
     const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
     const [query, setQuery] = useState('');
@@ -204,7 +204,7 @@ export function RemoveHiddenDialog() {
     async function removeFromHiddenList() {
         setUploadStatus({ status: "success", message: "", isLoading: true });
         const resp = await removeFromHidden(users);
-        router.refresh();
+        void refreshAdmin();
         setIsDialogOpen(false);
         setUsers([]);
         setUploadStatus({ status: "success", message: "", isLoading: false });
@@ -245,7 +245,7 @@ export function RemoveHiddenDialog() {
 // Dialog to remove by search from whitelist
 export function RemoveWhitelistDialog() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const [users, setUsers] = useState<string[]>([]);
     const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
     const [query, setQuery] = useState('');
@@ -254,7 +254,7 @@ export function RemoveWhitelistDialog() {
         setUploadStatus({ status: "success", message: "", isLoading: true });
         await removeFromWhitelist(users);
         setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
+        void refreshAdmin();
         setIsDialogOpen(false);
         setUsers([]);
     }
@@ -285,7 +285,7 @@ export function RemoveWhitelistDialog() {
 // Dialog to remove by search from admin
 export function RemoveAdminDialog() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const [users, setUsers] = useState<string[]>([]);
     const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
     const [query, setQuery] = useState('');
@@ -294,7 +294,7 @@ export function RemoveAdminDialog() {
         setUploadStatus({ status: "success", message: "", isLoading: true });
         await removeFromAdmin(users);
         setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
+        void refreshAdmin();
         setIsDialogOpen(false);
         setUsers([]);
     }
@@ -330,7 +330,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
     columns,
     data,
 }: DataTableProps<TData, TValue>) {
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const [sorting, setSorting] = useState<SortingState>([{ id: "updatedAt", desc: true }]);
     const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -370,7 +370,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
         setUploadStatus({ status: "success", message: "", isLoading: true });
         await removeFromWhitelist(selectedUsers);
         setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
+        void refreshAdmin();
     }
 
     async function commitRemoveFromAdmin() {
@@ -378,7 +378,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
         setUploadStatus({ status: "success", message: "", isLoading: true });
         await removeFromAdmin(selectedUsers);
         setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
+        void refreshAdmin();
     }
 
     async function commitAddSelectedToWhitelist() {
@@ -386,7 +386,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
         setUploadStatus({ status: "success", message: "", isLoading: true });
         await addUsersToWhitelist(wallets);
         setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
+        void refreshAdmin();
     }
 
     async function commitAddSelectedToAdmin() {
@@ -394,7 +394,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
         setUploadStatus({ status: "success", message: "", isLoading: true });
         await addUsersToAdmin(wallets);
         setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
+        void refreshAdmin();
     }
 
     async function commitAddSelectedToHidden() {
@@ -402,7 +402,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
         setUploadStatus({ status: "success", message: "", isLoading: true });
         await addUsersToHidden(wallets);
         setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
+        void refreshAdmin();
     }
 
     async function commitRemoveFromHidden() {
@@ -410,7 +410,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
         setUploadStatus({ status: "success", message: "", isLoading: true });
         await removeFromHidden(selectedUsers);
         setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
+        void refreshAdmin();
     }
 
     return (
