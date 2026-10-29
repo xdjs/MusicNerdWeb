@@ -981,3 +981,12 @@
 .welcome .context {
   font-size: 11px;
 }
+
+.emptyCanvas {
+  grid-column: 1 / -1;
+  padding: 40px 24px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}

@@ -57,7 +57,23 @@ it("labels replay honestly and only changes canvas after a successful complete t
   expect(
     screen.queryByRole("heading", { name: "Career" }),
   ).not.toBeInTheDocument();
-  act(() => options.onFinish({ isAbort: false, isError: false }));
+  act(() =>
+    options.onFinish({
+      isAbort: false,
+      isError: false,
+      message: { id: "old-cancelled-turn" },
+    }),
+  );
+  expect(
+    screen.queryByRole("heading", { name: "Career" }),
+  ).not.toBeInTheDocument();
+  act(() =>
+    options.onFinish({
+      isAbort: false,
+      isError: false,
+      message: { id: request.turnId },
+    }),
+  );
   expect(screen.getByRole("heading", { name: "Career" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Pin Career" }));
   expect(screen.getByRole("button", { name: "Remove Career" })).toBeDisabled();

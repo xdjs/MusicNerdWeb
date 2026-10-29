@@ -116,15 +116,17 @@ export default function IntentExplorer({
         try {
           staged.current = applyCanvasUpdate(part.data, pending.current);
         } catch {
+          staged.current = null;
           setNotice(
             "The response did not match this canvas. Your previous canvas is intact.",
           );
         }
       }
     },
-    onFinish: ({ isAbort, isError }) => {
+    onFinish: ({ isAbort, isError, message }) => {
       const update = staged.current;
       const request = pending.current;
+      if (message && request && message.id !== request.turnId) return;
       if (
         !isAbort &&
         !isError &&
@@ -385,16 +387,21 @@ export default function IntentExplorer({
                   : "Replay conversation steps"
               }
             >
-              {suggested.map((prompt) => (
-                <button
-                  disabled={busy}
-                  key={prompt}
-                  onClick={() => ask(prompt)}
-                >
-                  {prompt}
-                  <ArrowUpRight size={14} />
-                </button>
-              ))}
+              {suggested
+                .filter(
+                  (prompt) =>
+                    prompt !== "Compare my selection" || selected.length === 2,
+                )
+                .map((prompt) => (
+                  <button
+                    disabled={busy}
+                    key={prompt}
+                    onClick={() => ask(prompt)}
+                  >
+                    {prompt}
+                    <ArrowUpRight size={14} />
+                  </button>
+                ))}
             </div>
             <p className={styles.replayNotice}>
               {liveApiUrl
@@ -457,6 +464,12 @@ export default function IntentExplorer({
               aria-label="Persistent exploration canvas"
               aria-busy={busy}
             >
+              {!state.spec.blocks.length && (
+                <p className={styles.emptyCanvas}>
+                  Your canvas is clear. Ask a question to build another view, or
+                  undo the last change.
+                </p>
+              )}
               {state.spec.blocks.map((block) => (
                 <CanvasBlock
                   key={block.id}
