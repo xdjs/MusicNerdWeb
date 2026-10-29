@@ -1,21 +1,53 @@
-# Intent-led LATASHÁ exploration
+# Conversational artist canvas — preview experiment
 
-Preview experiment at `/dev/intent-preview`; absent in production. Public Music Nerd profile `3cd4c3e4-4bf4-4b92-9b72-07f9188bd4c6` is the identity anchor. Its public Lore and listening destinations were inspected October 29, 2026. A curated snapshot combines those sources with the artist's Bandcamp and official media page. No database mutations, research queues or provider refreshes.
+## Decision and status
 
-Persistent artist identity, editable visitor intent, adaptive canvas, view-specific refinement and history. Career timeline, listening path and visual world are authored React components. A typed plan contains known view/filter values. Current routing is deterministic and labeled; no model-generated code or live AI claim. Unknown questions retain the canvas and offer supported alternatives. No simulated loading.
+Pete clarified that generative UI must evolve with the conversation, not choose among three prepared pages. The initial page-mode prototype (`60b3237`) is superseded. Its branding and evidence components are reused, while its router is removed. The preview now maintains one compositional canvas with stable block IDs, a conversation and independent pin/selection/focus state.
 
-Each item exposes its source, supporting summary, date type and limitation. Release dates differ from interview publication dates. Listening order is editorial. Snapshot is neither exhaustive nor live. Undated media stays undated. Artist quotations remain attributed.
+Replay mode is explicitly labeled and makes no model calls. It uses authored responses through the same AI SDK UI-message protocol and client validator as the prepared live mode. It demonstrates the renderer and state transitions, not general model reasoning. Live execution remains disabled pending approval. Do not call the replay a generative model demo.
 
-Design: Music Nerd pink #ef95ff, white #ffffff, ink #17121a, muted #706a75 and lavender #f6f1f8. Existing Inter assets and lenses mark; large artist name and portrait-led identity. Timeline uses real chronology, listening an editorial sequence, visual world artwork and media filters. No autoplay. Both themes and reduced motion.
+## Existing infrastructure and minimum extension
 
-Validation: test routing, follow-up context, unknown input, evidence IDs, filtering, source inspection, history and production route gate. Verify 832px/390px and both themes; run type/lint/test/build and exact-SHA preview checks. APIs, persistence, jobs and credentials are non-applicable.
+Web uses the same `useChat` / `DefaultChatTransport` path as AskAboutArtist. Its preview-only live endpoint is the isolated MusicNerdAPI deployment, never production. API extends existing `/api/artist/{id}/chat`, uses the existing `MODEL_CHAT` constant and `lib/ai/streamText`, public research originals, shared ranking, source reading, citation writer, Privy visitor key and hourly question allowance. No new provider SDK, credentials or duplicate chat endpoint. Ordinary requests without `canvas` remain unchanged.
 
-Tracking issue draft prepared locally; publication was denied by automatic approval review, pending explicit authorization. No PR or deployment yet.
+Current API main examined: `e4054a4`. `MODEL_CHAT` currently names `anthropic/claude-sonnet-5.5` via the existing gateway. This is an observed configuration, not a provider choice for this experiment. No live call is represented as verified.
 
-## Asset provenance
+## Contract: canvas.v1
 
-Portrait is the public Music Nerd custom image (`i.scdn.co/image/ab6761610000e5ebea5ac03b1636db2a6ce6764b`). Album art comes from the artist-owned Bandcamp pages for OUT HERE, Teen Nite at Empire and PAST LIFE. WAVE and WORLDBUILDERS UNITE thumbnails correspond to the official videos linked by callmelatasha.com/media (`ydgqkkDdDm8`, `v8Rcu0WkK4c`). Cached here only to make this isolated review reliable; all work links return to the artist's destinations.
+Request adds optional `canvas` beside existing `messages`: version, UUID sessionId, UUID turnId, integer baseRevision, prior spec, pinnedIds, selectedIds and focusId. A spec contains at most eight blocks with stable id, kind (`timeline`, `cards`, `media`, `quote`, `comparison`), short presentation title, at most eight evidence IDs, and span 1 or 2. No HTML, executable code, URLs or new factual payloads appear in a spec.
 
-## Local verification — October 29, 2026
+The model proposes a full nextSpec via `composeCanvas`. Server validates against server-owned seed/read-source evidence, rejects duplicate block IDs, unknown evidence and invalid kind/evidence pairs, and enforces pinned-block equality. It computes added/updated/removed IDs. A complete `data-canvas` part is staged until the entire model turn succeeds, then emitted with revision+1, echoed session/turn IDs, nextSpec, evidence and changes. Client validates again and only commits on successful stream completion for the pending revision. Cancellation/failure preserves prior canvas. The server does not persist sessions; the browser is the revision owner, with a single in-flight turn. Reload resets the session. This is not multi-device persistence or a durable session guarantee.
 
-TypeScript passed; lint passed with existing warnings and image optimization suggestions. Full Jest coverage run: 418 suites passed, 3,635 passed and six skipped tests. Four additional route-gate tests passed after that run. Stub-environment production build passed using Node 24.16.0 (repository pins 24.21.0; exact pinned patch not installed locally). Local browser: desktop 832px and phone 390px, both themes; timeline/community filtering, process filter, listening path, source disclosure, back navigation and unsupported request preservation verified. All displayed images loaded; phone document had no horizontal overflow; browser error log was empty. Local build has no service credentials and does not prove live integration access. No model called.
+Only `readSource` can register additional stored public evidence. Source URLs are protocol-checked; its display text is an exact opening excerpt, not a model-generated claim. Existing web search remains available to prose but cannot invent canvas evidence. Additional sources are source cards; generated quotations or inferred event dates are not accepted. Authored seed quotations are attributed, and source-publication dates are distinguished from release dates.
+
+## Evidence foundation and environments
+
+Production identity/profile: `3cd4c3e4-4bf4-4b92-9b72-07f9188bd4c6`. Staging retrieval identity: `73488cf7-3d3f-46ac-8cb1-74424c162ed6`; both verified via public search, matching callmelatasha accounts. The public profile's 13 Lore sources, Latest entries and artist-owned Bandcamp/official media pages were inspected October 29, 2026. The seed includes Teen Nite at Empire (2017 release), PAST LIFE (2020 collection, older recordings), MEDS BY TASH (March 5, 2021), ZORA interview (September 7, 2021 publication), OUT HERE (September 25, 2026), official film/process media, and an exact attributed quotation. No causal relationship is inferred from proximity in time.
+
+Portrait comes from the Music Nerd public custom image. Album art is the artist's Bandcamp artwork; video thumbnails match the official videos linked by callmelatasha.com/media. Every item links to its source. Source snapshot is neither exhaustive nor current/live.
+
+## Live gates
+
+API: only Vercel preview, only staging LATASHÁ ID, and `MUSICNERD_CANVAS_PREVIEW_ENABLED=1`. Otherwise a canvas request returns 503 before artist/source reads or quota reservation. Web live mode additionally needs the same flag and `MUSICNERD_CANVAS_API_PREVIEW_URL` matching the isolated Music Nerd API preview host. Absent flags use replay. No flags have been enabled. Existing visitor quotas are not a global dollar budget; bounded paid execution must be resolved before approval/enabling. No production DB mutations, research jobs or provider refreshes are introduced by replay.
+
+## Acceptance flow
+
+Career question adds a timeline. Independence follow-up updates that timeline's existing ID and places artist voice beside it. “What was she releasing then?” preserves those blocks and adds the 2021 listening card. Add visual work, then keep the timeline, compare two releases and remove videos. Pinning protects a block; selected evidence informs comparison. Authored replay supports only disclosed prompts. Offline mock-model integration also verifies an unseen comparison-plus-process arrangement, independent of replay routing.
+
+## Research references
+
+- C.Y., October 26 standup, normalized timeline and visitor-intent discussion.
+- Dutchyyy PDF: https://arweave.net/CFpCbipP6-Bi-Iwr0tyo2oIP9AIMZnOg6IUq21kz8JM — progressive depth and preservation of artist corrections, not LATASHÁ facts.
+- https://json-render.dev/docs/specs — structured, schema-bound presentation.
+- https://json-render.dev/docs/streaming — patch streams; this prototype instead validates a full nextSpec before committing.
+- https://json-render.dev/docs/registry — authored component vocabulary; no new dependency required for the bounded overnight renderer.
+
+Tracking issue publication was denied by automatic approval review. User subsequently said a new public issue was unnecessary; it is not retried. Preview branch publication is authorized. No main merge or production promotion.
+
+## Overnight iteration · October 29
+
+The user authorized live tests through the existing chat/API with a $20 total overnight cap. API branch codex/intent-composition adds a shared reservation cap and bounded model steps/output, leaving headroom. No new credentials/provider, no production release. Web branch uses branch-specific server environment configuration to point at the isolated API preview.
+
+Dutchyyy added to the same renderer, protocol and conversation state. Production profile efff5473-fa9f-4eba-b137-16ffb79f15d8; staging profile 6cb3d81a-3d02-4c57-a711-bb7902a9af1b. Three public Lore PDFs: 41-page full archive, 19-page shorter archive, 13-page incomplete chronological discography. Selected PDF pages visually inspected. Artist preface distinguished from document claims; recording dates remain distinct from release dates. No claim that all staging PDF text is extracted. Instagram/InProcess source coverage still to verify through existing retrieval.
+
+Entry screen supports the two connected artists and carries a search question into the workspace. Artist changes remount the session and clear conversation, pins, selection and canvas, preventing attribution leakage. A source-backed starting work is visible before the first model turn. Replay remains explicitly labeled and freeform routing is only offered with the live preview enabled.

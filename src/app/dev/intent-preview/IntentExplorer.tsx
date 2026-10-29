@@ -1,61 +1,431 @@
-'use client';
-import { useRef, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, AudioLines, History, Layers3, Moon, Sun, X } from 'lucide-react';
-import { useTheme } from '@/app/_components/ThemeProvider';
-import { profileUrl } from '@/lib/intent/latashaSnapshot';
-import { routeIntent } from '@/lib/intent/routeIntent';
-import type { IntentFilter, IntentPlan, IntentView } from '@/lib/intent/types';
-import ExplorationCanvas from './ExplorationCanvas';
-import SourceNote from './SourceNote';
-import styles from './intent.module.css';
-const views: Record<IntentView,{ title:string; intro:string; prompt:string; label:string }> = {
- timeline:{ title:'A career, in chapters.', intro:'Follow four documented moments across releases and community. A starting point, not a complete biography.', prompt:'Show me her career timeline',label:'Career timeline' },
- listen:{ title:'Find your way into her sound.',intro:'Three doors into the catalog. An editorial listening path from the present back into the archive.',prompt:'Where should I start listening?',label:'Listening path' },
- world:{ title:'Step inside her visual world.',intro:'Music, film and process, brought together from the artist’s own collection. Choose a work to explore.',prompt:'Show me her visual world',label:'Visual world' }
-};
-export default function IntentExplorer() {
- const {theme,setTheme}=useTheme();
- const [plan,setPlan]=useState<IntentPlan|null>(null);
- const [input,setInput]=useState('');
- const [question,setQuestion]=useState('');
- const [error,setError]=useState('');
- const [history,setHistory]=useState<{plan:IntentPlan;question:string}[]>([]);
- const [showHistory,setShowHistory]=useState(false);
- const heading=useRef<HTMLHeadingElement>(null);
- function explore(text:string, explicit?:IntentPlan) {
-  const next=explicit ?? routeIntent(text,plan ?? undefined);
-  if (!next) {setError('This prototype can explore her career, listening path or visual world. Try one of those, or refine the current view.');return;}
-  if(plan) setHistory(items=>[...items,{plan,question}]);
-  setPlan(next);setQuestion(text);setInput('');setError('');setShowHistory(false);
-  requestAnimationFrame(()=>heading.current?.focus());
- }
- function refine(filter:IntentFilter) {if(plan) explore(question,{...plan,filter});}
- function back() {const previous=history.at(-1);setHistory(items=>items.slice(0,-1));setPlan(previous?.plan ?? null);setQuestion(previous?.question ?? '');setError('');}
- const filters: {label:string;value:IntentFilter}[]=plan?.view==='timeline'?[{label:'All moments',value:'all'},{label:'Releases',value:'releases'},{label:'Community & NFTs',value:'community'}]:plan?.view==='world'?[{label:'All works',value:'all'},{label:'Films',value:'films'},{label:'The process',value:'process'}]:[];
- return <div className={styles.experiment}>
-  <header className={styles.topbar}><a href={profileUrl} className={styles.brand}><img src="/musicNerdLogo.png" alt="Music Nerd" /><span>Music Nerd <small>Explore differently</small></span></a>
-   <div className={styles.headerActions}><span className={styles.previewBadge}>Interaction prototype</span><button onClick={()=>setTheme(theme==='dark'?'light':'dark')} aria-label={`Switch to ${theme==='dark'?'light':'dark'} theme`}>{theme==='dark'?<Sun size={18}/>:<Moon size={18}/>}</button></div>
-  </header>
-  <div className={styles.layout}>
-   <aside className={styles.identity}><div className={styles.portrait}><img src="/demo/latasha/portrait.jpg" alt="LATASHÁ" /><div className={styles.portraitCaption}>Rapper. Artist. World-builder.</div></div>
-    <div className={styles.artistInfo}><h1>LATASHÁ</h1><p>New York roots. <br/>Los Angeles worlds.</p><a href={profileUrl} target="_blank" rel="noreferrer">Her Music Nerd profile <ArrowUpRight size={16}/></a><SourceNote id="bio" /></div>
-    <div className={styles.identityNote}><AudioLines size={22}/><p>One artist.<br/>More than one way in.</p></div>
-   </aside>
-   <section className={styles.workspace} aria-label="Artist exploration">
-    {!plan ? <div className={styles.welcome}><p className={styles.context}>Go beyond the bio</p><h2>What brings you<br/>to LATASHÁ?</h2><p className={styles.lede}>Start with your curiosity.<br/>The view follows you.</p></div> : <div className={styles.journeyBar}><button onClick={back}><ArrowLeft size={16}/> Back</button><button onClick={()=>setShowHistory(!showHistory)} aria-expanded={showHistory}><History size={16}/> Your explorations <span>{history.length+1}</span></button></div>}
-    {showHistory && <div className={styles.history}>{history.length===0?<p>This is your first exploration.</p>:history.map((entry,index)=><button key={index} onClick={()=>explore(entry.question,entry.plan)}>{entry.question}<ArrowUpRight size={15}/></button>)}</div>}
-    <form className={styles.composer} onSubmit={event=>{event.preventDefault();explore(input);}}><label htmlFor="artist-intent" className={styles.srOnly}>{plan?'Explore another angle':'What would you like to explore about LATASHÁ?'}</label><input id="artist-intent" value={input} onChange={event=>setInput(event.target.value)} placeholder={plan?'Ask for another angle…':'I’m curious about…'} maxLength={300} aria-describedby={error?'intent-error':'prototype-note'}/><button type="submit" disabled={!input.trim()} aria-label="Explore this intent"><ArrowUpRight size={25}/></button></form>
-    {error && <div id="intent-error" role="alert" className={styles.error}>{error}<button onClick={()=>setError('')} aria-label="Dismiss message"><X size={16}/></button></div>}
-    <div className={styles.suggestions} aria-label="Suggested explorations">{(Object.keys(views) as IntentView[]).map(view=><button key={view} aria-pressed={plan?.view===view} onClick={()=>explore(views[view].prompt,{view,filter:'all'})}>{views[view].label}<ArrowUpRight size={14}/></button>)}</div>
-    {!plan ? <div className={styles.invitation}><div className={styles.coverStack}><img src="/demo/latasha/teen.jpg" alt="Teen Nite at Empire cover"/><img src="/demo/latasha/out-here.jpg" alt="OUT HERE cover"/><img src="/demo/latasha/past.jpg" alt="PAST LIFE cover"/></div><div><Layers3 size={23}/><p>Releases. Stories. Worlds.</p><span>Connected through sources,<br/>shaped around your question.</span></div></div> : <div className={styles.canvas}>
-     <div className={styles.intentSummary}><span>Your curiosity</span><p>“{question}”</p></div>
-     <h2 ref={heading} tabIndex={-1}>{views[plan.view].title}</h2><p className={styles.canvasIntro}>{views[plan.view].intro}</p>
-     {filters.length>0 && <div className={styles.filters} aria-label="Refine this exploration">{filters.map(filter=><button key={filter.value} aria-pressed={plan.filter===filter.value} onClick={()=>refine(filter.value)}>{filter.label}</button>)}</div>}
-     <ExplorationCanvas plan={plan}/>
-     <div className={styles.followup}><p>Keep following the thread</p><button onClick={()=>explore(views[plan.view==='timeline'?'listen':plan.view==='listen'?'world':'timeline'].prompt)}>{views[plan.view==='timeline'?'listen':plan.view==='listen'?'world':'timeline'].prompt}<ArrowUpRight size={18}/></button></div>
-    </div>}
-    <footer className={styles.disclosure}><p id="prototype-note">Curated source snapshot · October 29, 2026. Deterministic intent routing; no live AI.</p><details><summary>About this experiment</summary><p>This preview demonstrates how an artist page can respond to what you want to explore. It recognizes a small set of intents and rearranges verified source material. It cannot answer arbitrary questions. Listening paths and presentation are editorial; the sources support the facts. Nothing you type is sent to a model or saved.</p><SourceNote id="profile"/></details></footer>
-   </section>
-  </div>
- </div>;
+"use client";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { getAccessToken } from "@privy-io/react-auth";
+import { DefaultChatTransport } from "ai";
+import { ArrowLeft, ArrowUpRight, AudioLines, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/app/_components/ThemeProvider";
+import {
+  CANVAS_ARTIST_ID,
+  canvasSeed,
+  canvasSeeds,
+  DUTCH_ARTIST_ID,
+  type CanvasRequest,
+  type CanvasUpdate,
+  type CanvasSpec,
+} from "@/lib/intent/canvasProtocol";
+import { createReplayResponse } from "@/lib/intent/createReplayResponse";
+import { applyCanvasUpdate } from "@/lib/intent/applyCanvasUpdate";
+import { profileUrl } from "@/lib/intent/latashaSnapshot";
+import CanvasBlock from "./CanvasBlock";
+import SourceNote from "./SourceNote";
+import styles from "./intent.module.css";
+const steps = [
+  "Show me her career",
+  "Focus on independence",
+  "What was she releasing then?",
+  "Add her visual work",
+  "Keep the timeline, compare two releases and remove videos",
+];
+export default function IntentExplorer({
+  liveApiUrl,
+  artistId = CANVAS_ARTIST_ID,
+  initialIntent,
+  onBack,
+}: {
+  liveApiUrl?: string;
+  artistId?: string;
+  initialIntent?: string;
+  onBack?: () => void;
+}) {
+  const dutch = artistId === DUTCH_ARTIST_ID;
+  const artistName = dutch ? "Dutchyyy" : "LATASHÁ";
+  const artistProfile = dutch
+    ? "https://musicnerd.xyz/artist/efff5473-fa9f-4eba-b137-16ffb79f15d8"
+    : profileUrl;
+  const artistSeed = canvasSeeds[artistId];
+  const conversationSteps = dutch
+    ? [
+        "Explore his archive",
+        "Focus on improvisation",
+        "Show his early releases",
+        "Compare my selection",
+      ]
+    : steps;
+  const { theme, setTheme } = useTheme();
+  const [input, setInput] = useState(initialIntent ?? "");
+  const [state, setState] = useState<{
+    spec: CanvasSpec;
+    revision: number;
+    evidence: typeof canvasSeed;
+  }>({ spec: { blocks: [] }, revision: 0, evidence: artistSeed });
+  const [pinned, setPinned] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState<string[]>([]);
+  const [focus, setFocus] = useState<string | null>(null);
+  const [history, setHistory] = useState<(typeof state)[]>([]);
+  const [notice, setNotice] = useState("");
+  const session = useRef<string | null>(null);
+  const pending = useRef<CanvasRequest | null>(null);
+  const staged = useRef<CanvasUpdate | null>(null);
+  const latest = useRef(state);
+  latest.current = state;
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: liveApiUrl
+          ? `${liveApiUrl}/api/artist/${artistId}/chat`
+          : "/replay-only",
+        fetch: async (url, options) =>
+          liveApiUrl
+            ? fetch(url, options)
+            : createReplayResponse(JSON.parse(String(options?.body)), artistId),
+        credentials: "omit",
+        headers: async (): Promise<Record<string, string>> => {
+          if (!liveApiUrl) return {};
+          const token = await getAccessToken().catch(() => null);
+          return token ? { Authorization: `Bearer ${token}` } : {};
+        },
+        prepareSendMessagesRequest: ({ messages }) => ({
+          body: { messages, canvas: pending.current },
+        }),
+      }),
+    [liveApiUrl, artistId],
+  );
+  const { messages, sendMessage, status, stop, error } = useChat({
+    transport,
+    onData: (part) => {
+      if (part.type === "data-canvas" && pending.current) {
+        try {
+          staged.current = applyCanvasUpdate(part.data, pending.current);
+        } catch {
+          setNotice(
+            "The response did not match this canvas. Your previous canvas is intact.",
+          );
+        }
+      }
+    },
+    onFinish: ({ isAbort, isError }) => {
+      const update = staged.current;
+      const request = pending.current;
+      if (
+        !isAbort &&
+        !isError &&
+        update &&
+        request &&
+        latest.current.revision === request.baseRevision
+      ) {
+        setHistory((previous) => [...previous, latest.current]);
+        setState({
+          spec: update.nextSpec,
+          revision: update.revision,
+          evidence: update.evidence,
+        });
+        setNotice(
+          `${update.changes.added.length} added · ${update.changes.updated.length} updated · ${update.changes.removed.length} removed`,
+        );
+      }
+      staged.current = null;
+      pending.current = null;
+    },
+    onError: () => {
+      staged.current = null;
+      pending.current = null;
+    },
+  });
+  const busy = status === "submitted" || status === "streaming";
+  function ask(question: string) {
+    if (busy || !question.trim()) return;
+    session.current ??= crypto.randomUUID();
+    pending.current = {
+      version: "canvas.v1",
+      sessionId: session.current,
+      turnId: crypto.randomUUID(),
+      baseRevision: state.revision,
+      spec: state.spec,
+      pinnedIds: pinned,
+      selectedIds: selected,
+      focusId: focus,
+    };
+    staged.current = null;
+    setInput("");
+    setNotice("");
+    void sendMessage({ text: question });
+  }
+  const initialSent = useRef(false);
+  useEffect(() => {
+    if (liveApiUrl && initialIntent && !initialSent.current) {
+      initialSent.current = true;
+      ask(initialIntent);
+    }
+  });
+  function remove(id: string) {
+    setHistory((previous) => [...previous, state]);
+    setState({
+      ...state,
+      revision: state.revision + 1,
+      spec: { blocks: state.spec.blocks.filter((b) => b.id !== id) },
+    });
+    if (focus === id) setFocus(null);
+  }
+  function undo() {
+    const previous = history.at(-1);
+    if (!previous) return;
+    setState({ ...previous, revision: state.revision + 1 });
+    setHistory((h) => h.slice(0, -1));
+    setPinned((ids) =>
+      ids.filter((id) => previous.spec.blocks.some((b) => b.id === id)),
+    );
+    setSelected([]);
+    setNotice("Restored the previous canvas.");
+  }
+  const toggle = (values: string[], id: string) =>
+    values.includes(id)
+      ? values.filter((value) => value !== id)
+      : [...values, id];
+  const suggested =
+    state.revision === 0
+      ? conversationSteps.slice(0, 3)
+      : state.spec.blocks.some((b) => b.id === "voice")
+        ? conversationSteps.slice(2)
+        : conversationSteps.slice(1, 4);
+  return (
+    <div className={styles.experiment}>
+      <header className={styles.topbar}>
+        <a href={artistProfile} className={styles.brand}>
+          <img src="/musicNerdLogo.png" alt="Music Nerd" />
+          <span>
+            Music Nerd<small>Follow your curiosity</small>
+          </span>
+        </a>
+        <div className={styles.headerActions}>
+          {onBack && (
+            <button
+              onClick={() => {
+                void stop();
+                onBack();
+              }}
+            >
+              Change artist
+            </button>
+          )}
+          <span className={styles.previewBadge}>
+            {liveApiUrl
+              ? "Live composition · Music Nerd chat"
+              : "Canvas replay · no live AI"}
+          </span>
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+        </div>
+      </header>
+      <div className={styles.layout}>
+        <aside className={styles.identity}>
+          <div className={styles.portrait}>
+            <img
+              src={`/demo/${dutch ? "dutchyyy" : "latasha"}/portrait.jpg`}
+              alt={artistName}
+            />
+            <div className={styles.portraitCaption}>
+              {dutch
+                ? "Music. Process. A living archive."
+                : "Rapper. Artist. World-builder."}
+            </div>
+          </div>
+          <div className={styles.artistInfo}>
+            <h1>{artistName}</h1>
+            <p>
+              {dutch ? (
+                "Follow the work across aliases, releases and an artist’s archive."
+              ) : (
+                <>
+                  New York roots. <br />
+                  Los Angeles worlds.
+                </>
+              )}
+            </p>
+            <a href={artistProfile} target="_blank" rel="noreferrer">
+              Music Nerd profile <ArrowUpRight size={16} />
+            </a>
+            {!dutch && <SourceNote id="bio" />}
+          </div>
+          <div className={styles.identityNote}>
+            <AudioLines size={22} />
+            <p>
+              A conversation.
+              <br />
+              An evolving canvas.
+            </p>
+          </div>
+        </aside>
+        <section className={styles.workspace} aria-label="Artist exploration">
+          {state.revision === 0 && (
+            <div className={styles.welcome}>
+              <p className={styles.context}>Go beyond the bio</p>
+              <h2>
+                Follow a thread.
+                <br />
+                See where it goes.
+              </h2>
+              <p className={styles.lede}>
+                Explore {artistName} through a conversation.
+                <br />
+                Keep what matters. Go deeper from there.
+              </p>
+            </div>
+          )}
+          <div className={styles.conversation} aria-label="Conversation">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={
+                  message.role === "user"
+                    ? styles.userTurn
+                    : styles.assistantTurn
+                }
+              >
+                <span>
+                  {message.role === "user"
+                    ? "You"
+                    : liveApiUrl
+                      ? "Music Nerd"
+                      : "Music Nerd · replay"}
+                </span>
+                <p>
+                  {message.parts
+                    .filter((p) => p.type === "text")
+                    .map((p) => (p.type === "text" ? p.text : ""))
+                    .join("")}
+                </p>
+              </div>
+            ))}
+          </div>
+          <form
+            className={styles.composer}
+            onSubmit={(event) => {
+              event.preventDefault();
+              ask(input);
+            }}
+          >
+            <label htmlFor="artist-intent" className={styles.srOnly}>
+              Explore {artistName}
+            </label>
+            <input
+              id="artist-intent"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Where does your curiosity go next?"
+              maxLength={500}
+              disabled={busy}
+            />
+            <button
+              type="submit"
+              disabled={busy || !input.trim()}
+              aria-label="Send exploration"
+            >
+              <ArrowUpRight size={25} />
+            </button>
+          </form>
+          <div
+            className={styles.suggestions}
+            aria-label="Replay conversation steps"
+          >
+            {suggested.map((prompt) => (
+              <button disabled={busy} key={prompt} onClick={() => ask(prompt)}>
+                {prompt}
+                <ArrowUpRight size={14} />
+              </button>
+            ))}
+          </div>
+          <p className={styles.replayNotice}>
+            {liveApiUrl
+              ? "Ask a follow-up or select evidence. Your canvas evolves with the conversation."
+              : "Guided replay: these prompts exercise the real canvas protocol. Free-form model planning is not enabled."}
+          </p>
+          {busy && (
+            <div role="status" className={styles.status}>
+              Composing the next canvas…{" "}
+              <button
+                onClick={() => {
+                  stop();
+                  staged.current = null;
+                  pending.current = null;
+                }}
+              >
+                Stop
+              </button>
+            </div>
+          )}
+          {error && (
+            <p role="alert" className={styles.error}>
+              {error.message} Your last valid canvas is unchanged.
+            </p>
+          )}
+          <div className={styles.canvasToolbar}>
+            <p role="status">
+              {notice || `${state.spec.blocks.length} blocks on your canvas`}
+            </p>
+            <button disabled={busy || !history.length} onClick={undo}>
+              <ArrowLeft size={14} /> Undo canvas change
+            </button>
+          </div>
+          {selected.length > 0 && (
+            <div className={styles.selectionBar}>
+              <span>{selected.length} selected</span>
+              <button
+                disabled={busy || selected.length !== 2}
+                onClick={() => ask("Compare my selection")}
+              >
+                Compare selection
+              </button>
+              <button disabled={busy} onClick={() => setSelected([])}>
+                Clear
+              </button>
+            </div>
+          )}
+          <div
+            className={styles.composition}
+            aria-label="Persistent exploration canvas"
+            aria-busy={busy}
+          >
+            {state.spec.blocks.map((block) => (
+              <CanvasBlock
+                key={block.id}
+                block={block}
+                evidence={state.evidence}
+                busy={busy}
+                pinned={pinned.includes(block.id)}
+                expanded={expanded.includes(block.id)}
+                selected={selected}
+                onPin={() => setPinned(toggle(pinned, block.id))}
+                onExpand={() => setExpanded(toggle(expanded, block.id))}
+                onRemove={() => remove(block.id)}
+                onSelect={(id) => setSelected(toggle(selected, id).slice(-8))}
+                onFocus={() => setFocus(block.id)}
+              />
+            ))}
+          </div>
+          <footer className={styles.disclosure}>
+            <p>
+              Public source snapshot · October 29, 2026. Artist facts stay
+              separate from presentation.
+            </p>
+            <details>
+              <summary>What is live in this experiment?</summary>
+              <p>
+                {liveApiUrl
+                  ? "This preview uses Music Nerd’s existing chat backend to compose evidence-backed blocks. Source snapshot entries are labeled and additional stored sources are retrieved by the chat. Model choices can still be mistaken; inspect evidence."
+                  : "The canvas, selection, pinning, undo, revision validation and streamed message handling work. Responses are authored replay fixtures, not model output. The isolated API extension reuses Music Nerd’s chat model and retrieval, but live execution remains disabled."}{" "}
+                Conversations exist only in this tab and reset on reload.
+              </p>
+              <SourceNote id="profile" />
+            </details>
+          </footer>
+        </section>
+      </div>
+    </div>
+  );
 }

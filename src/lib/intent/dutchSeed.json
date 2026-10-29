@@ -1,0 +1,76 @@
+[
+  {
+    "id": "dutch-preface",
+    "title": "Why preserve the work?",
+    "text": "Archiving my life on-chain is a way to ensure that my story isn\u2019t erased.",
+    "url": "https://cbabvmebugudeuylronz.supabase.co/storage/v1/object/public/vault-files/efff5473-fa9f-4eba-b137-16ffb79f15d8/1788879315912_Dutchyyy_VS_The_Algorithms__short__compressed.pdf#page=1",
+    "category": "quote",
+    "date": null,
+    "dateKind": "Artist-written preface \u00b7 PDF p. 1 (printed p. 41)",
+    "limitation": "Public Lore PDF. Document claim, not independent verification. PDF page numbering is shown; recording, release and upload dates are distinct.",
+    "page": 1,
+    "attribution": "Dutchyyy \u00b7 The Algorithms archive"
+  },
+  {
+    "id": "dutch-equilibrium",
+    "title": "The first Equilibrium record",
+    "text": "The discography lists the debut 12-inch in 1998 and says it was recorded in 1997. Those are different events.",
+    "url": "https://cbabvmebugudeuylronz.supabase.co/storage/v1/object/public/vault-files/efff5473-fa9f-4eba-b137-16ffb79f15d8/1788879108516_dutch_discography_timeline.pdf#page=2",
+    "category": "document",
+    "date": "1998",
+    "dateKind": "Release year reported by document",
+    "limitation": "Public Lore PDF. Document claim, not independent verification. PDF page numbering is shown; recording, release and upload dates are distinct.",
+    "page": 2,
+    "attribution": "Dutchyyy \u00b7 Lore discography"
+  },
+  {
+    "id": "dutch-junk",
+    "title": "Junk Planet",
+    "text": "The discography separates recording (1997\u20132002) from the album release (July 13, 2004).",
+    "url": "https://cbabvmebugudeuylronz.supabase.co/storage/v1/object/public/vault-files/efff5473-fa9f-4eba-b137-16ffb79f15d8/1788879108516_dutch_discography_timeline.pdf#page=3",
+    "category": "document",
+    "date": "2004-07-13",
+    "dateKind": "Release date reported by document",
+    "limitation": "Public Lore PDF. Document claim, not independent verification. PDF page numbering is shown; recording, release and upload dates are distinct.",
+    "page": 3,
+    "attribution": "Dutchyyy \u00b7 Lore discography",
+    "workUrl": "https://dutchmassive.bandcamp.com/album/junk-planet-1997-2002"
+  },
+  {
+    "id": "dutch-reach",
+    "title": "Project: Reach Radio Promo EP",
+    "text": "The discography places the radio promo EP in 2004; its title spans 2003\u20132006. The title range is not a single release date.",
+    "url": "https://cbabvmebugudeuylronz.supabase.co/storage/v1/object/public/vault-files/efff5473-fa9f-4eba-b137-16ffb79f15d8/1788879108516_dutch_discography_timeline.pdf#page=3",
+    "category": "document",
+    "date": "2004",
+    "dateKind": "Discography entry year",
+    "limitation": "Public Lore PDF. Document claim, not independent verification. PDF page numbering is shown; recording, release and upload dates are distinct.",
+    "page": 3,
+    "attribution": "Dutchyyy \u00b7 Lore discography",
+    "workUrl": "https://dutchmassive.bandcamp.com/album/project-reach-radio-promo-ep-2003-2006"
+  },
+  {
+    "id": "dutch-improv",
+    "title": "Long Story Short / The Reluctant Clap",
+    "text": "The archive places the start of Long Story Short in its 2014\u20132015 passage and describes The Reluctant Clap as a 2015\u20132022 freestyle series. This is a connection through improvisation, not proof that the series are the same work.",
+    "url": "https://cbabvmebugudeuylronz.supabase.co/storage/v1/object/public/vault-files/efff5473-fa9f-4eba-b137-16ffb79f15d8/1788879315912_Dutchyyy_VS_The_Algorithms__short__compressed.pdf#page=5",
+    "category": "document",
+    "date": null,
+    "dateKind": "Archive passage \u00b7 2014\u20132015 / 2015\u20132022",
+    "limitation": "Public Lore PDF. Document claim, not independent verification. PDF page numbering is shown; recording, release and upload dates are distinct.",
+    "page": 5,
+    "attribution": "Dutchyyy \u00b7 The Algorithms archive"
+  },
+  {
+    "id": "dutch-archive",
+    "title": "Three documents, different scopes",
+    "text": "Music Nerd\u2019s public Lore links a 41-page archive, a 19-page shortened archive, and a 13-page incomplete chronological discography. This preview uses selected, page-checked passages.",
+    "url": "https://cbabvmebugudeuylronz.supabase.co/storage/v1/object/public/vault-files/efff5473-fa9f-4eba-b137-16ffb79f15d8/1788879315912_Dutchyyy_VS_The_Algorithms__short__compressed.pdf#page=1",
+    "category": "document",
+    "date": null,
+    "dateKind": "Source overview \u00b7 snapshot October 29, 2026",
+    "limitation": "Public Lore PDF. Document claim, not independent verification. PDF page numbering is shown; recording, release and upload dates are distinct.",
+    "page": 1,
+    "attribution": "Dutchyyy \u00b7 The Algorithms archive"
+  }
+]

@@ -1,0 +1,122 @@
+"use client";
+import { useState } from "react";
+import { CANVAS_ARTIST_ID, DUTCH_ARTIST_ID } from "@/lib/intent/canvasProtocol";
+import IntentExplorer from "./IntentExplorer";
+import styles from "./intent.module.css";
+const artists = [
+  {
+    id: CANVAS_ARTIST_ID,
+    name: "LATASHÁ",
+    image: "latasha",
+    description: "Music, visual worlds, and creative independence.",
+    prompt: "How do her music and visual worlds connect?",
+  },
+  {
+    id: DUTCH_ARTIST_ID,
+    name: "Dutchyyy",
+    image: "dutchyyy",
+    description: "A life in music, documented in the artist’s archive.",
+    prompt: "Help me understand his approach to improvisation.",
+  },
+];
+export default function ArtistEntry({ liveApiUrl }: { liveApiUrl?: string }) {
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<{
+    id: string;
+    intent?: string;
+  } | null>(null);
+  if (selected)
+    return (
+      <IntentExplorer
+        key={selected.id}
+        artistId={selected.id}
+        initialIntent={selected.intent}
+        liveApiUrl={liveApiUrl}
+        onBack={() => setSelected(null)}
+      />
+    );
+  const normalized = query
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const matches = artists.filter(
+    (a) =>
+      !query ||
+      normalized.includes(
+        a.name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase(),
+      ) ||
+      a.name.toLowerCase().startsWith(normalized),
+  );
+  return (
+    <main className={styles.experiment}>
+      <header className={styles.topbar}>
+        <div className={styles.brand}>
+          <img src="/musicNerdLogo.png" alt="Music Nerd" />
+          <span>
+            Music Nerd<small>Follow your curiosity</small>
+          </span>
+        </div>
+        <span className={styles.previewBadge}>
+          Artist exploration · experiment
+        </span>
+      </header>
+      <div className={styles.entry}>
+        <p className={styles.context}>Start with an artist. Follow an idea.</p>
+        <h1>
+          What draws you
+          <br />
+          into their world?
+        </h1>
+        <p>
+          Find an artist, or bring a question. Music Nerd shapes a workspace
+          around what you want to explore.
+        </p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (matches.length === 1)
+              setSelected({ id: matches[0].id, intent: query });
+          }}
+        >
+          <label htmlFor="artist-search">Artist or question</label>
+          <input
+            id="artist-search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Dutchyyy’s approach to improvisation…"
+          />
+          <button type="submit" disabled={matches.length !== 1}>
+            Explore ↗
+          </button>
+        </form>
+        <p className={styles.date}>
+          This preview explores two artists using public Music Nerd sources.
+          Other artists aren’t connected yet.
+        </p>
+        <div className={styles.artistChoices}>
+          {matches.map((a) => (
+            <button
+              key={a.id}
+              onClick={() =>
+                setSelected({ id: a.id, intent: query || undefined })
+              }
+            >
+              <img src={`/demo/${a.image}/portrait.jpg`} alt="" />
+              <div>
+                <h2>{a.name}</h2>
+                <p>{a.description}</p>
+                <span>Explore the artist ↗</span>
+              </div>
+            </button>
+          ))}
+        </div>
+        {!matches.length && (
+          <p>No connected artist matches yet. Try LATASHA or Dutchyyy.</p>
+        )}
+      </div>
+    </main>
+  );
+}

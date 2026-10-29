@@ -1,0 +1,88 @@
+[
+  {
+    "id": "teen",
+    "title": "Teen Nite at Empire",
+    "url": "https://callmelatasha.bandcamp.com/album/teen-nite-at-empire",
+    "text": "The artist’s Bandcamp lists a January 15, 2017 release, including “Glo Up” and “Ol’ BK Soul.”",
+    "category": "release",
+    "date": "2017-01-15",
+    "dateKind": "Album release",
+    "image": "/demo/latasha/teen.jpg",
+    "limitation": "Release date, not recording date. No earlier career start is inferred."
+  },
+  {
+    "id": "past",
+    "title": "PAST LIFE.",
+    "url": "https://callmelatasha.bandcamp.com/album/past-life",
+    "text": "A collection released June 5, 2020. Individual tracks are labeled with earlier years, including 2014, 2017 and 2018.",
+    "category": "release",
+    "date": "2020-06-05",
+    "dateKind": "Collection release",
+    "image": "/demo/latasha/past.jpg",
+    "limitation": "The collection date is not the date each recording was made."
+  },
+  {
+    "id": "meds",
+    "title": "MEDS BY TASH VOL I: CODES OF DESIRE",
+    "url": "https://callmelatasha.bandcamp.com/album/meds-by-tash-vol-i-codes-of-desire",
+    "text": "A hip-hop meditation and beat tape. The artist’s page credits LATASHÁ with writing and production.",
+    "category": "release",
+    "date": "2021-03-05",
+    "dateKind": "Release",
+    "image": "/demo/latasha/meds.jpg",
+    "limitation": "Its proximity to the ZORA interview does not establish a causal connection."
+  },
+  {
+    "id": "zora",
+    "title": "Art, autonomy & community",
+    "url": "https://zine.zora.co/latasha-interview",
+    "text": "LATASHÁ discusses poetry, visual art, artist autonomy and her role as ZORA’s Community Lead.",
+    "category": "interview",
+    "date": "2021-09-07",
+    "dateKind": "Interview published",
+    "limitation": "Publication date, not a role start date or NFT mint date. Retrieved from public Music Nerd Lore."
+  },
+  {
+    "id": "independence",
+    "title": "In her own words",
+    "url": "https://zine.zora.co/latasha-interview",
+    "text": "I am and always will be an artist, first and foremost.",
+    "category": "quote",
+    "date": "2021-09-07",
+    "dateKind": "Interview published",
+    "limitation": "LATASHÁ speaking in the ZORA interview. This is an attributed excerpt, not a generated quotation."
+  },
+  {
+    "id": "out",
+    "title": "OUT HERE",
+    "url": "https://callmelatasha.bandcamp.com/album/out-here",
+    "text": "Nine tracks connect boom-bap, Jersey club, dancehall and electronic textures through a story of self-awareness.",
+    "category": "release",
+    "date": "2026-09-25",
+    "dateKind": "Album release",
+    "image": "/demo/latasha/out-here.jpg",
+    "limitation": "Verified against artist-owned Bandcamp and Music Nerd Latest. Any listening order is editorial."
+  },
+  {
+    "id": "wave",
+    "title": "WAVE — the film",
+    "url": "https://www.youtube.com/watch?v=ydgqkkDdDm8",
+    "text": "Featured in the artist’s official music-and-film collection at callmelatasha.com/media.",
+    "category": "film",
+    "date": null,
+    "dateKind": "Date not verified",
+    "image": "/demo/latasha/wave.jpg",
+    "limitation": "The media page supplies no verified release date in this snapshot."
+  },
+  {
+    "id": "worldbuilders",
+    "title": "WORLDBUILDERS UNITE.",
+    "url": "https://www.youtube.com/watch?v=v8Rcu0WkK4c",
+    "text": "WHO TF IS LATASHÁ, episode 2.2. A process-led entry point from her official media collection.",
+    "category": "process",
+    "date": null,
+    "dateKind": "Date not verified",
+    "image": "/demo/latasha/worldbuilders.jpg",
+    "limitation": "The media page supplies no verified release date in this snapshot."
+  }
+]
