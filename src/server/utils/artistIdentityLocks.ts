@@ -57,14 +57,3 @@ export async function acquireArtistPlatformWriteLocks(
   await acquireArtistPlatformLock(database, artistId, platform);
   await acquirePlatformIdentityLock(database, platform, platformId);
 }
-
-/** Serializes the same-name candidate check and artist insert. */
-export async function acquireArtistNameLock(
-  database: ArtistIdentityLockExecutor,
-  normalisedName: string,
-): Promise<void> {
-  await acquireArtistIdentityLock(
-    database,
-    `musicnerd:artist-name:${normalisedName}`,
-  );
-}

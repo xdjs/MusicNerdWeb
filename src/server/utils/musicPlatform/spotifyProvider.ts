@@ -1,6 +1,5 @@
 import type {
     MusicPlatformArtist,
-    MusicPlatformArtistIdentity,
     MusicPlatformProvider,
 } from './types';
 import {
@@ -43,22 +42,6 @@ function mapSpotifyArtist(
 
 export class SpotifyProvider implements MusicPlatformProvider {
     readonly platform = 'spotify' as const;
-
-    async getArtistIdentity(id: string): Promise<MusicPlatformArtistIdentity | null> {
-        let headers = await getSpotifyHeaders();
-        let artistResponse = await getSpotifyArtist(id, headers);
-        if (artistResponse.error === 'Spotify authentication failed') {
-            headers = await refreshSpotifyToken();
-            artistResponse = await getSpotifyArtist(id, headers);
-        }
-        if (artistResponse.error || !artistResponse.data) return null;
-
-        return {
-            platform: 'spotify',
-            platformId: artistResponse.data.id,
-            name: artistResponse.data.name,
-        };
-    }
 
     async getArtist(id: string): Promise<MusicPlatformArtist | null> {
         const headers = await getSpotifyHeaders();
