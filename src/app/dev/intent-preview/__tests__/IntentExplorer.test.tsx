@@ -62,3 +62,21 @@ it("labels replay honestly and only changes canvas after a successful complete t
   fireEvent.click(screen.getByRole("button", { name: "Pin Career" }));
   expect(screen.getByRole("button", { name: "Remove Career" })).toBeDisabled();
 });
+
+it("clears invisible selections when a card is removed and restores keyboard focus", () => {
+  render(<IntentExplorer />);
+  fireEvent.click(screen.getByRole("button", { name: "Select OUT HERE" }));
+  expect(
+    screen.getByRole("button", { name: "Compare selection" }),
+  ).toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Remove A place to begin" }),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Compare selection" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("textbox", { name: "Explore LATASHÁ" }),
+  ).toHaveFocus();
+  expect(screen.getByText("0 blocks on your canvas")).toBeInTheDocument();
+});

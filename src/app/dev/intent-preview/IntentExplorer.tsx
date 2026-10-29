@@ -80,6 +80,8 @@ export default function IntentExplorer({
   const [focus, setFocus] = useState<string | null>(null);
   const [history, setHistory] = useState<(typeof state)[]>([]);
   const [notice, setNotice] = useState("");
+  const conversationElement = useRef<HTMLDivElement>(null);
+  const inputElement = useRef<HTMLInputElement>(null);
   const session = useRef<string | null>(null);
   const pending = useRef<CanvasRequest | null>(null);
   const staged = useRef<CanvasUpdate | null>(null);
@@ -136,6 +138,18 @@ export default function IntentExplorer({
           revision: update.revision,
           evidence: update.evidence,
         });
+        const visible = new Set(
+          update.nextSpec.blocks.flatMap((block) => block.items),
+        );
+        setSelected((ids) => ids.filter((id) => visible.has(id)));
+        setExpanded((ids) =>
+          ids.filter((id) =>
+            update.nextSpec.blocks.some((block) => block.id === id),
+          ),
+        );
+        setFocus((id) =>
+          update.nextSpec.blocks.some((block) => block.id === id) ? id : null,
+        );
         setNotice(
           `${update.changes.added.length} added · ${update.changes.updated.length} updated · ${update.changes.removed.length} removed`,
         );
@@ -153,6 +167,11 @@ export default function IntentExplorer({
     },
   });
   const busy = status === "submitted" || status === "streaming";
+  useEffect(() => {
+    if (busy && conversationElement.current)
+      conversationElement.current.scrollTop =
+        conversationElement.current.scrollHeight;
+  }, [messages, busy]);
   function ask(question: string) {
     if (busy || !question.trim()) return;
     session.current ??= crypto.randomUUID();
@@ -179,6 +198,12 @@ export default function IntentExplorer({
     }
   });
   function remove(id: string) {
+    if (pinned.includes(id) || busy) return;
+    const remaining = state.spec.blocks.filter((block) => block.id !== id);
+    const visible = new Set(remaining.flatMap((block) => block.items));
+    setSelected((ids) => ids.filter((selectedId) => visible.has(selectedId)));
+    setExpanded((ids) => ids.filter((expandedId) => expandedId !== id));
+    inputElement.current?.focus();
     setHistory((previous) => [...previous, state]);
     setState({
       ...state,
@@ -204,7 +229,9 @@ export default function IntentExplorer({
       : [...values, id];
   const suggested =
     state.revision === 0
-      ? conversationSteps.slice(0, 3)
+      ? dutch
+        ? conversationSteps.slice(0, 3)
+        : [steps[0], steps[1], steps[3]]
       : state.spec.blocks.some((b) => b.id === "voice")
         ? conversationSteps.slice(2)
         : conversationSteps.slice(1, 4);
@@ -284,20 +311,25 @@ export default function IntentExplorer({
           <div className={styles.discussion}>
             {state.revision === 0 && (
               <div className={styles.welcome}>
-                <p className={styles.context}>Go beyond the bio</p>
+                <p className={styles.context}>Start with the work</p>
                 <h2>
-                  Follow a thread.
-                  <br />
-                  See where it goes.
+                  {dutch
+                    ? "An artist’s archive, opened up."
+                    : "Sound. Vision. Independence."}
                 </h2>
                 <p className={styles.lede}>
-                  Explore {artistName} through a conversation.
-                  <br />
-                  Keep what matters. Go deeper from there.
+                  {dutch
+                    ? "Explore the public Lore PDFs, recordings and the stories behind them. Every passage keeps its source close."
+                    : "Follow the releases, visual work and artist-first perspective in LATASHÁ’s public sources."}
                 </p>
               </div>
             )}
-            <div className={styles.conversation} aria-label="Conversation">
+            <div
+              className={styles.conversation}
+              aria-label="Conversation"
+              tabIndex={0}
+              ref={conversationElement}
+            >
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -330,6 +362,7 @@ export default function IntentExplorer({
               </label>
               <input
                 id="artist-intent"
+                ref={inputElement}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Where does your curiosity go next?"

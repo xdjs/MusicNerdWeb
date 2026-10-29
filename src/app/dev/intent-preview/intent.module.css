@@ -967,3 +967,17 @@
     max-height: 240px;
   }
 }
+
+.welcome h2 {
+  font-size: 30px;
+  line-height: 1.15;
+  margin: 10px 0 14px;
+}
+.welcome .lede {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.welcome .context {
+  font-size: 11px;
+}

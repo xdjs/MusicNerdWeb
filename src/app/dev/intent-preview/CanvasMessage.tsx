@@ -4,7 +4,7 @@ import { getMessageText } from "@/lib/artistChat/getMessageText";
 /** Reuse the chat's citation evidence; never turn unverified model text into a link. */
 export default function CanvasMessage({ message }: { message: UIMessage }) {
   const sources = getChatSources(message);
-  const text = getMessageText(message).replace(/\*\*/g, "");
+  const text = getMessageText(message).replace(/\*\*?/g, "");
   return (
     <p>
       {text.split(/(\[\d+(?:,\s*\d+)*\])/g).map((part, index) => {
