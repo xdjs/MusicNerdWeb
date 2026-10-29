@@ -3,13 +3,18 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { EditModeContext } from '@/app/_components/EditModeContext';
 import HeroSection from '@/app/artist/[id]/_components/HeroSection';
 import VaultSection from '@/app/artist/[id]/_components/VaultSection';
-import { getArtistBioVersions } from '@/app/actions/dashboardActions';
 
 let mockPinned = false;
-jest.mock('@/app/actions/dashboardActions', () => ({
-  getArtistBioVersions: jest.fn(async () => ({ success: true, versions: [{ id: 'v1', artistId: 'a1', bioText: 'Selected saved version', isPinned: mockPinned, createdAt: '2026-01-01' }] })),
-  pinBioVersionAction: jest.fn(async () => { mockPinned = true; return { success: true }; }),
-  unpinBioAction: jest.fn(async () => { mockPinned = false; return { success: true }; }),
+const getArtistBioVersions = jest.fn(async () => ({ success: true, versions: [{ id: 'v1', artistId: 'a1', bioText: 'Selected saved version', isPinned: mockPinned, createdAt: '2026-01-01' }] }));
+const pinBioVersion = jest.fn(async () => { mockPinned = true; return { success: true }; });
+const unpinBio = jest.fn(async () => { mockPinned = false; return { success: true }; });
+const deleteBioVersion = jest.fn();
+jest.mock('@/lib/musicNerdApi/requestMusicNerdApi', () => ({
+  requestMusicNerdApi: (path: string, init?: { method?: string; body?: { versionId?: string } }) => {
+    if (path.endsWith('/versions')) return getArtistBioVersions(path);
+    if (path.endsWith('/pin')) return init?.method === 'PUT' ? pinBioVersion(init.body?.versionId, path) : unpinBio(path);
+    return deleteBioVersion(path);
+  },
 }));
 jest.mock('@/app/artist/[id]/_components/VaultManager', () => () => null);
 jest.mock('@/app/artist/[id]/_components/ArtistInterviews', () => () => null);
