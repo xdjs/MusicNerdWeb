@@ -124,7 +124,9 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-// next-auth mock removed - authentication disabled
+// Components read the signed-in account through this hook. Tests see a signed-in
+// account unless they mock it themselves; its own test reads the real module.
+jest.mock('@/hooks/useMusicNerdUser', () => jest.requireActual('./src/test/__mocks__/useMusicNerdUser'));
 
 // Mock database (drizzle) globally for tests
 jest.mock('@/server/db/drizzle', () => {

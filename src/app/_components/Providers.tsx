@@ -24,8 +24,8 @@ export default function Providers({
           refetchInterval={0}
           refetchOnWindowFocus={false}
         >
-          <UserNameSetup />
           <QueryClientProvider client={queryClient}>
+            <UserNameSetup />
             {children}
           </QueryClientProvider>
         </SessionProvider>

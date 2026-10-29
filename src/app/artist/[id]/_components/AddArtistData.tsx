@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { useState, useEffect, useRef } from "react";
 import { Artist } from "@/server/db/DbTypes";
 import { Label } from "@radix-ui/react-label";
-import { useSession } from "next-auth/react";
+import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
 import { UrlMap } from "@/server/db/DbTypes";
 import AddArtistDataOptions from "./AddArtistDataOptions";
 import { z } from "zod";
@@ -63,7 +63,7 @@ function promptLogin() {
 }
 
 export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = false, prefillUrl, label, directEdit = false, autoApprove = false }: AddArtistDataProps) {
-    const { data: session, status } = useSession();
+    const { user, status } = useMusicNerdUser();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [addArtistResp, setAddArtistResp] = useState<AddArtistDataResp | null>(null);
@@ -117,7 +117,7 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
 
     // addLink is a one-shot handoff from search. It uses the same authentication
     // gate as a manual open. Keep the URL intact while login is pending because
-    // Privy reloads the page after creating the NextAuth session; the authenticated
+    // Privy reloads the page after creating the NextAuth user; the authenticated
     // mount can then open the dialog and consume the handoff without submitting it.
     useEffect(() => {
         if (!isOpenOnLoad || !prefillUrl) {
@@ -130,7 +130,7 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
         if (handledAddLinkRef.current === addLinkKey) return;
         if (status === "loading") return;
 
-        if (!session) {
+        if (!user) {
             setIsModalOpen(false);
             if (
                 loginPromptedForAddLinkRef.current !== addLinkKey
@@ -154,7 +154,7 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
             "",
             `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
         );
-    }, [artist.id, isOpenOnLoad, prefillUrl, reset, session, status]);
+    }, [artist.id, isOpenOnLoad, prefillUrl, reset, user, status]);
 
     // Filter out ENS and wallets from display, but keep them in availableLinks for add options
     const displayLinks = availableLinks.filter(link => link.siteName !== 'ens' && link.siteName !== 'wallets');
@@ -315,7 +315,7 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
     function handleClick() {
         // Session still resolving — don't flash a spurious login prompt at an authed user
         if (status === "loading") return;
-        if (!session) {
+        if (!user) {
             promptLogin();
             return;
         }

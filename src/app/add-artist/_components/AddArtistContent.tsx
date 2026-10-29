@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { addArtist } from "../../actions/addArtist";
-import { useSession } from "next-auth/react";
+import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
 import type { MusicPlatform, MusicPlatformArtist } from "@/server/utils/musicPlatform";
 import DuplicateArtistChoice, { type DuplicateArtistCandidate } from "@/app/_components/DuplicateArtistChoice";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
@@ -24,7 +24,7 @@ export default function AddArtistContent({ initialArtist }: { initialArtist: Mus
     const [isCreatingSeparate, setIsCreatingSeparate] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [duplicateChoice, setDuplicateChoice] = useState<PossibleDuplicateResponse | null>(null);
-    const { data: session, status } = useSession();
+    const { user, status } = useMusicNerdUser();
     const requestGenerationRef = useRef(0);
     const requestInFlightRef = useRef(false);
 
@@ -63,7 +63,7 @@ export default function AddArtistContent({ initialArtist }: { initialArtist: Mus
             return;
         }
 
-        if (!session) {
+        if (!user) {
             promptLogin();
             return;
         }
@@ -143,7 +143,7 @@ export default function AddArtistContent({ initialArtist }: { initialArtist: Mus
                     <div className="mb-4 p-4 bg-blue-100 text-blue-800 rounded-lg">
                         Loading authentication status...
                     </div>
-                ) : !session ? (
+                ) : !user ? (
                     <div className="mb-4 p-4 bg-yellow-100 text-yellow-800 rounded-lg">
                         Please log in to add artists to the database
                     </div>
