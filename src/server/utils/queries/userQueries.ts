@@ -268,25 +268,3 @@ export async function updateUserPrivyId(userId: string, privyUserId: string) {
         throw new Error("Error updating user Privy ID");
     }
 }
-
-// Dismiss legacy link prompt permanently
-export async function dismissLegacyLink(userId: string) {
-    try {
-        const now = new Date().toISOString();
-        const [updatedUser] = await db
-            .update(users)
-            .set({
-                legacyLinkDismissed: true,
-                updatedAt: now,
-            })
-            .where(eq(users.id, userId))
-            .returning();
-        if (!updatedUser) {
-            throw new Error("User not found");
-        }
-        return updatedUser;
-    } catch (e) {
-        console.error("error dismissing legacy link", e);
-        throw new Error("Error dismissing legacy link");
-    }
-}

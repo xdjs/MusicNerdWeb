@@ -10,11 +10,8 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, back: mockBack }),
 }));
 
-jest.mock('next-auth/react', () => ({
-    useSession: () => ({
-        data: { user: { id: 'user-id' } },
-        status: 'authenticated',
-    }),
+jest.mock('@/hooks/useMusicNerdUser', () => ({
+    useMusicNerdUser: () => ({ user: { id: 'user-id' }, status: 'authenticated' }),
 }));
 
 jest.mock('@/app/actions/addArtist', () => ({

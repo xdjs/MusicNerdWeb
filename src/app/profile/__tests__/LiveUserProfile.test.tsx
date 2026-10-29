@@ -4,9 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { LiveProfileModel } from '@/lib/profile/types';
 import LiveUserProfile from '../LiveUserProfile';
 
-const mockUpdate = jest.fn().mockResolvedValue(null);
+const mockRefetch = jest.fn().mockResolvedValue(null);
 let mockModel: LiveProfileModel;
-jest.mock('next-auth/react', () => ({ useSession: () => ({ update: mockUpdate, status: 'authenticated', data: {user: {id: 'account'}} }) }));
+jest.mock('@/hooks/useMusicNerdUser', () => ({ useMusicNerdUser: () => ({ refetch: mockRefetch, status: 'authenticated', user: {id: 'account'} }) }));
 jest.mock('../ProfileConcept', () => ({ __esModule: true, default: ({live}: {live: LiveProfileModel}) => { mockModel = live; return null; } }));
 jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api.test${path}` }));
 jest.mock('../ProfileLoading', () => ({ __esModule: true, default: () => null }));
@@ -42,12 +42,12 @@ it.each(['http','network'] as const)('does not commit a name when the photo uplo
   await mount(); uploadFailure = failure;
   await act(async () => { await expect(mockModel.saveProfile('Changed', file)).rejects.toThrow(); });
   expect(calls).toEqual(['POST']);
-  expect(mockUpdate).not.toHaveBeenCalled();
+  expect(mockRefetch).not.toHaveBeenCalled();
   expect(client.getQueryData(['profile-photo','account'])).toEqual({url:'/old.png'});
   uploadFailure = null;
   await act(async () => { await expect(mockModel.saveProfile('Changed', file)).resolves.toEqual({name:'Changed',photo:'/new.png'}); });
   expect(calls).toEqual(['POST','POST','PATCH']);
-  expect(mockUpdate).toHaveBeenCalledTimes(1);
+  expect(mockRefetch).toHaveBeenCalledTimes(1);
 });
 
 it('retains the saved photo if the name PATCH is rejected', async () => {
@@ -55,7 +55,7 @@ it('retains the saved photo if the name PATCH is rejected', async () => {
   await act(async () => { await expect(mockModel.saveProfile('Changed',file)).rejects.toThrow('Name rejected'); });
   expect(calls).toEqual(['POST','PATCH']);
   expect(client.getQueryData(['profile-photo','account'])).toMatchObject({url:'/new.png'});
-  expect(mockUpdate).not.toHaveBeenCalled();
+  expect(mockRefetch).not.toHaveBeenCalled();
 });
 
 it('saves a name without uploading an unchanged photo and refreshes the session', async () => {
@@ -65,7 +65,7 @@ it('saves a name without uploading an unchanged photo and refreshes the session'
   expect(global.fetch).toHaveBeenCalledWith('https://api.test/api/user/account', expect.objectContaining({
     method: 'PATCH', credentials: 'omit', headers: {'Content-Type': 'application/json', Authorization: 'Bearer mock-access-token'},
   }));
-  expect(mockUpdate).toHaveBeenCalledTimes(1);
+  expect(mockRefetch).toHaveBeenCalledTimes(1);
 });
 
 it('uploads the photo to the API with the Privy token and the rendered account', async () => {
@@ -81,9 +81,9 @@ it('uploads the photo to the API with the Privy token and the rendered account',
   await act(async () => { await expect(mockModel.saveProfile('Changed',file)).rejects.toThrow('Your photo was saved'); });
   expect(calls).toEqual(['POST']);
   expect(client.getQueryData(['profile-photo','account'])).toMatchObject({url:null});
-  expect(mockUpdate).not.toHaveBeenCalled();
+  expect(mockRefetch).not.toHaveBeenCalled();
   photoReadFailure = false;
   await act(async () => { await expect(mockModel.saveProfile('Changed',file)).resolves.toEqual({name:'Changed',photo:'/new.png'}); });
   expect(calls).toEqual(['POST','PATCH']);
-  expect(mockUpdate).toHaveBeenCalledTimes(1);
+  expect(mockRefetch).toHaveBeenCalledTimes(1);
 });
