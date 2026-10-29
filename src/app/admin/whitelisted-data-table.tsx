@@ -9,7 +9,7 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { useRouter } from "next/navigation";
+import { useRefreshAdmin } from "@/hooks/useRefreshAdmin";
 import { Button } from "@/components/ui/button";
 import { setAdminUserRole } from "@/lib/admin/setAdminUserRole";
 import {
@@ -36,7 +36,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
     columns,
     data,
 }: DataTableProps<TData, TValue>) {
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const [sorting, setSorting] = useState<SortingState>([{ id: "updatedAt", desc: true }]);
     const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -75,7 +75,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
         try {
             await setAdminUserRole(userIds, role, enabled);
             setUploadStatus({ status: "success", message: "", isLoading: false });
-            router.refresh();
+            void refreshAdmin();
         } catch (error) {
             setUploadStatus({ status: "error", message: error instanceof Error ? error.message : "Could not change user roles.", isLoading: false });
         }

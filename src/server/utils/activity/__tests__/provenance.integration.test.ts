@@ -2,7 +2,6 @@
 import { readFileSync } from 'node:fs';
 import { drizzle } from 'drizzle-orm/pglite';
 import * as schema from '@/server/db/schema';
-jest.mock('@/lib/auth-helpers', () => ({requireAdmin: jest.fn(async () => ({authenticated:true,userId:'admin'}))}));
 jest.mock('@/server/db/drizzle', () => ({ get db() { return new Proxy(database, {get(target, property, receiver) {if (property === 'execute') return async (query: Parameters<typeof database.execute>[0]) => (await database.execute(query)).rows; return Reflect.get(target, property, receiver);}}); } }));
 const { PGlite } = process.getBuiltinModule('module').createRequire(__filename)('@electric-sql/pglite') as typeof import('@electric-sql/pglite');
 const client = new PGlite();
@@ -11,13 +10,25 @@ const artist = '00000000-0000-4000-8000-000000000001';
 const user = '00000000-0000-4000-8000-000000000002';
 const source = '00000000-0000-4000-8000-000000000003';
 let record: typeof import('../recordArtistActivity').recordArtistActivity;
-let queue: typeof import('../../contributions/getAdminReviewQueue').getAdminReviewQueue;
-let activity: typeof import('../getArtistActivity').getArtistActivity;
+// Provenance is read straight from the tables: the admin readers of these rows
+// are MusicNerdAPI's (GET /api/admin/review-queue, GET /api/admin/activity).
+async function activity({ action, eventId, query }: { action?: string; eventId?: string; query?: string } = {}) {
+  const { rows } = await client.query<Record<string, unknown>>(`select e.id, e.trigger, e.source_id as "sourceId", u.id as "actorId"
+    from artist_activity_events e left join users u on u.id = e.actor_user_id
+    where ($1::text is null or e.action = $1) and ($2::uuid is null or e.id = $2) and ($3::uuid is null or e.actor_user_id = $3)
+    order by e.created_at desc, e.id desc`, [action ?? null, eventId ?? null, query ?? null]);
+  return { items: rows, total: rows.length };
+}
+async function sourceProvenance(column: 'id' | 'url', value: string) {
+  const { rows } = await client.query<Record<string, unknown>>(`select s.id, s.origin, s.activity_id as "activityId", e.actor_kind as "actorKind",
+    u.id as "actorId", u.username as "actorName", e.trigger
+    from artist_vault_sources s left join artist_activity_events e on e.id = s.activity_id left join users u on u.id = e.actor_user_id
+    where s.${column} = $1`, [value]);
+  return rows[0];
+}
 beforeAll(async () => {
   jest.resetModules();
   ({ recordArtistActivity: record } = await import('../recordArtistActivity'));
-  ({ getAdminReviewQueue: queue } = await import('../../contributions/getAdminReviewQueue'));
-  ({ getArtistActivity: activity } = await import('../getArtistActivity'));
   await client.exec(`
     create role mnweb; create role anon; create role authenticated;
     CREATE FUNCTION uuid_generate_v4() RETURNS uuid LANGUAGE SQL AS 'SELECT gen_random_uuid()';
@@ -45,15 +56,12 @@ beforeAll(async () => {
 }, 30000);
 afterAll(async () => { await client.close(); });
 it('leaves legacy origins unknown and creates no guessed actor', async () => {
-  const result = await queue();
-  expect(result.items[0]).toMatchObject({ origin: 'unknown', actorId: null, activityId: null });
+  expect(await sourceProvenance('id', source)).toMatchObject({ origin: 'unknown', actorId: null, activityId: null });
 });
-it('joins a real initiator in the unified queue and escapes wildcard search', async () => {
+it('joins a real initiator to the source', async () => {
   const event = await record(artist, 'source_search', { userId: user, trigger: 'editor_search' });
   await client.query('update artist_vault_sources set origin = $1, activity_id = $2 where id = $3', ['research', event, source]);
-  expect((await queue({ query: 'contributor', type: 'sources' })).items[0]).toMatchObject({ actorId: user, actorName: 'contributor', origin: 'research' });
-  expect((await queue({ type: 'corrections' })).total).toBe(0);
-  expect((await queue({ query: '%' })).total).toBe(0);
+  expect(await sourceProvenance('id', source)).toMatchObject({ actorId: user, actorName: 'contributor', origin: 'research' });
   expect((await activity({ query: user, action: 'source_search' })).items[0]).toMatchObject({ id: event, trigger: 'editor_search' });
 });
 it('permits mnweb append/read but rejects update/delete and browser-role reads', async () => {
@@ -77,8 +85,7 @@ it('persists authenticated submissions and does not reattribute duplicate URLs',
   expect(first?.activityId).toBeTruthy();
   const duplicate = await insertVaultSource({ artistId: artist, url: 'https://example.test/submission#fragment', status: 'pending' });
   expect(duplicate).toBeUndefined();
-  const result = await queue({ type:'sources',query:'https://example.test/submission' });
-  expect(result.items[0]).toMatchObject({ actorId: user, activityId: first?.activityId });
+  expect(await sourceProvenance('url', 'https://example.test/submission')).toMatchObject({ actorId: user, activityId: first?.activityId });
 });
 it('does not classify an unattributed file import as a user submission', async () => {
   const { insertVaultSource } = await import('../../queries/insertVaultSource');
@@ -139,8 +146,7 @@ it('rolls the new source back if its addition activity cannot be saved', async (
 
 it('preserves historical user origin when the account is deleted', async () => {
   await client.query('delete from users where id = $1', [user]);
-  const result = await queue({ type: 'sources' });
-  expect(result.items.find(item=>item.id===source)).toMatchObject({ actorKind: 'user', actorId: null, origin: 'research' });
+  expect(await sourceProvenance('id', source)).toMatchObject({ actorKind: 'user', actorId: null, origin: 'research' });
 });
 
 it.each(['pending', 'running'])('reports a %s source search for another claim as an enqueue failure', async status => {

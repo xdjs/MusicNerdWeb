@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshAdmin } from "@/hooks/useRefreshAdmin";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -14,7 +14,7 @@ export default function RoleUsersDialog({ trigger, title, role, enabled }: {
     trigger: string; title: string; role: "whitelisted" | "admin" | "hidden"; enabled: boolean;
 }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const [users, setUsers] = useState<AdminUserMatch[]>([]);
     const [status, setStatus] = useState<{ error: string; isLoading: boolean }>({ error: "", isLoading: false });
     const [query, setQuery] = useState('');
@@ -23,7 +23,7 @@ export default function RoleUsersDialog({ trigger, title, role, enabled }: {
         setStatus({ error: "", isLoading: true });
         try {
             await setAdminUserRole(users.map(user => user.id), role, enabled);
-            router.refresh();
+            void refreshAdmin();
             setIsDialogOpen(false);
             setUsers([]);
             setStatus({ error: "", isLoading: false });

@@ -2,7 +2,6 @@ import { getUserDisplayName as publicUserName } from '@/lib/user/getUserDisplayN
 import { db } from "@/server/db/drizzle";
 import { eq, ilike } from "drizzle-orm";
 import { users } from "@/server/db/schema";
-import { getServerAuthSession } from "@/server/auth";
 
 export async function getUserByWallet(wallet: string) {
     try {
@@ -63,18 +62,6 @@ export async function createUser(wallet: string) {
 // Preserve existing callers while sharing the pure public-name policy.
 export function getUserDisplayName(user: Parameters<typeof publicUserName>[0]): string {
     return publicUserName(user);
-}
-
-export async function getAllUsers() {
-    const session = await getServerAuthSession();
-    if (!session) throw new Error("Unauthorized");
-    try {
-        const result = await db.query.users.findMany();
-        return result ?? [];
-    } catch (e) {
-        console.error("error getting all users", e);
-        throw new Error("Error getting all users");
-    }
 }
 
 // ============================================================================

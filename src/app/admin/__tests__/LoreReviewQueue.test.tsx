@@ -4,6 +4,7 @@ import type {ReviewItem} from '@/lib/contributions/adminReviewTypes';
 const push=jest.fn();
 const refresh=jest.fn();
 jest.mock('next/navigation',()=>({useRouter:()=>({push,refresh})}));
+jest.mock('@/hooks/useRefreshAdmin',()=>({useRefreshAdmin:()=>refresh}));
 jest.mock('@/lib/admin/approveLinkSuggestion',()=>({approveLinkSuggestion:jest.fn()}));
 jest.mock('@/lib/source/reviewLoreSource',()=>({reviewLoreSource:jest.fn()}));
 const base:ReviewItem={id:'one',type:'links',artistId:'artist',artistName:'Artist One',title:'Bandcamp',url:'https://example.test',createdAt:'2026-10-17T00:00:00Z',origin:'user',actorName:'Contributor',actorId:'user',activityId:null,trigger:null,bioSnapshot:null,details:null,reason:null};

@@ -4,7 +4,7 @@ import { listPendingSubmissions } from '@/lib/admin/listPendingSubmissions';
 import { approvePendingSubmissions } from '@/lib/admin/approvePendingSubmissions';
 
 const refresh = jest.fn();
-jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
+jest.mock('@/hooks/useRefreshAdmin',()=>({useRefreshAdmin:()=>refresh}));
 jest.mock('@/lib/admin/listPendingSubmissions', () => ({ listPendingSubmissions: jest.fn() }));
 jest.mock('@/lib/admin/approvePendingSubmissions', () => ({ approvePendingSubmissions: jest.fn() }));
 const items = [

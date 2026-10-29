@@ -1,6 +1,7 @@
 import {render,screen} from '@testing-library/react';
 import AdminDashboard from '../AdminDashboard';
-jest.mock('next/navigation',()=>({useRouter:()=>({push:jest.fn(),refresh:jest.fn()})}));
+jest.mock('next/navigation',()=>({useRouter:()=>({push:jest.fn()})}));
+jest.mock('@/hooks/useRefreshAdmin',()=>({useRefreshAdmin:()=>jest.fn()}));
 jest.mock('@/lib/admin/approveLinkSuggestion',()=>({approveLinkSuggestion:jest.fn()}));
 jest.mock('@/lib/source/reviewLoreSource',()=>({reviewLoreSource:jest.fn()}));
 const reviews={items:[],counts:{links:0,sources:0,corrections:0},pendingCounts:{links:2,sources:173,corrections:1},total:0,page:1,pageSize:25,type:'all' as const,query:'LATASHA'};

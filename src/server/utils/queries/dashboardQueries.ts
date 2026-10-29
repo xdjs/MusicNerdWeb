@@ -1,31 +1,10 @@
-import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from "@/server/db/drizzle";
 import { eq, and, sql } from "drizzle-orm";
 import { artistClaims, artistVaultSources, artistBioVersions } from "@/server/db/schema";
 import { withScopedArtistWrite, type ScopedWriteDb } from './ownershipWrites';
 import { getActiveArtistOperation } from '../artistOperationContext';
-import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 
 export { getClaimByArtistId } from './getClaimByArtistId';
-
-// TODO: Add cursor-based pagination when claims exceed ~500 rows
-// Pending claims sort first so they're never crowded out by older approved/rejected ones
-export async function getAllClaims() {
-    const limit = 200;
-    try {
-        return await db.query.artistClaims.findMany({
-            with: { user: true, artist: true },
-            orderBy: (claims, { asc, desc }) => [
-                asc(sql`CASE WHEN ${claims.status} = 'pending' THEN 0 WHEN ${claims.status} = 'approved' THEN 1 ELSE 2 END`),
-                desc(claims.createdAt),
-            ],
-            limit,
-        });
-    } catch (e) {
-        console.error("[getAllClaims] Error:", e);
-        return [];
-    }
-}
 
 export async function getApprovedClaimForArtistByUserId(userId: string, artistId: string) {
     try {
