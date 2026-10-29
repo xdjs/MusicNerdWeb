@@ -885,7 +885,7 @@
 }
 .discussion {
   position: sticky;
-  top: 24px;
+  top: 120px;
   min-width: 0;
   border-right: 1px solid var(--line);
   padding-right: 28px;
@@ -1072,6 +1072,7 @@
   .discussion {
     position: fixed;
     z-index: 40;
+    top: auto;
     bottom: 0;
     left: 0;
     right: 0;
