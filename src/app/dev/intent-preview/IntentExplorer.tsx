@@ -720,7 +720,6 @@ export default function IntentExplorer({
             {profile && state.revision === 0 && (
               <div className={styles.openingAnswer}>
                 <p className={styles.context}>Music Nerd</p>
-                <h2>Let’s get to know {artistName}.</h2>
                 {introduction ? (
                   <>
                     <p>{introduction.text}</p>
@@ -735,6 +734,20 @@ export default function IntentExplorer({
                       : coverage}
                   </p>
                 )}
+              </div>
+            )}
+            {profile && state.revision === 0 && (
+              <div className={styles.openingFollowUp}>
+                <p>{openingQuestion}</p>
+                {openingSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion.prompt}
+                    disabled={busy}
+                    onClick={() => ask(suggestion.prompt)}
+                  >
+                    {suggestion.label} <ArrowUpRight size={14} />
+                  </button>
+                ))}
               </div>
             )}
             <div className={styles.canvasToolbar}>
@@ -798,20 +811,6 @@ export default function IntentExplorer({
                 />
               ))}
             </div>
-            {profile && state.revision === 0 && (
-              <div className={styles.openingFollowUp}>
-                <p>{openingQuestion}</p>
-                {openingSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion.prompt}
-                    disabled={busy}
-                    onClick={() => ask(suggestion.prompt)}
-                  >
-                    {suggestion.label} <ArrowUpRight size={14} />
-                  </button>
-                ))}
-              </div>
-            )}
             <footer className={styles.disclosure}>
               <p>
                 Sources stay close to the story. Open any card to see where it
