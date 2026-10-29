@@ -12,9 +12,12 @@ export default function UserNameSetup() {
   const currentId = useRef(id); currentId.current = id;
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  // Until NextAuth signs in, PrivyLogin's reload would close the prompt after it is recorded as shown.
+  // A NextAuth sign-in during this page load ends in PrivyLogin's reload, which would close the
+  // prompt after it is recorded as shown; only prompt when the page loaded signed in.
   const { status: sessionStatus } = useSession();
-  const needsPrompt = !!user && user.usernameNeedsConfirmation && !user.usernamePromptedAt && sessionStatus === 'authenticated';
+  const loadedStatus = useRef(sessionStatus);
+  if (loadedStatus.current === 'loading') loadedStatus.current = sessionStatus;
+  const needsPrompt = !!user && user.usernameNeedsConfirmation && !user.usernamePromptedAt && loadedStatus.current === 'authenticated';
   useEffect(() => {
     setOpen(false);
     if (!id || !needsPrompt) return;
