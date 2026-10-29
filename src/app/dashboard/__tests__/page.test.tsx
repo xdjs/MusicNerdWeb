@@ -1,43 +1,59 @@
-// @ts-nocheck
-import { jest } from '@jest/globals';
+import { render, waitFor } from '@testing-library/react';
+import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
+import { requestUserApi } from '@/lib/user/requestUserApi';
+import DashboardRedirect from '../page';
 
-jest.mock('next/navigation', () => ({
-  redirect: (url) => { throw new Error(`NEXT_REDIRECT:${url}`); },
-}));
-jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
-jest.mock('@/server/utils/dev-auth', () => ({ getDevSession: jest.fn() }));
-jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getApprovedClaimByUserId: jest.fn() }));
+const mockReplace = jest.fn();
+jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace }) }));
+jest.mock('@/lib/user/requestUserApi', () => ({ requestUserApi: jest.fn() }));
 
-describe('GET /dashboard (redirect shim)', () => {
-  beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); });
+const mockUser = useMusicNerdUser as jest.Mock;
+const mockRequest = requestUserApi as jest.Mock;
 
-  it('redirects a claimed owner to their artist profile', async () => {
-    const { getServerAuthSession } = await import('@/server/auth');
-    const { getApprovedClaimByUserId } = await import('@/server/utils/queries/dashboardQueries');
-    (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: 'u1' } });
-    (getApprovedClaimByUserId as jest.Mock).mockResolvedValue({ artistId: 'artist-9' });
+function signedIn() {
+  mockUser.mockReturnValue({ user: { id: 'u1' }, status: 'authenticated', isError: false, refetch: jest.fn() });
+}
 
-    const { default: DashboardRedirect } = await import('../page');
-    await expect(DashboardRedirect()).rejects.toThrow('NEXT_REDIRECT:/artist/artist-9');
+function hasClaim(artistId: string | null) {
+  mockRequest.mockResolvedValue({ json: () => Promise.resolve({ status: 'ok', hasClaim: !!artistId, artistId }) });
+}
+
+describe('/dashboard (redirect shim)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('sends a claimed owner to their artist profile', async () => {
+    signedIn();
+    hasClaim('artist-9');
+    render(<DashboardRedirect />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/artist/artist-9'));
+    expect(mockRequest).toHaveBeenCalledWith('/api/user/has-claim', expect.objectContaining({ signal: expect.any(AbortSignal) }));
   });
 
-  it('redirects a user with no claim to home', async () => {
-    const { getServerAuthSession } = await import('@/server/auth');
-    const { getApprovedClaimByUserId } = await import('@/server/utils/queries/dashboardQueries');
-    (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: 'u1' } });
-    (getApprovedClaimByUserId as jest.Mock).mockResolvedValue(null);
-
-    const { default: DashboardRedirect } = await import('../page');
-    await expect(DashboardRedirect()).rejects.toThrow('NEXT_REDIRECT:/');
+  it('sends a signed-in user with no claim home', async () => {
+    signedIn();
+    hasClaim(null);
+    render(<DashboardRedirect />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'));
   });
 
-  it('redirects an unauthenticated visitor to home', async () => {
-    const { getServerAuthSession } = await import('@/server/auth');
-    const { getDevSession } = await import('@/server/utils/dev-auth');
-    (getServerAuthSession as jest.Mock).mockResolvedValue(null);
-    (getDevSession as jest.Mock).mockResolvedValue(null);
+  it('sends a signed-out visitor home without asking the API', async () => {
+    mockUser.mockReturnValue({ user: null, status: 'unauthenticated', isError: false, refetch: jest.fn() });
+    render(<DashboardRedirect />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'));
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
 
-    const { default: DashboardRedirect } = await import('../page');
-    await expect(DashboardRedirect()).rejects.toThrow('NEXT_REDIRECT:/');
+  it('waits while the account is loading', () => {
+    mockUser.mockReturnValue({ user: null, status: 'loading', isError: false, refetch: jest.fn() });
+    render(<DashboardRedirect />);
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('sends the user home when the claim lookup fails', async () => {
+    signedIn();
+    mockRequest.mockRejectedValue(new Error('offline'));
+    render(<DashboardRedirect />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'));
   });
 });

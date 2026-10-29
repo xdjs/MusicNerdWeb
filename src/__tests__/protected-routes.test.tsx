@@ -111,7 +111,7 @@ describe('Protected routes', () => {
         jest.clearAllMocks();
     });
 
-    describe('/add-artist (requires authentication)', () => {
+    describe('/add-artist (sign-in is asked for on Add, in the browser)', () => {
         beforeEach(() => {
             (spotifyProvider.getArtist as jest.Mock).mockResolvedValue({
                 platform: 'spotify', platformId: 'some-id', name: 'New Artist',
@@ -120,29 +120,15 @@ describe('Protected routes', () => {
             });
         });
 
-        it('redirects unauthenticated users to "/"', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(null);
-            await expect(
-                AddArtistPage({ searchParams: Promise.resolve({ spotify: 'some-id' }) })
-            ).rejects.toThrow('NEXT_REDIRECT:/');
-            expect(mockRedirect).toHaveBeenCalledWith('/');
-        });
-
-        it('renders the form for authenticated users', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
+        it('renders the form without reading a server session', async () => {
             const jsx = await AddArtistPage({ searchParams: Promise.resolve({ spotify: 'some-id' }) });
             render(jsx as React.ReactElement);
             expect(screen.getByTestId('add-artist-content')).toBeInTheDocument();
-        });
-
-        it('does not redirect authenticated users', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
-            await AddArtistPage({ searchParams: Promise.resolve({ spotify: 'some-id' }) });
             expect(mockRedirect).not.toHaveBeenCalled();
+            expect(getServerAuthSession).not.toHaveBeenCalled();
         });
 
-        it('shows an error page (not a redirect) when no platform param is present, even if authenticated', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
+        it('shows an error page (not a redirect) when no platform param is present', async () => {
             const jsx = await AddArtistPage({ searchParams: Promise.resolve({}) });
             render(jsx as React.ReactElement);
             expect(screen.getByText('No artist ID provided')).toBeInTheDocument();
