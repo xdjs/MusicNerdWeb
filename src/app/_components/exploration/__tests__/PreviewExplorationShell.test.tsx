@@ -51,11 +51,17 @@ it("keeps the actual search and artist DOM nodes across home, exploration and Ba
   );
   expect(screen.getByTestId("persistent-search")).toBe(search);
   expect(search).toHaveValue("Dutchyyy");
+  expect(
+    view.container.querySelector("[data-exploration-shell]"),
+  ).toHaveAttribute("data-exploring", "true");
   const composer = screen.getByTestId("persistent-composer");
   fireEvent.change(composer, { target: { value: "An unfinished follow-up" } });
   mockPath = "/";
   view.rerender(<PreviewExplorationShell>{null}</PreviewExplorationShell>);
   expect(screen.getByTestId("persistent-composer")).toBe(composer);
   expect(composer).toHaveValue("An unfinished follow-up");
+  expect(
+    view.container.querySelector("[data-exploration-shell]"),
+  ).toHaveAttribute("data-exploring", "false");
   expect(screen.getAllByTestId("persistent-search")).toHaveLength(1);
 });

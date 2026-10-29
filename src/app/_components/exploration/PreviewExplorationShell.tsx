@@ -77,7 +77,12 @@ export default function PreviewExplorationShell({
     exploring && pathname === `/artist/${artist?.artistId}/explore`;
   return (
     <PreviewArtistContext.Provider value={register}>
-      <div ref={root} className={styles.shell} data-exploration-shell>
+      <div
+        ref={root}
+        className={styles.shell}
+        data-exploration-shell
+        data-exploring={exploring}
+      >
         <NavContent sharedSearch={active} />
         <main className="flex-grow flex flex-col min-h-0 w-full">
           <motion.div

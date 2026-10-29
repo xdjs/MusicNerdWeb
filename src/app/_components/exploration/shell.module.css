@@ -13,3 +13,7 @@
     transition: none;
   }
 }
+
+.shell[data-exploring="true"] {
+  padding-bottom: calc(150px + env(safe-area-inset-bottom));
+}

@@ -30,7 +30,7 @@
 }
 :global(.dark) .experiment {
   --ink: #f6eff7;
-  --muted: #b9adbf;
+  --muted: #c6bbcb;
   --paper: #18151c;
   --soft: #24202a;
   --line: #3c3342;
@@ -1225,7 +1225,7 @@
   margin-right: auto;
 }
 .canvasToolbar > button:last-child {
-  opacity: 0.65;
+  color: var(--muted);
 }
 .composition {
   gap: 28px;
