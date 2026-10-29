@@ -22,6 +22,10 @@ const evidenceSchema = z
       .regex(/^\/demo\/latasha\/[a-z-]+\.jpg$/)
       .optional(),
     limitation: z.string().max(1000),
+    pagePreview: z
+      .string()
+      .regex(/^\/demo\/dutchyyy\/[a-z-]+\.jpg$/)
+      .optional(),
     page: z.number().int().min(1).max(1000).optional(),
     attribution: z.string().max(200).optional(),
     workUrl: z

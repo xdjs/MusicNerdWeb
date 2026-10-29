@@ -47,6 +47,7 @@ export type CanvasEvidence = {
   image?: string;
   limitation: string;
   page?: number;
+  pagePreview?: string;
   attribution?: string;
   workUrl?: string;
 };

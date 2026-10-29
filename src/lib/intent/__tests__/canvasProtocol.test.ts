@@ -99,3 +99,41 @@ it("discloses unsupported replay inputs instead of fabricating an answer", async
     "Replay mode",
   );
 });
+
+it("keeps Dutchyyy evidence separate and preserves PDF page metadata", async () => {
+  const { DUTCH_ARTIST_ID } = await import("../canvasProtocol");
+  const request = {
+    version: "canvas.v1" as const,
+    sessionId: "11111111-1111-4111-8111-111111111111",
+    turnId: "22222222-2222-4222-8222-222222222222",
+    baseRevision: 0,
+    spec: { blocks: [] },
+    pinnedIds: [],
+    selectedIds: [],
+    focusId: null,
+  };
+  const response = createReplayResponse(
+    {
+      messages: [{ parts: [{ type: "text", text: "Explore his archive" }] }],
+      canvas: request,
+    },
+    DUTCH_ARTIST_ID,
+  );
+  const chunks = (await response.text())
+    .split("\n")
+    .filter((line) => line.startsWith("data: {"))
+    .map((line) => JSON.parse(line.slice(6)));
+  const update = applyCanvasUpdate(
+    chunks.find((chunk) => chunk.type === "data-canvas").data,
+    request,
+  );
+  expect(
+    update.evidence.every((source) => source.id.startsWith("dutch-")),
+  ).toBe(true);
+  expect(
+    update.evidence.find((source) => source.id === "dutch-junk")?.page,
+  ).toBe(3);
+  expect(
+    update.evidence.find((source) => source.id === "dutch-junk")?.workUrl,
+  ).toContain("bandcamp.com");
+});

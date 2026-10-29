@@ -34,7 +34,8 @@
     "limitation": "Public Lore PDF. Document claim, not independent verification. PDF page numbering is shown; recording, release and upload dates are distinct.",
     "page": 3,
     "attribution": "Dutchyyy \u00b7 Lore discography",
-    "workUrl": "https://dutchmassive.bandcamp.com/album/junk-planet-1997-2002"
+    "workUrl": "https://dutchmassive.bandcamp.com/album/junk-planet-1997-2002",
+    "pagePreview": "/demo/dutchyyy/discography-page-three.jpg"
   },
   {
     "id": "dutch-reach",
@@ -47,7 +48,8 @@
     "limitation": "Public Lore PDF. Document claim, not independent verification. PDF page numbering is shown; recording, release and upload dates are distinct.",
     "page": 3,
     "attribution": "Dutchyyy \u00b7 Lore discography",
-    "workUrl": "https://dutchmassive.bandcamp.com/album/project-reach-radio-promo-ep-2003-2006"
+    "workUrl": "https://dutchmassive.bandcamp.com/album/project-reach-radio-promo-ep-2003-2006",
+    "pagePreview": "/demo/dutchyyy/discography-page-three.jpg"
   },
   {
     "id": "dutch-improv",
@@ -59,7 +61,8 @@
     "dateKind": "Archive passage \u00b7 2014\u20132015 / 2015\u20132022",
     "limitation": "Public Lore PDF. Document claim, not independent verification. PDF page numbering is shown; recording, release and upload dates are distinct.",
     "page": 5,
-    "attribution": "Dutchyyy \u00b7 The Algorithms archive"
+    "attribution": "Dutchyyy \u00b7 The Algorithms archive",
+    "pagePreview": "/demo/dutchyyy/archive-page-five.jpg"
   },
   {
     "id": "dutch-archive",

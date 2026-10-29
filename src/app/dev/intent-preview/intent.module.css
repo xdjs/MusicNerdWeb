@@ -826,3 +826,144 @@
     height: 240px;
   }
 }
+
+.pdfPage {
+  display: block;
+  width: 100%;
+  max-height: 660px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+/* Keep the conversation and its artifact visible together. */
+.layout {
+  display: block;
+  max-width: 1500px;
+  padding: 28px 36px;
+}
+.identity {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.portrait {
+  width: 100px;
+  height: 100px;
+  min-width: 100px;
+  border-radius: 16px;
+}
+.portrait > img {
+  height: 100%;
+}
+.portraitCaption,
+.identityNote {
+  display: none;
+}
+.artistInfo h1 {
+  font-size: 36px;
+  margin: 0 0 6px;
+}
+.artistInfo p {
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+.artistInfo br {
+  display: none;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.5fr);
+  gap: 36px;
+  align-items: start;
+}
+.discussion {
+  position: sticky;
+  top: 24px;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  padding-right: 28px;
+}
+.canvasPanel {
+  min-width: 0;
+}
+.welcome h2 {
+  font-size: 40px;
+  letter-spacing: -0.04em;
+}
+.conversation {
+  max-height: 48vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 10px;
+  scrollbar-width: thin;
+}
+.conversation p {
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.composer {
+  margin-top: 20px;
+}
+.composition {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.selectionBar {
+  flex-wrap: wrap;
+}
+.selectionBar span {
+  font-size: 12px;
+}
+@media (max-width: 1000px) {
+  .layout {
+    padding: 24px;
+  }
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .discussion {
+    position: static;
+    border-right: 0;
+    padding-right: 0;
+  }
+  .conversation {
+    max-height: 280px;
+  }
+  .composition {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .layout {
+    padding: 20px 16px;
+  }
+  .identity {
+    gap: 16px;
+  }
+  .portrait {
+    width: 72px;
+    height: 72px;
+    min-width: 72px;
+  }
+  .artistInfo h1 {
+    font-size: 28px;
+  }
+  .composition {
+    grid-template-columns: 1fr;
+  }
+  .welcome h2 {
+    font-size: 34px;
+  }
+  .discussion {
+    top: auto;
+  }
+  .conversation {
+    max-height: 240px;
+  }
+}

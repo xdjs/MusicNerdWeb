@@ -18,6 +18,7 @@ import { createReplayResponse } from "@/lib/intent/createReplayResponse";
 import { applyCanvasUpdate } from "@/lib/intent/applyCanvasUpdate";
 import { profileUrl } from "@/lib/intent/latashaSnapshot";
 import CanvasBlock from "./CanvasBlock";
+import CanvasMessage from "./CanvasMessage";
 import SourceNote from "./SourceNote";
 import styles from "./intent.module.css";
 const steps = [
@@ -41,7 +42,7 @@ export default function IntentExplorer({
   const dutch = artistId === DUTCH_ARTIST_ID;
   const artistName = dutch ? "Dutchyyy" : "LATASHÁ";
   const artistProfile = dutch
-    ? "https://musicnerd.xyz/artist/efff5473-fa9f-4eba-b137-16ffb79f15d8"
+    ? "https://musicnerd.net/artist/efff5473-fa9f-4eba-b137-16ffb79f15d8"
     : profileUrl;
   const artistSeed = canvasSeeds[artistId];
   const conversationSteps = dutch
@@ -137,6 +138,10 @@ export default function IntentExplorer({
         });
         setNotice(
           `${update.changes.added.length} added · ${update.changes.updated.length} updated · ${update.changes.removed.length} removed`,
+        );
+      } else if (!isAbort && !isError && request) {
+        setNotice(
+          "No valid canvas update was produced. Your previous canvas is intact; try a smaller refinement.",
         );
       }
       staged.current = null;
@@ -276,168 +281,183 @@ export default function IntentExplorer({
           </div>
         </aside>
         <section className={styles.workspace} aria-label="Artist exploration">
-          {state.revision === 0 && (
-            <div className={styles.welcome}>
-              <p className={styles.context}>Go beyond the bio</p>
-              <h2>
-                Follow a thread.
-                <br />
-                See where it goes.
-              </h2>
-              <p className={styles.lede}>
-                Explore {artistName} through a conversation.
-                <br />
-                Keep what matters. Go deeper from there.
-              </p>
-            </div>
-          )}
-          <div className={styles.conversation} aria-label="Conversation">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={
-                  message.role === "user"
-                    ? styles.userTurn
-                    : styles.assistantTurn
-                }
-              >
-                <span>
-                  {message.role === "user"
-                    ? "You"
-                    : liveApiUrl
-                      ? "Music Nerd"
-                      : "Music Nerd · replay"}
-                </span>
-                <p>
-                  {message.parts
-                    .filter((p) => p.type === "text")
-                    .map((p) => (p.type === "text" ? p.text : ""))
-                    .join("")}
+          <div className={styles.discussion}>
+            {state.revision === 0 && (
+              <div className={styles.welcome}>
+                <p className={styles.context}>Go beyond the bio</p>
+                <h2>
+                  Follow a thread.
+                  <br />
+                  See where it goes.
+                </h2>
+                <p className={styles.lede}>
+                  Explore {artistName} through a conversation.
+                  <br />
+                  Keep what matters. Go deeper from there.
                 </p>
               </div>
-            ))}
-          </div>
-          <form
-            className={styles.composer}
-            onSubmit={(event) => {
-              event.preventDefault();
-              ask(input);
-            }}
-          >
-            <label htmlFor="artist-intent" className={styles.srOnly}>
-              Explore {artistName}
-            </label>
-            <input
-              id="artist-intent"
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="Where does your curiosity go next?"
-              maxLength={500}
-              disabled={busy}
-            />
-            <button
-              type="submit"
-              disabled={busy || !input.trim()}
-              aria-label="Send exploration"
+            )}
+            <div className={styles.conversation} aria-label="Conversation">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={
+                    message.role === "user"
+                      ? styles.userTurn
+                      : styles.assistantTurn
+                  }
+                >
+                  <span>
+                    {message.role === "user"
+                      ? "You"
+                      : liveApiUrl
+                        ? "Music Nerd"
+                        : "Music Nerd · replay"}
+                  </span>
+                  <CanvasMessage message={message} />
+                </div>
+              ))}
+            </div>
+            <form
+              className={styles.composer}
+              onSubmit={(event) => {
+                event.preventDefault();
+                ask(input);
+              }}
             >
-              <ArrowUpRight size={25} />
-            </button>
-          </form>
-          <div
-            className={styles.suggestions}
-            aria-label="Replay conversation steps"
-          >
-            {suggested.map((prompt) => (
-              <button disabled={busy} key={prompt} onClick={() => ask(prompt)}>
-                {prompt}
-                <ArrowUpRight size={14} />
-              </button>
-            ))}
-          </div>
-          <p className={styles.replayNotice}>
-            {liveApiUrl
-              ? "Ask a follow-up or select evidence. Your canvas evolves with the conversation."
-              : "Guided replay: these prompts exercise the real canvas protocol. Free-form model planning is not enabled."}
-          </p>
-          {busy && (
-            <div role="status" className={styles.status}>
-              Composing the next canvas…{" "}
-              <button
-                onClick={() => {
-                  stop();
-                  staged.current = null;
-                  pending.current = null;
-                }}
-              >
-                Stop
-              </button>
-            </div>
-          )}
-          {error && (
-            <p role="alert" className={styles.error}>
-              {error.message} Your last valid canvas is unchanged.
-            </p>
-          )}
-          <div className={styles.canvasToolbar}>
-            <p role="status">
-              {notice || `${state.spec.blocks.length} blocks on your canvas`}
-            </p>
-            <button disabled={busy || !history.length} onClick={undo}>
-              <ArrowLeft size={14} /> Undo canvas change
-            </button>
-          </div>
-          {selected.length > 0 && (
-            <div className={styles.selectionBar}>
-              <span>{selected.length} selected</span>
-              <button
-                disabled={busy || selected.length !== 2}
-                onClick={() => ask("Compare my selection")}
-              >
-                Compare selection
-              </button>
-              <button disabled={busy} onClick={() => setSelected([])}>
-                Clear
-              </button>
-            </div>
-          )}
-          <div
-            className={styles.composition}
-            aria-label="Persistent exploration canvas"
-            aria-busy={busy}
-          >
-            {state.spec.blocks.map((block) => (
-              <CanvasBlock
-                key={block.id}
-                block={block}
-                evidence={state.evidence}
-                busy={busy}
-                pinned={pinned.includes(block.id)}
-                expanded={expanded.includes(block.id)}
-                selected={selected}
-                onPin={() => setPinned(toggle(pinned, block.id))}
-                onExpand={() => setExpanded(toggle(expanded, block.id))}
-                onRemove={() => remove(block.id)}
-                onSelect={(id) => setSelected(toggle(selected, id).slice(-8))}
-                onFocus={() => setFocus(block.id)}
+              <label htmlFor="artist-intent" className={styles.srOnly}>
+                Explore {artistName}
+              </label>
+              <input
+                id="artist-intent"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Where does your curiosity go next?"
+                maxLength={500}
+                disabled={busy}
               />
-            ))}
-          </div>
-          <footer className={styles.disclosure}>
-            <p>
-              Public source snapshot · October 29, 2026. Artist facts stay
-              separate from presentation.
+              <button
+                type="submit"
+                disabled={busy || !input.trim()}
+                aria-label="Send exploration"
+              >
+                <ArrowUpRight size={25} />
+              </button>
+            </form>
+            <div
+              className={styles.suggestions}
+              aria-label={
+                liveApiUrl
+                  ? "Suggested explorations"
+                  : "Replay conversation steps"
+              }
+            >
+              {suggested.map((prompt) => (
+                <button
+                  disabled={busy}
+                  key={prompt}
+                  onClick={() => ask(prompt)}
+                >
+                  {prompt}
+                  <ArrowUpRight size={14} />
+                </button>
+              ))}
+            </div>
+            <p className={styles.replayNotice}>
+              {liveApiUrl
+                ? "Ask a follow-up or select evidence. Your canvas evolves with the conversation."
+                : "Guided replay: these prompts exercise the real canvas protocol. Free-form model planning is not enabled."}
             </p>
-            <details>
-              <summary>What is live in this experiment?</summary>
-              <p>
-                {liveApiUrl
-                  ? "This preview uses Music Nerd’s existing chat backend to compose evidence-backed blocks. Source snapshot entries are labeled and additional stored sources are retrieved by the chat. Model choices can still be mistaken; inspect evidence."
-                  : "The canvas, selection, pinning, undo, revision validation and streamed message handling work. Responses are authored replay fixtures, not model output. The isolated API extension reuses Music Nerd’s chat model and retrieval, but live execution remains disabled."}{" "}
-                Conversations exist only in this tab and reset on reload.
+            {busy && (
+              <div role="status" className={styles.status}>
+                Composing the next canvas…{" "}
+                <button
+                  onClick={() => {
+                    stop();
+                    staged.current = null;
+                    pending.current = null;
+                  }}
+                >
+                  Stop
+                </button>
+              </div>
+            )}
+            {error && (
+              <p role="alert" className={styles.error}>
+                {error.message} Your last valid canvas is unchanged.
               </p>
-              <SourceNote id="profile" />
-            </details>
-          </footer>
+            )}
+          </div>
+          <div className={styles.canvasPanel}>
+            <div className={styles.canvasToolbar}>
+              <p role="status">
+                {notice || `${state.spec.blocks.length} blocks on your canvas`}
+              </p>
+              <button disabled={busy || !history.length} onClick={undo}>
+                <ArrowLeft size={14} /> Undo canvas change
+              </button>
+            </div>
+            {selected.length > 0 && (
+              <div className={styles.selectionBar}>
+                <span>
+                  {selected
+                    .map(
+                      (id) =>
+                        state.evidence.find((item) => item.id === id)?.title ??
+                        id,
+                    )
+                    .join(" + ")}
+                </span>
+                <button
+                  disabled={busy || selected.length !== 2}
+                  onClick={() => ask("Compare my selection")}
+                >
+                  Compare selection
+                </button>
+                <button disabled={busy} onClick={() => setSelected([])}>
+                  Clear
+                </button>
+              </div>
+            )}
+            <div
+              className={styles.composition}
+              aria-label="Persistent exploration canvas"
+              aria-busy={busy}
+            >
+              {state.spec.blocks.map((block) => (
+                <CanvasBlock
+                  key={block.id}
+                  block={block}
+                  evidence={state.evidence}
+                  busy={busy}
+                  pinned={pinned.includes(block.id)}
+                  expanded={expanded.includes(block.id)}
+                  selected={selected}
+                  onPin={() => setPinned(toggle(pinned, block.id))}
+                  onExpand={() => setExpanded(toggle(expanded, block.id))}
+                  onRemove={() => remove(block.id)}
+                  onSelect={(id) => setSelected(toggle(selected, id).slice(-8))}
+                  onFocus={() => setFocus(block.id)}
+                />
+              ))}
+            </div>
+            <footer className={styles.disclosure}>
+              <p>
+                Public source snapshot · October 29, 2026. Artist facts stay
+                separate from presentation.
+              </p>
+              <details>
+                <summary>What is live in this experiment?</summary>
+                <p>
+                  {liveApiUrl
+                    ? "This preview uses Music Nerd’s existing chat backend to compose evidence-backed blocks. Source snapshot entries are labeled and additional stored sources are retrieved by the chat. Model choices can still be mistaken; inspect evidence."
+                    : "The canvas, selection, pinning, undo, revision validation and streamed message handling work. Responses are authored replay fixtures, not model output. The isolated API extension reuses Music Nerd’s chat model and retrieval, but live execution remains disabled."}{" "}
+                  Conversations exist only in this tab and reset on reload.
+                </p>
+                {!dutch && <SourceNote id="profile" />}
+              </details>
+            </footer>
+          </div>
         </section>
       </div>
     </div>

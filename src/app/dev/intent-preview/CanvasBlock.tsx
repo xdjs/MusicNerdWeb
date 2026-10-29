@@ -143,6 +143,15 @@ export default function CanvasBlock({
                     : "Evidence & context"}
                 </summary>
                 <div>
+                  {item.pagePreview && (
+                    <a href={item.url} target="_blank" rel="noreferrer">
+                      <img
+                        className={styles.pdfPage}
+                        src={item.pagePreview}
+                        alt={`Original PDF page ${item.page}: ${item.title}`}
+                      />
+                    </a>
+                  )}
                   <p>{item.attribution}</p>
                   <p>{item.text}</p>
                   <p className={styles.caveat}>{item.limitation}</p>
