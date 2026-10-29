@@ -55,8 +55,8 @@ jest.mock('next-auth/react', () => ({
     useSession: () => ({ data: mockSessionData, status: mockSessionStatus }),
 }));
 
-jest.mock('@/app/actions/addArtist', () => ({
-    addArtist: (...args: unknown[]) => mockAddArtist(...args),
+jest.mock('@/lib/artist/requestAddArtist', () => ({
+    requestAddArtist: (...args: unknown[]) => mockAddArtist(...args),
 }));
 
 jest.mock('next/link', () => {

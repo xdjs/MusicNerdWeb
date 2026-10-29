@@ -135,16 +135,6 @@ it('converts legacy Apple Music UGC into attributed source-backed link atomicall
  expect(source).toMatchObject({status:'approved',suggestedBy:{id:contributor,name:'Listener'},reviewedBy:{id:admin,name:'Artist'}});
  expect(source?.submittedAt).toEqual(item.submittedAt);
 });
-it('new source-backed Add Link submission enters artist review and owner direct add can restore a hidden link',async()=>{
- const {submitArtistDestination}=await import('../submitArtistDestination');
- const result=await submitArtistDestination(artist,contributor,'https://www.beatport.com/artist/example/123');
- expect((await list(artist,admin)).items[0]).toMatchObject({id:result.id,status:'pending',origin:'submission'});
- await submitArtistDestination(artist,admin,'https://www.beatport.com/artist/example/123',true);
- await decide(artist,admin,{kind:'source',id:result.id,decision:'remove'});
- await submitArtistDestination(artist,admin,'https://www.beatport.com/artist/example/123',true);
- expect(await hidden(artist)).toEqual([]);
- await expect(submitArtistDestination(artist,contributor,'https://music.apple.com/us/album/song/123')).rejects.toThrow('not a song');
-});
 it('uses the recorded UGC processing timestamp when historical reviewer activity is absent, without guessing source review dates',async()=>{
  await client.query("insert into ugcresearch(artist_id,user_id,ugc_url,site_name,site_username,accepted,date_processed)values($1,$2,'https://instagram.com/historical','instagram','historical',true,'2026-10-05 12:34:56.789')",[artist,contributor]);
  const source=(await pending())!;

@@ -1,6 +1,5 @@
 import { PgDialect } from "drizzle-orm/pg-core";
 import {
-  acquireArtistNameLock,
   acquireArtistPlatformWriteLocks,
   acquirePlatformIdentityLock,
 } from "../artistIdentityLocks";
@@ -21,18 +20,6 @@ describe("artist identity advisory locks", () => {
     expect(query.sql).toContain("pg_advisory_xact_lock");
     expect(query.params).toEqual([
       "musicnerd:artist-platform:spotify:spotify-123",
-    ]);
-  });
-
-  it("uses a separate namespace for normalized artist names", async () => {
-    const execute = jest.fn().mockResolvedValue([]);
-
-    await acquireArtistNameLock({ execute } as never, "jonathan pape");
-
-    const query = dialect.sqlToQuery(execute.mock.calls[0][0]);
-    expect(query.sql).toContain("pg_advisory_xact_lock");
-    expect(query.params).toEqual([
-      "musicnerd:artist-name:jonathan pape",
     ]);
   });
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { addArtist } from "../../actions/addArtist";
+import { requestAddArtist } from "@/lib/artist/requestAddArtist";
 import { useSession } from "next-auth/react";
 import type { MusicPlatform, MusicPlatformArtist } from "@/server/utils/musicPlatform";
 import DuplicateArtistChoice, { type DuplicateArtistCandidate } from "@/app/_components/DuplicateArtistChoice";
@@ -37,7 +37,7 @@ export default function AddArtistContent({ initialArtist }: { initialArtist: Mus
         return requestLogin("add_artist");
     }
 
-    function handleResult(result: Awaited<ReturnType<typeof addArtist>>) {
+    function handleResult(result: Awaited<ReturnType<typeof requestAddArtist>>) {
         if (result.status === "error" && result.code === "UNAUTHENTICATED") {
             setDuplicateChoice(null);
             setError(promptLogin()
@@ -74,7 +74,7 @@ export default function AddArtistContent({ initialArtist }: { initialArtist: Mus
         setError(null);
 
         try {
-            const result = await addArtist(initialArtist.platformId, initialArtist.platform);
+            const result = await requestAddArtist(initialArtist.platformId, initialArtist.platform);
             if (requestGenerationRef.current === requestGeneration) {
                 handleResult(result);
             }
@@ -104,7 +104,7 @@ export default function AddArtistContent({ initialArtist }: { initialArtist: Mus
         setIsCreatingSeparate(true);
         setError(null);
         try {
-            const result = await addArtist(
+            const result = await requestAddArtist(
                 response.platformId,
                 response.platform,
                 { forceCreate: true },
