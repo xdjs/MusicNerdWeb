@@ -4,19 +4,17 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import BioVersionHistory from '@/app/artist/[id]/_components/BioVersionHistory';
 import { EditModeContext } from '@/app/_components/EditModeContext';
 
-jest.mock('@/app/actions/dashboardActions', () => ({
-  getArtistBioVersions: jest.fn().mockResolvedValue({
-    success: true,
-    versions: [
-      { id: 'v1', artistId: 'a1', bioText: 'First bio', isPinned: true, createdAt: '2026-01-01T00:00:00Z' },
-      { id: 'v2', artistId: 'a1', bioText: 'Second bio', isPinned: false, createdAt: '2026-02-01T00:00:00Z' },
-    ],
-  }),
-  pinBioVersionAction: jest.fn().mockResolvedValue({ success: true }),
-  deleteBioVersionAction: jest.fn().mockResolvedValue({ success: true }),
-  unpinBioAction: jest.fn().mockResolvedValue({ success: true }),
+const getArtistBioVersions = jest.fn();
+const pinBioVersion = jest.fn();
+const deleteBioVersion = jest.fn();
+const unpinBio = jest.fn();
+jest.mock('@/lib/musicNerdApi/requestMusicNerdApi', () => ({
+  requestMusicNerdApi: (path: string, init?: { method?: string; body?: { versionId?: string } }) => {
+    if (path.endsWith('/versions')) return getArtistBioVersions(path);
+    if (path.endsWith('/pin')) return init?.method === 'PUT' ? pinBioVersion(init.body?.versionId, path) : unpinBio(path);
+    return deleteBioVersion(path);
+  },
 }));
-import { pinBioVersionAction, deleteBioVersionAction, unpinBioAction } from '@/app/actions/dashboardActions';
 
 function renderEditing(isEditing = true) {
   return render(
@@ -26,8 +24,22 @@ function renderEditing(isEditing = true) {
   );
 }
 
+function resetApi() {
+  jest.clearAllMocks();
+  getArtistBioVersions.mockResolvedValue({
+    success: true,
+    versions: [
+      { id: 'v1', artistId: 'a1', bioText: 'First bio', isPinned: true, createdAt: '2026-01-01T00:00:00Z' },
+      { id: 'v2', artistId: 'a1', bioText: 'Second bio', isPinned: false, createdAt: '2026-02-01T00:00:00Z' },
+    ],
+  });
+  pinBioVersion.mockResolvedValue({ success: true });
+  deleteBioVersion.mockResolvedValue({ success: true });
+  unpinBio.mockResolvedValue({ success: true });
+}
+
 describe('BioVersionHistory', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => resetApi());
 
   it('renders nothing when not editing', () => {
     const { container } = renderEditing(false);
@@ -40,7 +52,7 @@ describe('BioVersionHistory', () => {
     fireEvent.click(screen.getByText(/version history/i));
     await waitFor(() => expect(screen.getByText('Second bio')).toBeInTheDocument());
     fireEvent.click(screen.getAllByRole('button', { name: /^pin$/i })[0]);
-    await waitFor(() => expect(pinBioVersionAction).toHaveBeenCalledWith('v2', 'a1'));
+    await waitFor(() => expect(pinBioVersion).toHaveBeenCalledWith('v2', '/api/artistBio/a1/pin'));
   });
 
   it('deletes a version with the artistId (after confirmation)', async () => {
@@ -51,21 +63,22 @@ describe('BioVersionHistory', () => {
     // the pinned version's Delete button is disabled, so index 0 is the enabled one
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
     // delete is a two-step confirm — nothing deleted until "Confirm" is clicked
-    expect(deleteBioVersionAction).not.toHaveBeenCalled();
+    expect(deleteBioVersion).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
-    await waitFor(() => expect(deleteBioVersionAction).toHaveBeenCalledWith('v2', 'a1'));
+    await waitFor(() => expect(deleteBioVersion).toHaveBeenCalledWith('/api/artistBio/a1/versions/v2'));
   });
 });
 
 test('failed unpin keeps the lock and does not notify a bio change', async () => {
-  (unpinBioAction as jest.Mock).mockResolvedValueOnce({ success: false, error: 'Could not unpin bio' });
+  resetApi();
+  unpinBio.mockResolvedValueOnce({ success: false, error: 'Could not unpin bio' });
   const onChanged = jest.fn();
   const onPinnedChange = jest.fn();
   render(<EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
     <BioVersionHistory artistId="a1" onChanged={onChanged} onPinnedChange={onPinnedChange} />
   </EditModeContext.Provider>);
   fireEvent.click(await screen.findByRole('button', { name: 'Unpin to edit' }));
-  await waitFor(() => expect(unpinBioAction).toHaveBeenCalledWith('a1'));
+  await waitFor(() => expect(unpinBio).toHaveBeenCalledWith('/api/artistBio/a1/pin'));
   expect(screen.getByRole('button', { name: 'Unpin to edit' })).toBeInTheDocument();
   expect(onChanged).not.toHaveBeenCalled();
   expect(onPinnedChange).not.toHaveBeenCalledWith(false);
