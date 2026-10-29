@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import CanvasBlock from "../CanvasBlock";
 import type { CanvasEvidence } from "@/lib/intent/canvasProtocol";
 const evidence: CanvasEvidence = {
@@ -53,3 +53,36 @@ it.each([false, true])(
     );
   },
 );
+
+it("uses a post action and clear fallback when an Instagram thumbnail fails", () => {
+  render(
+    <CanvasBlock
+      block={{
+        id: "post",
+        title: "Post",
+        kind: "media",
+        items: [evidence.id],
+        span: 1,
+      }}
+      evidence={[
+        {
+          ...evidence,
+          image: "https://example.com/image.webp",
+          mediaKind: "instagram",
+        },
+      ]}
+      pinned={false}
+      expanded={false}
+      selected={[]}
+      busy={false}
+      onPin={jest.fn()}
+      onExpand={jest.fn()}
+      onRemove={jest.fn()}
+      onSelect={jest.fn()}
+      onFocus={jest.fn()}
+    />,
+  );
+  expect(screen.getByText(/Open post/)).toBeInTheDocument();
+  fireEvent.error(screen.getByRole("img"));
+  expect(screen.getByText(/Image unavailable/)).toBeInTheDocument();
+});

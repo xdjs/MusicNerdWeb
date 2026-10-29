@@ -1022,4 +1022,99 @@
   }
 }
 
-.canvasToolbar { flex-wrap: wrap; gap: 10px; }
+.canvasToolbar {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.artistInitial {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 52px;
+  background: var(--pink);
+  color: #171319;
+}
+.mobileControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.mobileControls button {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.historySheet {
+  max-height: 80dvh;
+  overflow-y: auto;
+}
+.sheetMessages > div {
+  margin: 18px 0;
+}
+.sheetMessages p {
+  line-height: 1.6;
+}
+.compositionBlock {
+  scroll-margin-top: 80px;
+}
+@media (max-width: 1000px) {
+  .experiment {
+    padding-bottom: calc(200px + env(safe-area-inset-bottom));
+  }
+  .identityNote,
+  .portraitCaption {
+    display: none;
+  }
+  .discussion {
+    position: fixed;
+    z-index: 40;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -8px 24px #0000000c;
+  }
+  .discussion .welcome,
+  .discussion .suggestions,
+  .discussion .replayNotice {
+    display: none;
+  }
+  .composer {
+    margin-top: 10px;
+  }
+  .composer input {
+    font-size: 16px;
+  }
+  .status,
+  .error {
+    margin: 8px 0 0;
+  }
+  .identity {
+    margin-bottom: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .experiment * {
+    scroll-behavior: auto !important;
+  }
+}
+.embedded {
+  z-index: auto;
+}
+.compositionBlock:focus {
+  outline: 2px solid var(--pink);
+  outline-offset: 4px;
+}
+.openingAnswer { margin: 0 0 22px; max-width: 760px; }
+.openingAnswer h2 { font-size: 24px; line-height: 1.2; margin: 8px 0 14px; letter-spacing: -.025em; }
+.openingAnswer > p:not(.context) { font-size: 15px; line-height: 1.7; }
+.openingAnswer > a { display: inline-block; margin-top: 8px; font-size: 11px; color: var(--muted); }
+.openingFollowUp { margin: 24px 0; }
+.openingFollowUp p { font-size: 18px; line-height: 1.5; margin-bottom: 12px; }
+.openingFollowUp button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 24px; background: var(--soft); color: var(--ink); padding: 10px 14px; margin: 4px 8px 4px 0; text-align: left; max-width: 100%; }

@@ -1,7 +1,10 @@
 import IntentPreviewPage from "../page";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 jest.mock("next/navigation", () => ({
+  redirect: jest.fn(() => {
+    throw new Error("REDIRECT");
+  }),
   notFound: jest.fn(() => {
     throw new Error("404");
   }),
@@ -35,6 +38,7 @@ it.each([
   Object.assign(process.env, { NODE_ENV: nodeEnv });
   if (environment) process.env.VERCEL_ENV = environment;
   else delete process.env.VERCEL_ENV;
-  expect(IntentPreviewPage()).toBeTruthy();
+  expect(() => IntentPreviewPage()).toThrow("REDIRECT");
+  expect(redirect).toHaveBeenCalledWith("/");
   expect(notFound).not.toHaveBeenCalled();
 });

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pin, Maximize2, Minimize2, X } from "lucide-react";
 import type { CanvasEvidence, CanvasSpec } from "@/lib/intent/canvasProtocol";
 import styles from "./intent.module.css";
@@ -26,11 +27,14 @@ export default function CanvasBlock({
   onSelect: (id: string) => void;
   onFocus: () => void;
 }) {
+  const [failedImages, setFailedImages] = useState<string[]>([]);
   const items = block.items
     .map((id) => evidence.find((item) => item.id === id))
     .filter((item): item is CanvasEvidence => !!item);
   return (
     <section
+      data-canvas-block={block.id}
+      tabIndex={-1}
       className={`${styles.compositionBlock} ${block.span === 2 || expanded ? styles.wideBlock : ""}`}
       aria-label={block.title}
       data-block-id={block.id}
@@ -87,22 +91,43 @@ export default function CanvasBlock({
               <time className={styles.blockYear}>{item.date?.slice(0, 4)}</time>
             )}
             <div className={styles.evidenceBody}>
-              {item.image && block.kind !== "quote" && (
-                <a
-                  href={item.workUrl ?? item.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={styles.evidenceArt}
-                  aria-label={`Open ${item.title}`}
-                >
-                  <img src={item.image} alt={`${item.title} artwork`} />
-                  <span>
-                    {item.category === "film" || item.category === "process"
-                      ? "Watch"
-                      : "Listen"}{" "}
-                    ↗
-                  </span>
-                </a>
+              {item.image &&
+                !failedImages.includes(item.id) &&
+                block.kind !== "quote" && (
+                  <a
+                    href={item.workUrl ?? item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.evidenceArt}
+                    aria-label={`Open ${item.title}`}
+                  >
+                    <img
+                      src={item.image}
+                      alt={
+                        item.mediaKind === "instagram"
+                          ? `${item.title} · Instagram post image`
+                          : `${item.title} artwork`
+                      }
+                      onError={() =>
+                        setFailedImages((ids) => [...ids, item.id])
+                      }
+                    />
+                    <span>
+                      {item.mediaKind === "instagram"
+                        ? "Open post"
+                        : item.category === "film" ||
+                            item.category === "process"
+                          ? "Watch"
+                          : "Listen"}{" "}
+                      ↗
+                    </span>
+                  </a>
+                )}
+              {((item.mediaKind === "instagram" && !item.image) ||
+                failedImages.includes(item.id)) && (
+                <p className={styles.caveat}>
+                  Image unavailable. Open the original post to view it.
+                </p>
               )}
               {block.kind === "quote" ? (
                 <blockquote>

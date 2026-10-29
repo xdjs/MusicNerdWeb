@@ -19,8 +19,15 @@ export const evidenceSchema = z
     dateKind: z.string().max(80),
     image: z
       .string()
-      .regex(/^\/demo\/(?:latasha|dutchyyy)\/[a-z-]+\.jpg$/)
+      .refine(
+        (url) =>
+          /^\/demo\/(?:latasha|dutchyyy)\/[a-z-]+\.jpg$/.test(url) ||
+          /^https:\/\/[a-z0-9]{20}\.supabase\.co\/storage\/v1\/object\/public\/vault-files\/[a-f0-9-]{36}\/instagram-[a-f0-9-]+\.webp$/.test(
+            url,
+          ),
+      )
       .optional(),
+    mediaKind: z.literal("instagram").optional(),
     limitation: z.string().max(1000),
     pagePreview: z
       .string()

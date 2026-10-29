@@ -274,13 +274,127 @@ it("ignores a cancelled artist turn after switching to another artist", () => {
       message: { id: request.turnId },
     }),
   );
-  expect(
-    screen.getByRole("heading", { name: "Dutchyyy" }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Dutchyyy" })).toBeInTheDocument();
   expect(
     screen.getByRole("heading", { name: "Junk Planet" }),
   ).toBeInTheDocument();
   expect(
     screen.queryByRole("heading", { name: "OUT HERE" }),
   ).not.toBeInTheDocument();
+});
+
+it("opens an arbitrary artist with its own identity and no borrowed seed or model request", () => {
+  const send = jest.fn();
+  mockUseChat.mockReturnValue({
+    messages: [],
+    setMessages: jest.fn(),
+    sendMessage: send,
+    status: "ready",
+    stop: jest.fn(),
+  });
+  render(
+    <IntentExplorer
+      artistId="11111111-1111-4111-8111-111111111111"
+      profile={{
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "Another Artist",
+        profileUrl: "/artist/11111111-1111-4111-8111-111111111111?view=profile",
+      }}
+      initialEvidence={[]}
+      coverage="No readable public sources are available yet."
+      generationEnabled={false}
+      liveApiUrl="https://example.com"
+      embedded
+    />,
+  );
+  expect(
+    screen.getByRole("heading", { name: "Another Artist" }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText("OUT HERE")).not.toBeInTheDocument();
+  expect(screen.queryByText("Junk Planet")).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Send exploration" }),
+  ).toBeDisabled();
+  expect(send).not.toHaveBeenCalled();
+});
+it("restores a failed draft", () => {
+  render(<IntentExplorer liveApiUrl="https://example.com" />);
+  fireEvent.change(screen.getByLabelText("Explore LATASHÁ"), {
+    target: { value: "What changed?" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send exploration" }));
+  act(() => mockUseChat.mock.calls.at(-1)[0].onError());
+  expect(screen.getByLabelText("Explore LATASHÁ")).toHaveValue("What changed?");
+});
+
+it("keeps the mobile canvas visible while conversation history is a dismissible dialog", () => {
+  const previous = window.matchMedia;
+  window.matchMedia = jest
+    .fn()
+    .mockReturnValue({
+      matches: true,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    });
+  try {
+    mockUseChat.mockReturnValue({
+      messages: [
+        {
+          id: "old",
+          role: "user",
+          parts: [{ type: "text", text: "A previous question" }],
+        },
+      ],
+      setMessages: jest.fn(),
+      sendMessage: jest.fn(),
+      status: "ready",
+      stop: jest.fn(),
+    });
+    render(<IntentExplorer />);
+    expect(screen.queryByText("A previous question")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Conversation · 1" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("A previous question")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("OUT HERE")).toBeInTheDocument();
+  } finally {
+    window.matchMedia = previous;
+  }
+});
+
+it("opens as a sourced first answer with an artist-specific invitation without calling a model", () => {
+  render(
+    <IntentExplorer
+      artistId="11111111-1111-4111-8111-111111111111"
+      profile={{
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "Example Artist",
+        profileUrl: "/artist/example?view=profile",
+      }}
+      initialEvidence={[]}
+      introduction={{
+        text: "Example Artist makes recorded music.",
+        sourceUrl: "https://example.com/profile",
+      }}
+      openingIds={[]}
+      openingQuestion="Want to explore the archive together?"
+      openingSuggestions={[
+        { label: "Explore the archive", prompt: "Tell me about the archive" },
+      ]}
+      embedded
+    />,
+  );
+  expect(
+    screen.getByText("Example Artist makes recorded music."),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("Want to explore the archive together?"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Explore the archive" }),
+  ).toBeInTheDocument();
+  expect(
+    mockUseChat.mock.results.at(-1)?.value.sendMessage,
+  ).not.toHaveBeenCalled();
 });

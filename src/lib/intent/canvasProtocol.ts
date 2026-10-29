@@ -45,6 +45,7 @@ export type CanvasEvidence = {
   date: string | null;
   dateKind: string;
   image?: string;
+  mediaKind?: "instagram";
   limitation: string;
   page?: number;
   pagePreview?: string;

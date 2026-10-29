@@ -1,9 +1,16 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { getAccessToken } from "@privy-io/react-auth";
 import { DefaultChatTransport } from "ai";
 import { ArrowLeft, ArrowUpRight, AudioLines, Moon, Sun } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useTheme } from "@/app/_components/ThemeProvider";
 import {
   CANVAS_ARTIST_ID,
@@ -13,6 +20,7 @@ import {
   type CanvasRequest,
   type CanvasUpdate,
   type CanvasSpec,
+  type CanvasEvidence,
 } from "@/lib/intent/canvasProtocol";
 import { createReplayResponse } from "@/lib/intent/createReplayResponse";
 import { readCanvasSession } from "@/lib/intent/canvasSession";
@@ -36,27 +44,85 @@ export default function IntentExplorer({
   artistId = CANVAS_ARTIST_ID,
   initialIntent,
   onBack,
+  profile,
+  initialEvidence,
+  coverage,
+  generationEnabled = true,
+  embedded = false,
+  introduction,
+  openingIds,
+  openingQuestion,
+  openingSuggestions = [],
 }: {
   liveApiUrl?: string;
   artistId?: string;
   initialIntent?: string;
   onBack?: () => void;
+  profile?: { id: string; name: string; profileUrl: string };
+  initialEvidence?: CanvasEvidence[];
+  coverage?: string;
+  generationEnabled?: boolean;
+  embedded?: boolean;
+  introduction?: { text: string; sourceUrl: string } | null;
+  openingIds?: string[];
+  openingQuestion?: string;
+  openingSuggestions?: { label: string; prompt: string }[];
 }) {
   const dutch = artistId === DUTCH_ARTIST_ID;
-  const artistName = dutch ? "Dutchyyy" : "LATASHÁ";
-  const artistProfile = dutch
-    ? "https://musicnerd.net/artist/efff5473-fa9f-4eba-b137-16ffb79f15d8"
-    : profileUrl;
-  const artistSeed = canvasSeeds[artistId];
-  const conversationSteps = dutch
+  const knownArtist = dutch || artistId === CANVAS_ARTIST_ID;
+  const artistName = profile?.name ?? (dutch ? "Dutchyyy" : "LATASHÁ");
+  const artistProfile =
+    profile?.profileUrl ??
+    (dutch
+      ? "https://musicnerd.net/artist/efff5473-fa9f-4eba-b137-16ffb79f15d8"
+      : profileUrl);
+  const artistSeed = initialEvidence ?? canvasSeeds[artistId] ?? [];
+  const conversationSteps = !knownArtist
     ? [
-        "Explore his archive",
-        "Focus on improvisation",
-        "Show his early releases",
+        "Explore these sources",
+        "Show a timeline with supported dates",
+        "Find a listening starting point",
         "Compare my selection",
       ]
-    : steps;
+    : dutch
+      ? [
+          "Explore his archive",
+          "Focus on improvisation",
+          "Show his early releases",
+          "Compare my selection",
+        ]
+      : steps;
   const { theme, setTheme } = useTheme();
+  const [mobile, setMobile] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () =>
+      setKeyboardOffset(
+        Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop),
+      );
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, []);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [changedBlocks, setChangedBlocks] = useState<string[]>([]);
+  const canvasElement = useRef<HTMLDivElement>(null);
+  const lastDraft = useRef("");
+  const inspectedWhileBusy = useRef(false);
+  const revealAfterCommit = useRef(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 1000px)");
+    const update = () => setMobile(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
   const [input, setInput] = useState(initialIntent ?? "");
   const [state, setState] = useState<{
     spec: CanvasSpec;
@@ -64,15 +130,21 @@ export default function IntentExplorer({
     evidence: typeof canvasSeed;
   }>({
     spec: {
-      blocks: [
-        {
-          id: "starting-work",
-          kind: dutch ? "document" : "cards",
-          title: "A place to begin",
-          items: [dutch ? "dutch-junk" : "out"],
-          span: 1,
-        },
-      ],
+      blocks: artistSeed.length
+        ? [
+            {
+              id: "starting-work",
+              kind: profile ? "cards" : dutch ? "document" : "cards",
+              title: "A place to begin",
+              items:
+                openingIds ??
+                (knownArtist
+                  ? [dutch ? "dutch-junk" : "out"]
+                  : artistSeed.slice(0, 3).map((item) => item.id)),
+              span: 1,
+            },
+          ]
+        : [],
     },
     revision: 0,
     evidence: artistSeed,
@@ -94,6 +166,17 @@ export default function IntentExplorer({
   const staged = useRef<CanvasUpdate | null>(null);
   const latest = useRef(state);
   latest.current = state;
+  const viewChanges = useCallback(() => {
+    const target = canvasElement.current?.querySelector<HTMLElement>(
+      `[data-canvas-block="${changedBlocks[0] ?? state.spec.blocks[0]?.id}"]`,
+    );
+    if (!target) return;
+    inputElement.current?.blur();
+    target.scrollIntoView({ block: "start", behavior: "auto" });
+    target.focus({ preventScroll: true });
+    setChangedBlocks([]);
+  }, [changedBlocks, state.spec]);
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -161,6 +244,9 @@ export default function IntentExplorer({
             ...previous,
             [request.turnId]: update.explanation!,
           }));
+        setChangedBlocks([...update.changes.added, ...update.changes.updated]);
+        revealAfterCommit.current =
+          request.baseRevision === 0 && !inspectedWhileBusy.current;
         setHistory((previous) => [...previous, latest.current]);
         setState({
           spec: update.nextSpec,
@@ -183,6 +269,7 @@ export default function IntentExplorer({
           `${update.changes.added.length} added · ${update.changes.updated.length} updated · ${update.changes.removed.length} removed`,
         );
       } else if (!isAbort && !isError && request) {
+        setInput(lastDraft.current);
         setNotice(
           "No valid canvas update was produced. Your previous canvas is intact; try a smaller refinement.",
         );
@@ -191,10 +278,17 @@ export default function IntentExplorer({
       pending.current = null;
     },
     onError: () => {
+      setInput(lastDraft.current);
       staged.current = null;
       pending.current = null;
     },
   });
+  useEffect(() => {
+    if (mobile && revealAfterCommit.current) {
+      revealAfterCommit.current = false;
+      viewChanges();
+    }
+  }, [state.revision, mobile, viewChanges]);
   const busy = status === "submitted" || status === "streaming";
   useEffect(() => {
     try {
@@ -286,7 +380,7 @@ export default function IntentExplorer({
         conversationElement.current.scrollHeight;
   }, [messages, busy]);
   function ask(question: string) {
-    if (busy || !question.trim()) return;
+    if (busy || !question.trim() || !generationEnabled) return;
     session.current ??= crypto.randomUUID();
     pending.current = {
       version: "canvas.v1",
@@ -299,6 +393,8 @@ export default function IntentExplorer({
       focusId: focus,
     };
     staged.current = null;
+    lastDraft.current = question;
+    inspectedWhileBusy.current = false;
     setInput("");
     setNotice("");
     void sendMessage({ text: question });
@@ -342,62 +438,76 @@ export default function IntentExplorer({
       : [...values, id];
   const suggested =
     state.revision === 0
-      ? dutch
+      ? !knownArtist
         ? conversationSteps.slice(0, 3)
-        : [steps[0], steps[1], steps[3]]
+        : dutch
+          ? conversationSteps.slice(0, 3)
+          : [steps[0], steps[1], steps[3]]
       : state.spec.blocks.some((b) => b.id === "voice")
         ? conversationSteps.slice(2)
         : conversationSteps.slice(1, 4);
   return (
-    <div className={styles.experiment}>
-      <header className={styles.topbar}>
-        <a href={artistProfile} className={styles.brand}>
-          <img src="/musicNerdLogo.png" alt="Music Nerd" />
-          <span>
-            Music Nerd<small>Follow your curiosity</small>
-          </span>
-        </a>
-        <div className={styles.headerActions}>
-          {onBack && (
+    <div className={`${styles.experiment} ${embedded ? styles.embedded : ""}`}>
+      {!embedded && (
+        <header className={styles.topbar}>
+          <a href={artistProfile} className={styles.brand}>
+            <img src="/musicNerdLogo.png" alt="Music Nerd" />
+            <span>
+              Music Nerd<small>Follow your curiosity</small>
+            </span>
+          </a>
+          <div className={styles.headerActions}>
+            {onBack && (
+              <button
+                onClick={() => {
+                  void stop();
+                  onBack();
+                }}
+              >
+                Change artist
+              </button>
+            )}
+            <span className={styles.previewBadge}>
+              {liveApiUrl
+                ? "Live composition · Music Nerd chat"
+                : "Canvas replay · no live AI"}
+            </span>
             <button
-              onClick={() => {
-                void stop();
-                onBack();
-              }}
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
             >
-              Change artist
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-          )}
-          <span className={styles.previewBadge}>
-            {liveApiUrl
-              ? "Live composition · Music Nerd chat"
-              : "Canvas replay · no live AI"}
-          </span>
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </div>
-      </header>
+          </div>
+        </header>
+      )}
       <div className={styles.layout}>
         <aside className={styles.identity}>
           <div className={styles.portrait}>
-            <img
-              src={`/demo/${dutch ? "dutchyyy" : "latasha"}/portrait.jpg`}
-              alt={artistName}
-            />
+            {knownArtist ? (
+              <img
+                src={`/demo/${dutch ? "dutchyyy" : "latasha"}/portrait.jpg`}
+                alt={artistName}
+              />
+            ) : (
+              <span aria-hidden="true" className={styles.artistInitial}>
+                {artistName.slice(0, 1)}
+              </span>
+            )}
             <div className={styles.portraitCaption}>
-              {dutch
-                ? "Music. Process. A living archive."
-                : "Rapper. Artist. World-builder."}
+              {!knownArtist
+                ? "Artist exploration"
+                : dutch
+                  ? "Music. Process. A living archive."
+                  : "Rapper. Artist. World-builder."}
             </div>
           </div>
           <div className={styles.artistInfo}>
             <h1>{artistName}</h1>
             <p>
-              {dutch ? (
+              {!knownArtist ? (
+                coverage
+              ) : dutch ? (
                 "Follow the work across aliases, releases and an artist’s archive."
               ) : (
                 <>
@@ -409,7 +519,7 @@ export default function IntentExplorer({
             <a href={artistProfile} target="_blank" rel="noreferrer">
               Music Nerd profile <ArrowUpRight size={16} />
             </a>
-            {!dutch && <SourceNote id="bio" />}
+            {artistId === CANVAS_ARTIST_ID && <SourceNote id="bio" />}
           </div>
           <div className={styles.identityNote}>
             <AudioLines size={22} />
@@ -421,51 +531,100 @@ export default function IntentExplorer({
           </div>
         </aside>
         <section className={styles.workspace} aria-label="Artist exploration">
-          <div className={styles.discussion}>
-            {state.revision === 0 && (
+          <div
+            className={styles.discussion}
+            style={mobile ? { bottom: keyboardOffset } : undefined}
+          >
+            {state.revision === 0 && !profile && (
               <div className={styles.welcome}>
                 <p className={styles.context}>Start with the work</p>
                 <h2>
-                  {dutch
-                    ? "An artist’s archive, opened up."
-                    : "Sound. Vision. Independence."}
+                  {!knownArtist
+                    ? "Explore the saved sources"
+                    : dutch
+                      ? "An artist’s archive, opened up."
+                      : "Sound. Vision. Independence."}
                 </h2>
                 <p className={styles.lede}>
-                  {dutch
-                    ? "Explore the public Lore PDFs, recordings and the stories behind them. Every passage keeps its source close."
-                    : "Follow the releases, visual work and artist-first perspective in LATASHÁ’s public sources."}
+                  {!knownArtist
+                    ? coverage
+                    : dutch
+                      ? "Explore the public Lore PDFs, recordings and the stories behind them. Every passage keeps its source close."
+                      : "Follow the releases, visual work and artist-first perspective in LATASHÁ’s public sources."}
                 </p>
               </div>
             )}
-            <div
-              className={styles.conversation}
-              aria-label="Conversation"
-              tabIndex={0}
-              ref={conversationElement}
-            >
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={
-                    message.role === "user"
-                      ? styles.userTurn
-                      : styles.assistantTurn
-                  }
-                >
-                  <span>
-                    {message.role === "user"
-                      ? "You"
-                      : liveApiUrl
-                        ? "Music Nerd"
-                        : "Music Nerd · replay"}
-                  </span>
-                  <CanvasMessage
-                    message={message}
-                    explanation={explanations[message.id]}
-                  />
+            {!mobile && (
+              <div
+                className={styles.conversation}
+                aria-label="Conversation"
+                tabIndex={0}
+                ref={conversationElement}
+              >
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={
+                      message.role === "user"
+                        ? styles.userTurn
+                        : styles.assistantTurn
+                    }
+                  >
+                    <span>
+                      {message.role === "user"
+                        ? "You"
+                        : liveApiUrl
+                          ? "Music Nerd"
+                          : "Music Nerd · replay"}
+                    </span>
+                    <CanvasMessage
+                      message={message}
+                      explanation={explanations[message.id]}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            {mobile && (
+              <div className={styles.mobileControls}>
+                <button onClick={() => setHistoryOpen(true)}>
+                  Conversation{messages.length ? ` · ${messages.length}` : ""}
+                </button>
+                {changedBlocks.length > 0 && (
+                  <button onClick={viewChanges}>
+                    Updated {changedBlocks.length} cards · View changes
+                  </button>
+                )}
+              </div>
+            )}
+            <Dialog open={mobile && historyOpen} onOpenChange={setHistoryOpen}>
+              <DialogContent className={styles.historySheet}>
+                <DialogHeader>
+                  <DialogTitle>Conversation with Music Nerd</DialogTitle>
+                  <DialogDescription>
+                    Your questions and answers. Close to return to the same
+                    place in the artist canvas.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className={styles.sheetMessages}>
+                  {messages.length ? (
+                    messages.map((message) => (
+                      <div key={message.id}>
+                        <strong>
+                          {message.role === "user" ? "You" : "Music Nerd"}
+                        </strong>
+                        <CanvasMessage
+                          message={message}
+                          explanation={explanations[message.id]}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <p>Your exploration conversation will appear here.</p>
+                  )}
                 </div>
-              ))}
-            </div>
+              </DialogContent>
+            </Dialog>
             <form
               className={styles.composer}
               onSubmit={(event) => {
@@ -481,13 +640,13 @@ export default function IntentExplorer({
                 ref={inputElement}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
-                placeholder="Where does your curiosity go next?"
+                placeholder={`Ask me about ${artistName}…`}
                 maxLength={500}
-                disabled={busy}
+                disabled={busy || !generationEnabled}
               />
               <button
                 type="submit"
-                disabled={busy || !input.trim()}
+                disabled={busy || !input.trim() || !generationEnabled}
                 aria-label="Send exploration"
               >
                 <ArrowUpRight size={25} />
@@ -501,7 +660,7 @@ export default function IntentExplorer({
                   : "Replay conversation steps"
               }
             >
-              {suggested
+              {(generationEnabled ? suggested : [])
                 .filter(
                   (prompt) =>
                     prompt !== "Compare my selection" || selected.length === 2,
@@ -517,6 +676,12 @@ export default function IntentExplorer({
                   </button>
                 ))}
             </div>
+            {!generationEnabled && (
+              <p role="status">
+                You can browse this artist’s saved sources. Live generation for
+                additional artists is not enabled in this preview yet.
+              </p>
+            )}
             <p className={styles.replayNotice}>
               {liveApiUrl
                 ? "Ask a follow-up or select evidence. Your canvas evolves with the conversation."
@@ -542,7 +707,36 @@ export default function IntentExplorer({
               </p>
             )}
           </div>
-          <div className={styles.canvasPanel}>
+          <div
+            className={styles.canvasPanel}
+            ref={canvasElement}
+            onFocusCapture={() => {
+              if (busy) inspectedWhileBusy.current = true;
+            }}
+            onPointerDown={() => {
+              if (busy) inspectedWhileBusy.current = true;
+            }}
+          >
+            {profile && state.revision === 0 && (
+              <div className={styles.openingAnswer}>
+                <p className={styles.context}>Music Nerd</p>
+                <h2>Let’s get to know {artistName}.</h2>
+                {introduction ? (
+                  <>
+                    <p>{introduction.text}</p>
+                    <a href={introduction.sourceUrl}>
+                      From the artist’s Music Nerd profile ↗
+                    </a>
+                  </>
+                ) : (
+                  <p>
+                    {artistSeed.length
+                      ? `Here are a few starting points from ${artistName}’s saved sources. We can follow whichever catches your ear.`
+                      : coverage}
+                  </p>
+                )}
+              </div>
+            )}
             <div className={styles.canvasToolbar}>
               <p role="status">
                 {notice || `${state.spec.blocks.length} blocks on your canvas`}
@@ -604,22 +798,36 @@ export default function IntentExplorer({
                 />
               ))}
             </div>
+            {profile && state.revision === 0 && (
+              <div className={styles.openingFollowUp}>
+                <p>{openingQuestion}</p>
+                {openingSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion.prompt}
+                    disabled={busy}
+                    onClick={() => ask(suggestion.prompt)}
+                  >
+                    {suggestion.label} <ArrowUpRight size={14} />
+                  </button>
+                ))}
+              </div>
+            )}
             <footer className={styles.disclosure}>
               <p>
-                Public source snapshot · October 29, 2026. Artist facts stay
-                separate from presentation.
+                Sources stay close to the story. Open any card to see where it
+                came from.
               </p>
               <details>
                 <summary>What is live in this experiment?</summary>
                 <p>
                   {liveApiUrl
-                    ? "This preview uses Music Nerd’s existing chat backend to compose source-backed blocks. Starting entries are curated; questions can retrieve other stored public sources and pages from two published Dutchyyy PDFs. PDF passages retain physical page links and document attribution. Model choices can still be mistaken; inspect evidence."
+                    ? "This preview uses Music Nerd’s existing chat backend to compose source-backed blocks. Starting entries use existing public profile data and saved sources; questions can retrieve other stored public sources and pages from two published Dutchyyy PDFs. PDF passages retain physical page links and document attribution. Model choices can still be mistaken; inspect evidence."
                     : "The canvas, selection, pinning, undo, revision validation and streamed message handling work. Responses are authored replay fixtures, not model output. The isolated API extension reuses Music Nerd’s chat model and retrieval, but live execution remains disabled."}{" "}
                   This tab saves its exploration across reloads. Reset
                   exploration clears it. Closing the tab ends this session;
                   nothing is saved to your artist profile.
                 </p>
-                {!dutch && <SourceNote id="profile" />}
+                {artistId === CANVAS_ARTIST_ID && <SourceNote id="profile" />}
               </details>
             </footer>
           </div>

@@ -13,7 +13,8 @@ import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import { getUserById } from "@/server/utils/queries/userQueries";
 import { getClaimByArtistId } from "@/server/utils/queries/dashboardQueries";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { previewApiUrl } from "@/lib/intent/previewApiUrl";
 import { EditModeProvider } from "@/app/_components/EditModeContext";
 import OutboundClickTracker from "./_components/OutboundClickTracker";
 import ArtistProfileContent from "./_components/ArtistProfileContent";
@@ -34,7 +35,7 @@ import ProfileTourPreview from "./_components/onboarding/ProfileTourPreview";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
-    searchParams?: Promise<{ addLink?: string | string[]; tourPreview?: string }>;
+    searchParams?: Promise<{ addLink?: string | string[]; tourPreview?: string; view?: string }>;
 }
 
 function getAddLinkPrefill(addLink: string | string[] | undefined): string | undefined {
@@ -123,6 +124,7 @@ function summarize(bio: string, max = 300): string {
 export default async function ArtistProfile({ params, searchParams }: ArtistProfileProps) {
     const { id } = await params;
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
+    if (previewApiUrl() && resolvedSearchParams?.view !== "profile" && !resolvedSearchParams?.addLink && !resolvedSearchParams?.tourPreview) redirect(`/artist/${id}/explore`);
     const tourPreview = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview')
         && resolvedSearchParams?.tourPreview === "1";
     const addLinkPrefill = getAddLinkPrefill(resolvedSearchParams?.addLink);
