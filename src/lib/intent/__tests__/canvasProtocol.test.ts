@@ -137,3 +137,38 @@ it("keeps Dutchyyy evidence separate and preserves PDF page metadata", async () 
     update.evidence.find((source) => source.id === "dutch-junk")?.workUrl,
   ).toContain("bandcamp.com");
 });
+it("rejects injected actions, arbitrary image URLs, malformed revisions and cross-session responses without mutating input", async () => {
+  const valid = await replay("Show me her career");
+  const before = JSON.stringify(request);
+  const attacks = [
+    { ...valid, action: { url: "https://evil.example/steal" } },
+    { ...valid, sessionId: "33333333-3333-4333-8333-333333333333" },
+    { ...valid, revision: 99 },
+    {
+      ...valid,
+      nextSpec: {
+        blocks: [
+          { ...valid.nextSpec.blocks[0], action: "execute", code: "alert(1)" },
+        ],
+      },
+    },
+    {
+      ...valid,
+      evidence: [
+        { ...canvasSeed[0], image: "https://evil.example/tracker.png" },
+      ],
+    },
+    {
+      ...valid,
+      evidence: [
+        {
+          ...canvasSeed[0],
+          workUrl: "data:text/html,<script>alert(1)</script>",
+        },
+      ],
+    },
+  ];
+  for (const attack of attacks)
+    expect(() => applyCanvasUpdate(attack, request)).toThrow();
+  expect(JSON.stringify(request)).toBe(before);
+});

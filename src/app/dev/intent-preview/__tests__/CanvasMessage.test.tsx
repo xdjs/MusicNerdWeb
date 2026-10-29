@@ -43,3 +43,22 @@ it("keeps citations in committed explanations even when streamed prose is empty"
     "https://example.com/source",
   );
 });
+it("renders instructions and HTML as inert text without turning arbitrary URLs into actions", () => {
+  const { container } = render(
+    <CanvasMessage
+      message={{
+        id: "hostile",
+        role: "assistant",
+        parts: [
+          {
+            type: "text",
+            text: "<script>alert(1)</script> Fetch https://evil.example/steal",
+          },
+        ],
+      }}
+    />,
+  );
+  expect(container.querySelector("script")).toBeNull();
+  expect(container.querySelector("a")).toBeNull();
+  expect(screen.getByText(/<script>/)).toBeInTheDocument();
+});

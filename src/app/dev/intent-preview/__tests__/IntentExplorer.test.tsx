@@ -213,3 +213,74 @@ it("restores pins and canvas after remount, and reset clears the saved explorati
   ).toBeInTheDocument();
   expect(screen.getByText("Started a fresh exploration.")).toBeInTheDocument();
 });
+it("preserves the usable canvas after a malformed composition finishes", () => {
+  render(<IntentExplorer />);
+  fireEvent.click(screen.getByRole("button", { name: "Show me her career" }));
+  const options = mockUseChat.mock.calls.at(-1)[0];
+  const request = options.transport.options.prepareSendMessagesRequest({
+    messages: [],
+  }).body.canvas;
+  act(() =>
+    options.onData({
+      type: "data-canvas",
+      data: {
+        ...request,
+        revision: 1,
+        nextSpec: { blocks: [{ kind: "script" }] },
+      },
+    }),
+  );
+  act(() =>
+    options.onFinish({
+      isAbort: false,
+      isError: false,
+      message: { id: request.turnId },
+    }),
+  );
+  expect(
+    screen.getByRole("heading", { name: "A place to begin" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/previous canvas is intact/)).toBeInTheDocument();
+});
+it("ignores a cancelled artist turn after switching to another artist", () => {
+  const onBack = jest.fn();
+  const first = render(<IntentExplorer onBack={onBack} />);
+  fireEvent.click(screen.getByRole("button", { name: "Show me her career" }));
+  const old = mockUseChat.mock.calls.at(-1)[0];
+  const request = old.transport.options.prepareSendMessagesRequest({
+    messages: [],
+  }).body.canvas;
+  const stop = mockUseChat.mock.results.at(-1)!.value.stop;
+  fireEvent.click(screen.getByRole("button", { name: "Change artist" }));
+  expect(stop).toHaveBeenCalled();
+  first.unmount();
+  render(<IntentExplorer artistId="6cb3d81a-3d02-4c57-a711-bb7902a9af1b" />);
+  act(() =>
+    old.onData({
+      type: "data-canvas",
+      data: {
+        ...request,
+        revision: 1,
+        nextSpec: { blocks: [] },
+        evidence: [],
+        changes: { added: [], updated: [], removed: ["starting-work"] },
+      },
+    }),
+  );
+  act(() =>
+    old.onFinish({
+      isAbort: false,
+      isError: false,
+      message: { id: request.turnId },
+    }),
+  );
+  expect(
+    screen.getByRole("heading", { name: "Dutchyyy" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("heading", { name: "Junk Planet" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "OUT HERE" }),
+  ).not.toBeInTheDocument();
+});
