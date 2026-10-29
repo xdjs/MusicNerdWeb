@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { CANVAS_ARTIST_ID, DUTCH_ARTIST_ID } from "@/lib/intent/canvasProtocol";
 import IntentExplorer from "./IntentExplorer";
+import { parseArtistEntry } from "./parseArtistEntry";
 import styles from "./intent.module.css";
 const artists = [
   {
@@ -58,21 +59,11 @@ export default function ArtistEntry({ liveApiUrl }: { liveApiUrl?: string }) {
         }}
       />
     );
-  const normalized = query
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  const matches = artists.filter(
-    (a) =>
-      !query ||
-      normalized.includes(
-        a.name
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase(),
-      ) ||
-      a.name.toLowerCase().startsWith(normalized),
+  const parsed = parseArtistEntry(
+    query,
+    artists.map((artist) => artist.name),
   );
+  const matches = artists.filter((artist) => parsed.matches.includes(artist.name));
   return (
     <main className={styles.experiment}>
       <header className={styles.topbar}>
@@ -101,7 +92,7 @@ export default function ArtistEntry({ liveApiUrl }: { liveApiUrl?: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             if (matches.length === 1)
-              setSelected({ id: matches[0].id, intent: query });
+              setSelected({ id: matches[0].id, intent: parsed.intent });
           }}
         >
           <label htmlFor="artist-search">Artist or question</label>
@@ -124,7 +115,7 @@ export default function ArtistEntry({ liveApiUrl }: { liveApiUrl?: string }) {
             <button
               key={a.id}
               onClick={() =>
-                setSelected({ id: a.id, intent: query || undefined })
+                setSelected({ id: a.id, intent: parsed.intent })
               }
             >
               <img src={`/demo/${a.image}/portrait.jpg`} alt="" />
@@ -136,8 +127,15 @@ export default function ArtistEntry({ liveApiUrl }: { liveApiUrl?: string }) {
             </button>
           ))}
         </div>
+        {query.trim() && matches.length > 1 && (
+          <p role="status">
+            Choose an artist below to start. This preview explores one artist at a time.
+          </p>
+        )}
         {!matches.length && (
-          <p>No connected artist matches yet. Try LATASHA or Dutchyyy.</p>
+          <p role="status">
+            No connected artist matches yet. Try LATASHA or Dutchyyy.
+          </p>
         )}
       </div>
     </main>
