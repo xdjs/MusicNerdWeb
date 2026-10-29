@@ -19,7 +19,7 @@ const evidenceSchema = z
     dateKind: z.string().max(80),
     image: z
       .string()
-      .regex(/^\/demo\/latasha\/[a-z-]+\.jpg$/)
+      .regex(/^\/demo\/(?:latasha|dutchyyy)\/[a-z-]+\.jpg$/)
       .optional(),
     limitation: z.string().max(1000),
     pagePreview: z

@@ -89,7 +89,7 @@ export default function CanvasBlock({
             <div className={styles.evidenceBody}>
               {item.image && block.kind !== "quote" && (
                 <a
-                  href={item.url}
+                  href={item.workUrl ?? item.url}
                   target="_blank"
                   rel="noreferrer"
                   className={styles.evidenceArt}

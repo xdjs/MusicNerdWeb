@@ -59,3 +59,5 @@ Live Dutchyyy sequence: PDF + InProcess + direct Bandcamp work, add timeline wit
 Offline checks cover stale revisions, old-turn completions, invalid evidence IDs/URLs, pinned movement, cross-artist seed isolation, atomic completion, and selection/focus after removal. Full suites passed before subsequent focused regressions (Web3635, API4451); latest focused tests and type/lint checks also pass.
 
 This is an experiment covering two artists, not complete universal search. Curated evidence is a snapshot, additional stored sources may be incomplete, source captions are not video transcripts, and the model can still make mistaken interpretations in prose. The canvas contains server-owned evidence. No Spotify refresh, production mutation, main merge or production deployment. Reload and artist switch reset the session.
+
+Junk Planet artwork is sourced from the exact artist Bandcamp album linked by its workUrl, verified October 29: `#tralbumArt img` points to `https://f4.bcbits.com/img/a1141999039_2.jpg`. Clicking that artwork opens the work; the PDF source controls continue to open the cited discography page.
