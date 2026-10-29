@@ -512,7 +512,7 @@ export default function IntentExplorer({
                 <summary>What is live in this experiment?</summary>
                 <p>
                   {liveApiUrl
-                    ? "This preview uses Music Nerd’s existing chat backend to compose evidence-backed blocks. Source snapshot entries are labeled and additional stored sources are retrieved by the chat. Model choices can still be mistaken; inspect evidence."
+                    ? "This preview uses Music Nerd’s existing chat backend to compose source-backed blocks. Starting entries are curated; questions can retrieve other stored public sources and pages from two published Dutchyyy PDFs. PDF passages retain physical page links and document attribution. Model choices can still be mistaken; inspect evidence."
                     : "The canvas, selection, pinning, undo, revision validation and streamed message handling work. Responses are authored replay fixtures, not model output. The isolated API extension reuses Music Nerd’s chat model and retrieval, but live execution remains disabled."}{" "}
                   Conversations exist only in this tab and reset on reload.
                 </p>
