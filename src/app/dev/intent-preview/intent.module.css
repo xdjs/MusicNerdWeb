@@ -891,9 +891,32 @@
   transform: translateX(-50%);
   width: min(840px, calc(100% - 32px));
   padding: 12px 0 calc(18px + env(safe-area-inset-bottom));
-  background: var(--paper);
-  box-shadow: 0 -12px 28px var(--paper);
+  background: transparent;
+  box-shadow: none;
   border: 0;
+  pointer-events: none;
+}
+.discussion > * {
+  pointer-events: auto;
+}
+.discussion .mobileControls {
+  pointer-events: none;
+}
+.discussion .mobileControls button {
+  pointer-events: auto;
+  background: var(--paper);
+  border-radius: 20px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 10px #00000012;
+}
+.discussion .composer {
+  box-shadow: 0 6px 24px #00000020;
+}
+.discussion .status,
+.discussion .error {
+  background: var(--paper);
+  border-radius: 16px;
+  padding: 10px 14px;
 }
 
 .canvasPanel {
