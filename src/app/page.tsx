@@ -1,3 +1,4 @@
+import { previewApiUrl } from "@/lib/intent/previewApiUrl";
 import type { Metadata } from "next";
 import HomePageSplash from "./_components/HomePageSplash";
 import { socialPreviewImage } from "@/lib/socialPreviewImage";
@@ -18,6 +19,5 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <HomePageSplash />;
+  return previewApiUrl() ? null : <HomePageSplash />;
 }
-

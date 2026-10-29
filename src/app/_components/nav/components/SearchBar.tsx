@@ -40,6 +40,7 @@ interface SearchResult extends Artist {
 }
 
 interface SearchBarProps {
+    exploration?: boolean;
     isTopSide?: boolean;
     appearance?: "nav" | "home";
 }
@@ -60,8 +61,11 @@ type PossibleDuplicateResponse = {
     canCreateSeparate?: boolean;
 };
 
-function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProps) {
+function SearchBarInner({ isTopSide = false, appearance = "nav", exploration = false }: SearchBarProps) {
     const router = useRouter();
+    const inputRef = useRef<HTMLInputElement>(null);
+    const retainFocus = useRef(false);
+    const suppressResults = useRef(false);
     const pathname = usePathname();
     const [openingArtist, setOpeningArtist] = useState<{ id: string; name: string } | null>(null);
     const { toast } = useToast();
@@ -253,6 +257,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
 
         const value = e.target.value;
         setOpeningArtist(null);
+        suppressResults.current = false;
         invalidateAddRequest();
         setQuery(value);
         setDuplicateChoice(null);
@@ -271,6 +276,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
     };
 
     const handleFocus = () => {
+        if (suppressResults.current) return;
         if (blurTimeoutRef.current) {
             clearTimeout(blurTimeoutRef.current);
         }
@@ -318,13 +324,18 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         }
 
         setShowResults(false);
-        setQuery('');
+        if (!exploration) setQuery('');
+        retainFocus.current = exploration;
+        suppressResults.current = exploration;
         addRequestGenerationRef.current += 1;
 
         if (result.id) {
-            router.push(`/artist/${result.id}`);
+            if (exploration) router.push(`/artist/${result.id}/explore`, {scroll:false});
+            else router.push(`/artist/${result.id}`);
         }
     };
+
+    useEffect(() => { if (exploration && retainFocus.current) { inputRef.current?.focus({preventScroll:true}); retainFocus.current = false; } }, [pathname, exploration]);
 
     const getPlatformLabel = (platform?: string) => {
         if (!platform) return 'Deezer';
@@ -338,6 +349,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             <div className="relative">
                 {/* Shared homepage styling; appearance only controls result behavior. */}
                 <Input
+                    ref={inputRef}
                     type="text"
                     placeholder="Search for an artist..."
                     value={query}
@@ -422,6 +434,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
                             <button
                                 key={result.isExternalOnly ? `ext-${result.platformId}` : result.id}
                                 disabled={isAddInFlight}
+                                onMouseDown={event => { if (exploration && !result.isExternalOnly) event.preventDefault(); }}
                                 onClick={() => handleResultClick(result)}
                                 className={`w-full p-3 flex items-center gap-3 text-left disabled:opacity-50 ${
                                     result.isExternalOnly

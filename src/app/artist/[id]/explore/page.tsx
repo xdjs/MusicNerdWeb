@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import IntentExplorer from "@/app/dev/intent-preview/IntentExplorer";
+import PreviewArtistRegistration from "@/app/_components/exploration/PreviewArtistRegistration";
 import { evidenceSchema } from "@/lib/intent/applyCanvasUpdate";
 import { previewApiUrl } from "@/lib/intent/previewApiUrl";
 const schema = z.object({
@@ -57,7 +57,7 @@ export default async function ArtistExplore({
     );
   }
   return (
-    <IntentExplorer
+    <PreviewArtistRegistration
       key={id}
       artistId={id}
       liveApiUrl={api}

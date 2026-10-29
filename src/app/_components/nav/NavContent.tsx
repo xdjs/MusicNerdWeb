@@ -1,51 +1,93 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import Image from "next/image"
-import styles from "../HomePageSplash.module.css"
-import SearchBar from "./components/SearchBar"
+import Link from "next/link";
+import Image from "next/image";
+import styles from "../HomePageSplash.module.css";
+import SearchBar from "./components/SearchBar";
 import AddArtist from "./components/AddArtist";
 import Login from "./components/Login";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 
-export default function NavContent() {
-    const pathname = usePathname();
-    if (pathname === "/dev/intent-preview") return null;
-    const isProfile = pathname?.startsWith("/artist/");
-    if (pathname === "/") {
-        return (
-            <nav aria-label="Main navigation" className={styles.homeNav}>
-                <Link href="/" aria-label="Music Nerd home">
-                    <Image src="/musicNerdLogo.png" width={80} height={80} className={styles.homeNavLogo} alt="" priority />
-                </Link>
-                <div className="flex gap-2 items-center shrink-0"><Login buttonStyles="" /></div>
-            </nav>
-        );
-    }
+export default function NavContent({
+  sharedSearch = false,
+}: {
+  sharedSearch?: boolean;
+}) {
+  const pathname = usePathname();
+  if (pathname === "/dev/intent-preview") return null;
+  const isProfile = pathname?.startsWith("/artist/");
+  if (sharedSearch)
     return (
-        <nav aria-label="Main navigation" className={`w-full px-3 py-3 nav-bar flex items-center justify-between gap-2 max-w-[1000px] mx-auto ${isProfile ? "sticky top-0 z-40 bg-white/90 backdrop-blur-xl dark:bg-[#1a1a1a]/90 sm:px-6" : "sm:p-6"}`}>
-            <div className="flex gap-2 shrink-0">
-                <Link href={"/"}>
-                    <img
-                        src="/icon.ico"
-                        width={64}
-                        height={64}
-                        className={`w-10 h-10 ${isProfile ? "" : "sm:w-16 sm:h-16"}`}
-                        alt="logo"
-                    />
-                </Link>
-            </div>
+      <nav
+        aria-label="Main navigation"
+        style={pathname !== "/" ? { position: "sticky", top: 0 } : undefined}
+        className={`${styles.homeNav} ${pathname !== "/" ? "sticky top-0 z-40 bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-xl" : ""}`}
+      >
+        <Link href="/" aria-label="Music Nerd home">
+          <Image
+            src="/musicNerdLogo.png"
+            width={80}
+            height={80}
+            className={styles.homeNavLogo}
+            alt=""
+            priority
+          />
+        </Link>
+        <div
+          data-header-search-anchor
+          className="flex-1 min-w-0 max-w-[560px] h-[52px] mx-3"
+        />
+        <div className="flex gap-2 items-center shrink-0">
+          <Login buttonStyles="" />
+        </div>
+      </nav>
+    );
+  if (pathname === "/") {
+    return (
+      <nav aria-label="Main navigation" className={styles.homeNav}>
+        <Link href="/" aria-label="Music Nerd home">
+          <Image
+            src="/musicNerdLogo.png"
+            width={80}
+            height={80}
+            className={styles.homeNavLogo}
+            alt=""
+            priority
+          />
+        </Link>
+        <div className="flex gap-2 items-center shrink-0">
+          <Login buttonStyles="" />
+        </div>
+      </nav>
+    );
+  }
+  return (
+    <nav
+      aria-label="Main navigation"
+      className={`w-full px-3 py-3 nav-bar flex items-center justify-between gap-2 max-w-[1000px] mx-auto ${isProfile ? "sticky top-0 z-40 bg-white/90 backdrop-blur-xl dark:bg-[#1a1a1a]/90 sm:px-6" : "sm:p-6"}`}
+    >
+      <div className="flex gap-2 shrink-0">
+        <Link href={"/"}>
+          <img
+            src="/icon.ico"
+            width={64}
+            height={64}
+            className={`w-10 h-10 ${isProfile ? "" : "sm:w-16 sm:h-16"}`}
+            alt="logo"
+          />
+        </Link>
+      </div>
 
-            <div className={`${styles.searchRow} flex-grow min-w-0 max-w-[560px]`}>
-                <Suspense>
-                    <SearchBar />
-                </Suspense>
-                <AddArtist />
-            </div>
-            <div className="flex gap-2 items-center shrink-0">
-                <Login buttonStyles="" />
-            </div>
-        </nav>
-    )
+      <div className={`${styles.searchRow} flex-grow min-w-0 max-w-[560px]`}>
+        <Suspense>
+          <SearchBar />
+        </Suspense>
+        <AddArtist />
+      </div>
+      <div className="flex gap-2 items-center shrink-0">
+        <Login buttonStyles="" />
+      </div>
+    </nav>
+  );
 }

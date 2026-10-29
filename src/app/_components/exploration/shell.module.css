@@ -1,0 +1,15 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100dvh;
+}
+.search {
+  position: fixed;
+  z-index: 45;
+}
+@media (prefers-reduced-motion: reduce) {
+  .search {
+    transition: none;
+  }
+}

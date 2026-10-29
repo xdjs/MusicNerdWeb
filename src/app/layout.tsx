@@ -1,3 +1,5 @@
+import PreviewExplorationShell from "./_components/exploration/PreviewExplorationShell";
+import { previewApiUrl } from "@/lib/intent/previewApiUrl";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Nav from "./_components/nav";
@@ -48,12 +50,18 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col">
         <Providers>
-          <Nav />
-          <main className="flex-grow flex flex-col min-h-0 w-full">
-            {children}
-          </main>
+          {previewApiUrl() ? (
+            <PreviewExplorationShell>{children}</PreviewExplorationShell>
+          ) : (
+            <>
+              <Nav />
+              <main className="flex-grow flex flex-col min-h-0 w-full">
+                {children}
+              </main>
+              <Footer />
+            </>
+          )}
           <Toaster />
-          <Footer />
         </Providers>
         <Analytics />
       </body>

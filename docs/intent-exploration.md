@@ -80,3 +80,11 @@ Instagram own-post thumbnails are projected from already retained, validated sto
 On mobile, the canvas precedes a fixed bottom composer with safe-area and visual-viewport keyboard offsets. Conversation history lives in a dismissible sheet. The first completed result is revealed unless the user is inspecting the canvas; later changes offer View changes and focus the changed block. Draft text survives failure. Pins, source disclosure and artist-scoped session state remain independent of conversation display.
 
 Generation uses the same existing preview chat handler for any artist, with the existing quota, model and shared budget checks. This does not broaden autonomous test permission beyond the two approved artists. In-experience media playback remains an audited follow-up: external listening/post links work, but no embedded player has been added.
+
+## Continuous shell and expanded October 29 evaluation
+
+The flagged preview reuses the original home composition inside a persistent root shell. One actual SearchBar input stays mounted, retains its query/focus, and moves between measured home and header anchors. The manifesto clears while the artist surface occupies the space. This is not a duplicated search element or a full-page fade. Reduced-motion disables movement. URLs/deep links still identify the artist; Back reveals home while retaining the artist component and unfinished composer in the same shell. Switching artists remains intentionally isolated.
+
+The artist route registers public bootstrap data with that shell. Production keeps its original layout and route behavior. The opening uses eligible public biography where present, otherwise a source-bound orientation through documented work and attributed voice. It does not expose draft bios or claim to generate a canonical biography. ISO publication dates display as readable UTC calendar dates; uncertain ranges and year-only precision remain unchanged.
+
+Pete explicitly approved public-source tests for other artists through October 29 Eastern, under the SAME cumulative $20 including overnight. The existing preview window now ends October 30 at 04:00 UTC; the existing $18 shared ledger, conservative reservations/settlement and extra $2 headroom remain unchanged. The bootstrap exposes only an aggregate budget read, not reservation details. No reset, new credentials or provider.
