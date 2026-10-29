@@ -107,7 +107,7 @@ export default function CanvasBlock({
               {block.kind === "quote" ? (
                 <blockquote>
                   “{item.text}”
-                  <cite>{item.attribution ?? "LATASHÁ · ZORA interview"}</cite>
+                  <cite>{item.attribution ?? "Attribution unavailable · inspect source"}</cite>
                 </blockquote>
               ) : (
                 <>
