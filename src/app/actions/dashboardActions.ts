@@ -1,7 +1,5 @@
 "use server"
 
-import { withArtistOperation } from '@/server/utils/artistOperationContext';
-
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
@@ -10,18 +8,12 @@ import {
     getClaimByArtistId,
     getApprovedClaimByUserId,
     getVaultSourcesByArtistId,
-    getVaultSourceById,
-    updateVaultSourceStatus,
-    updateVaultSourceType,
-    deleteVaultSource,
-    deleteVaultSources,
     getBioVersionsByArtistId,
     saveBioVersion,
     pinBioVersion,
     deleteBioVersion,
     unpinArtistBio,
 } from "@/server/utils/queries/dashboardQueries";
-import { SOURCE_TYPES } from "@/lib/source/sourceTypes";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { queueLoreRefresh } from "@/server/utils/queries/loreRefresh";
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
@@ -72,52 +64,10 @@ export async function claimArtistProfile(artistId: string): Promise<{ success: b
     }
 }
 
-/** Resolve a source the user may edit: admins can edit any source, owners only their claimed artist's. Returns the source's artistId. */
-async function verifySourceEditable(userId: string, sourceId: string) {
-    const source = await getVaultSourceById(sourceId);
-    if (!source) return { authorized: false as const, error: "Source not found" };
-    const claimId = await getLoreClaimGeneration(source.artistId);
-    if (await canEditArtist(userId, source.artistId)) {
-        return { authorized: true as const, artistId: source.artistId, claimId, source };
-    }
-    return { authorized: false as const, error: "Not authorized for this source" };
-}
-
 /** Authorize editing a specific artist: admins may edit any, owners only their claimed artist. */
 async function verifyArtistEditable(userId: string, artistId: string): Promise<{ ok: true; claimId: string | null } | { ok: false; error: string }> {
     const claimId = await getLoreClaimGeneration(artistId);
     return (await canEditArtist(userId, artistId)) ? { ok: true, claimId } : { ok: false, error: "Not authorized for this artist" };
-}
-
-export async function updateSourceStatus(
-    sourceId: string,
-    status: "approved" | "rejected",
-    expectedStatus?: "pending",
-): Promise<{ success: boolean; error?: string }> {
-    const session = await getServerAuthSession() ?? await getDevSession();
-    if (!session) return { success: false, error: "Not authenticated" };
-
-    try {
-        const ownership = await verifySourceEditable(session.user.id, sourceId);
-        if (!ownership.authorized) return { success: false, error: ownership.error };
-
-        const updated = await withArtistOperation(ownership.artistId,
-            { userId: session.user.id, expectedClaimId: ownership.claimId, trigger: 'source_review' },
-            () => expectedStatus ? updateVaultSourceStatus(sourceId, status, expectedStatus) : updateVaultSourceStatus(sourceId, status));
-        if (expectedStatus && !updated) {
-            return { success: false, error: "This Lore source was already reviewed. Refresh the queue to see its current status." };
-        }
-
-        // The document follows the sources in BOTH directions. Approving is not
-        // the only change that matters: rejecting a source the document cites is
-        // exactly the case the artist is trying to fix.
-        await scheduleDocRefresh(ownership.artistId, ownership.claimId, session.user.id, 'source_change');
-
-        return { success: true };
-    } catch (error) {
-        console.error("[updateSourceStatus] Error:", error);
-        return { success: false, error: "Failed to update source status" };
-    }
 }
 
 export async function searchWebForSources(artistId: string): Promise<{ success: boolean; count?: number; sources?: ArtistVaultSource[]; error?: string }> {
@@ -133,90 +83,6 @@ export async function searchWebForSources(artistId: string): Promise<{ success: 
     } catch (error) {
         console.error("[searchWebForSources] Error:", error);
         return { success: false, error: "Failed to search for sources" };
-    }
-}
-
-export async function updateSourceType(
-    sourceId: string,
-    type: string
-): Promise<{ success: boolean; error?: string }> {
-    const session = await getServerAuthSession() ?? await getDevSession();
-    if (!session) return { success: false, error: "Not authenticated" };
-
-    if (!SOURCE_TYPES.includes(type as typeof SOURCE_TYPES[number])) {
-        return { success: false, error: "Invalid source type" };
-    }
-
-    try {
-        const ownership = await verifySourceEditable(session.user.id, sourceId);
-        if (!ownership.authorized) return { success: false, error: ownership.error };
-
-        await updateVaultSourceType(sourceId, type);
-        return { success: true };
-    } catch (error) {
-        console.error("[updateSourceType] Error:", error);
-        return { success: false, error: "Failed to update source type" };
-    }
-}
-
-export async function removeVaultSource(
-    sourceId: string
-): Promise<{ success: boolean; error?: string }> {
-    const session = await getServerAuthSession() ?? await getDevSession();
-    if (!session) return { success: false, error: "Not authenticated" };
-
-    try {
-        const ownership = await verifySourceEditable(session.user.id, sourceId);
-        if (!ownership.authorized) return { success: false, error: ownership.error };
-
-        await deleteVaultSource(sourceId);
-        await scheduleDocRefresh(ownership.artistId, ownership.claimId, session.user.id, 'source_change');
-        return { success: true };
-    } catch (error) {
-        console.error("[removeVaultSource] Error:", error);
-        return { success: false, error: "Failed to delete source" };
-    }
-}
-
-export async function removeVaultSources(
-    sourceIds: string[]
-): Promise<{ success: boolean; count?: number; error?: string }> {
-    const session = await getServerAuthSession() ?? await getDevSession();
-    if (!session) return { success: false, error: "Not authenticated" };
-
-    try {
-        if (sourceIds.length === 0) return { success: true, count: 0 };
-
-        // Multi-claim-safe: resolve each source's artist directly, then verify the
-        // user may edit THAT specific artist (admin or claimant). Previously this
-        // path used getApprovedClaimByUserId (single-claim) which would silently
-        // misbehave if a user ever held two approved claims — sources for the
-        // "wrong" artist would either be rejected or, worse, operated on under
-        // an unrelated claim.
-        const sources = await Promise.all(
-            sourceIds.map(id => getVaultSourceById(id))
-        );
-
-        const missing = sources.findIndex(s => !s);
-        if (missing >= 0) {
-            return { success: false, error: "One or more sources not found" };
-        }
-
-        const artistIds = [...new Set(sources.map(s => s!.artistId))];
-        const claimIds = await Promise.all(artistIds.map(getLoreClaimGeneration));
-        const authz = await Promise.all(
-            artistIds.map(id => canEditArtist(session.user.id, id))
-        );
-        if (authz.some(ok => !ok)) {
-            return { success: false, error: "Not authorized for one or more sources" };
-        }
-
-        const deleted = await deleteVaultSources(sourceIds);
-        await Promise.all(artistIds.map((id, index) => scheduleDocRefresh(id, claimIds[index]!, session.user.id, 'source_change')));
-        return { success: true, count: deleted.length };
-    } catch (error) {
-        console.error("[removeVaultSources] Error:", error);
-        return { success: false, error: "Failed to delete sources" };
     }
 }
 

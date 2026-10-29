@@ -10,11 +10,8 @@ import VaultSection from '../VaultSection';
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh: jest.fn() }) }));
 jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: jest.fn() }) }));
-jest.mock('@/app/actions/dashboardActions', () => ({
-  updateSourceStatus: jest.fn(), updateSourceType: jest.fn(), removeVaultSource: jest.fn(),
-  removeVaultSources: jest.fn(), searchWebForSources: jest.fn(),
-}));
-jest.mock('@/app/actions/addVaultSource', () => ({ addVaultSource: jest.fn() }));
+jest.mock('@/app/actions/dashboardActions', () => ({ searchWebForSources: jest.fn() }));
+jest.mock('@/lib/source/requestArtistSources', () => ({ requestArtistSources: jest.fn() }));
 jest.mock('../SuggestedLinkReview', () => function SuggestedLinkReview(){return null;});
 jest.mock('../BioVersionHistory', () => function BioVersionHistory() { return null; });
 jest.mock('../SuggestLoreSource', () => function SuggestLoreSource() { return null; });
