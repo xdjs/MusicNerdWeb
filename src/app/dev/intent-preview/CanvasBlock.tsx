@@ -1,3 +1,4 @@
+import { getReadableCanvasText } from "@/lib/intent/getReadableCanvasText";
 import { formatCanvasDate } from "@/lib/intent/formatCanvasDate";
 import { useState } from "react";
 import { Pin, Maximize2, Minimize2, X } from "lucide-react";
@@ -32,6 +33,7 @@ export default function CanvasBlock({
   const items = block.items
     .map((id) => evidence.find((item) => item.id === id))
     .filter((item): item is CanvasEvidence => !!item)
+    .map((item) => ({ ...item, text: getReadableCanvasText(item.text) }))
     .map((item) =>
       item.title === "Instagram · saved post"
         ? { ...item, title: "Instagram" }
@@ -135,7 +137,7 @@ export default function CanvasBlock({
                   Image unavailable. Open the original post to view it.
                 </p>
               )}
-              {block.kind === "quote" ? (
+              {block.kind === "quote" && item.text ? (
                 <blockquote>
                   “{item.text}”
                   <cite>
@@ -146,7 +148,7 @@ export default function CanvasBlock({
               ) : (
                 <>
                   <h4>{item.title}</h4>
-                  <p>{item.text}</p>
+                  <p>{item.text || "Open the source to read this record."}</p>
                 </>
               )}
               <p className={styles.date}>
@@ -191,7 +193,7 @@ export default function CanvasBlock({
                     </a>
                   )}
                   <p>{item.attribution}</p>
-                  <p>{item.text}</p>
+                  <p>{item.text || "Open the source to read this record."}</p>
                   <p className={styles.caveat}>{item.limitation}</p>
                   <a href={item.url} target="_blank" rel="noreferrer">
                     {item.page
