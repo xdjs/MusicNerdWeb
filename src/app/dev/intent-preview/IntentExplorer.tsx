@@ -358,9 +358,6 @@ export default function IntentExplorer({
           </span>
         </a>
         <div className={styles.headerActions}>
-          <button disabled={busy} onClick={resetExploration}>
-            Reset exploration
-          </button>
           {onBack && (
             <button
               onClick={() => {
@@ -552,6 +549,9 @@ export default function IntentExplorer({
               </p>
               <button disabled={busy || !history.length} onClick={undo}>
                 <ArrowLeft size={14} /> Undo canvas change
+              </button>
+              <button disabled={busy} onClick={resetExploration}>
+                Reset exploration
               </button>
             </div>
             {selected.length > 0 && (
