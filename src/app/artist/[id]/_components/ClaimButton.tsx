@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { unstable_isUnrecognizedActionError } from "next/navigation";
 import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
 import { ShieldCheck, Copy, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { claimArtistProfile } from "@/app/actions/dashboardActions";
+import { requestArtistClaim } from "@/lib/claims/requestArtistClaim";
 import { trackEvent } from "@/lib/analytics/trackEvent";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 
@@ -36,7 +35,6 @@ export default function ClaimButton({
     const { user } = useMusicNerdUser();
     const [modalOpen, setModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [needsReload, setNeedsReload] = useState(false);
     const [referenceCode, setReferenceCode] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const { toast } = useToast();
@@ -58,10 +56,10 @@ export default function ClaimButton({
     }
 
     const handleClaim = async () => {
-        if (needsReload || loading) return;
+        if (loading) return;
         setLoading(true);
         try {
-            const result = await claimArtistProfile(artistId);
+            const result = await requestArtistClaim(artistId);
             if (result.success && result.referenceCode) {
                 trackEvent("claim", { step: "submitted" });
                 setReferenceCode(result.referenceCode);
@@ -81,14 +79,8 @@ export default function ClaimButton({
                     variant: "destructive",
                 });
             }
-        } catch (error) {
+        } catch {
             trackEvent("claim", { step: "error" });
-            if (unstable_isUnrecognizedActionError(error)) {
-                // Next rejected the old action before executing it. Fetch a fresh
-                // document; never replay a claim mutation automatically.
-                setNeedsReload(true);
-                return;
-            }
             toast({
                 title: "Error",
                 description: "Something went wrong. Please try again.",
@@ -144,26 +136,14 @@ export default function ClaimButton({
                                 artist account with this code.
                             </p>
 
-                            {needsReload ? (
-                                <div className="space-y-3">
-                                    <p role="alert" className="text-sm text-muted-foreground">
-                                        This page is out of date. Reload this profile, then submit your claim again.
-                                    </p>
-                                    <Button asChild variant="pink" className="w-full">
-                                        {/* A native link replaces the stale client bundle, unlike router.refresh(). */}
-                                        <a href={`/artist/${encodeURIComponent(artistId)}`}>Reload profile</a>
-                                    </Button>
-                                </div>
-                            ) : (
-                                <Button
-                                    onClick={handleClaim}
-                                    disabled={loading}
-                                    variant="pink"
-                                    className="w-full"
-                                >
-                                    {loading ? "Submitting..." : "Submit Claim"}
-                                </Button>
-                            )}
+                            <Button
+                                onClick={handleClaim}
+                                disabled={loading}
+                                variant="pink"
+                                className="w-full"
+                            >
+                                {loading ? "Submitting..." : "Submit Claim"}
+                            </Button>
                         </div>
                     ) : (
                         <div className="space-y-4">

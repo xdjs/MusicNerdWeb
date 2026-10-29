@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { approveClaimAction, rejectClaimAction, revokeClaimAction } from "@/app/actions/adminClaimActions";
+import { reviewClaim } from "./reviewClaim";
 import type { ClaimRow } from "./claims-columns";
 import styles from "@/components/community/Community.module.css";
 
@@ -65,9 +65,9 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
         }
     }, [toast, router]);
 
-    const handleApprove = useCallback((id: string) => handleAction(() => approveClaimAction(id), id, "approved"), [handleAction]);
-    const handleReject = useCallback((id: string) => handleAction(() => rejectClaimAction(id), id, "rejected"), [handleAction]);
-    const handleRevoke = useCallback((id: string) => handleAction(() => revokeClaimAction(id), id, "revoked"), [handleAction]);
+    const handleApprove = useCallback((id: string) => handleAction(() => reviewClaim(id, "approve"), id, "approved"), [handleAction]);
+    const handleReject = useCallback((id: string) => handleAction(() => reviewClaim(id, "reject"), id, "rejected"), [handleAction]);
+    const handleRevoke = useCallback((id: string) => handleAction(() => reviewClaim(id, "revoke"), id, "revoked"), [handleAction]);
 
     const allColumns = useMemo<ColumnDef<ClaimRow>[]>(() => [
         ...columns,

@@ -33,7 +33,7 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
 | `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Optional profile-discovery web search |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage; service key stays server-side |
-| `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL` | Optional email and UGC notifications |
+| `DISCORD_WEBHOOK_URL` | Optional UGC notifications |
 
 Model ids live in `src/server/lib/ai/models.ts`; per-call temperature, thinking budget and timeout
 are declared in their consumers and listed in [llm.md](llm.md). Other rate-limit settings are
@@ -94,8 +94,8 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   the browser pumps (`useResearchPump`, `LatestRefreshControl`) post to MusicNerdAPI's
   `/api/research/advance`, "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`, and the
   build view's "try again" (`useRestartClaimBuild`) posts MusicNerdAPI's `/api/onboarding/{artistId}/build`,
-  both with the Privy access token. Claim approval starts that build server to server (`startClaimBuild`,
-  research key); the page never sends onboarding chat turns ([research-view.md](research-view.md)). The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
+  both with the Privy access token. Claim approval (MusicNerdAPI's `/api/admin/claims/{id}/approve`)
+  starts that build on the API; the page never sends onboarding chat turns ([research-view.md](research-view.md)). The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
   `NEXT_PUBLIC_VERCEL_ENV`: production → `api.musicnerd.net`; previews, staging and local →
   `musicnerd-api-staging.vercel.app` (MusicNerdAPI's `staging` environment: `main` on the staging
   database). Promote a production-target build: a promoted preview build still calls staging.
