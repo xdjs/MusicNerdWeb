@@ -4,74 +4,17 @@
 // Only tiny re-exports here – all logic lives in src/server/utils/queries/**
 
 import {
-  approveUgcAdmin as approveUgcAdminQuery,
   addArtistData as addArtistDataQuery,
   AddArtistDataResp,
   AddArtistResp,
 } from "@/server/utils/queries/artistQueries";
 
-import {
-  searchForUsersByWallet as searchForUsersByWalletQuery,
-  addUsersToWhitelist as addUsersToWhitelistQuery,
-  removeFromWhitelist as removeFromWhitelistQuery,
-  addUsersToAdmin as addUsersToAdminQuery,
-  removeFromAdmin as removeFromAdminQuery,
-  addUsersToHidden as addUsersToHiddenQuery,
-  removeFromHidden as removeFromHiddenQuery,
-} from "@/server/utils/queries/userQueries";
-
 import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
-import { requireAdmin } from "@/lib/auth-helpers";
 
 // ---- Types re-exported for client files ----
 export type { AddArtistDataResp, AddArtistResp, LeaderboardEntry };
 
-// User-management actions are admin-only until they move to MusicNerdAPI (#1628).
-async function assertAdmin() {
-  const auth = await requireAdmin();
-  if (!auth.authenticated) throw new Error("Admin access required.");
-}
-
 // ---- Wrapped functions (actions) ----
-export async function approveUgcAdminAction(ugcIds: string[]) {
-  return approveUgcAdminQuery(ugcIds);
-}
-
 export async function addArtistDataAction(url: string, artist: Parameters<typeof addArtistDataQuery>[1]) {
   return addArtistDataQuery(url, artist);
 }
-
-export async function searchForUsersByWalletAction(wallet: string) {
-  await assertAdmin();
-  return searchForUsersByWalletQuery(wallet);
-}
-
-export async function addUsersToWhitelistAction(wallets: string[]) {
-  await assertAdmin();
-  return addUsersToWhitelistQuery(wallets);
-}
-
-export async function removeFromWhitelistAction(userIds: string[]) {
-  await assertAdmin();
-  return removeFromWhitelistQuery(userIds);
-}
-
-export async function addUsersToAdminAction(wallets: string[]) {
-  await assertAdmin();
-  return addUsersToAdminQuery(wallets);
-}
-
-export async function removeFromAdminAction(userIds: string[]) {
-  await assertAdmin();
-  return removeFromAdminQuery(userIds);
-}
-
-export async function addUsersToHiddenAction(wallets: string[]) {
-  await assertAdmin();
-  return addUsersToHiddenQuery(wallets);
-}
-
-export async function removeFromHiddenAction(userIds: string[]) {
-  await assertAdmin();
-  return removeFromHiddenQuery(userIds);
-} 
