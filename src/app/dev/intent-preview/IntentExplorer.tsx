@@ -130,21 +130,22 @@ export default function IntentExplorer({
     evidence: typeof canvasSeed;
   }>({
     spec: {
-      blocks: artistSeed.length
-        ? [
-            {
-              id: "starting-work",
-              kind: profile ? "cards" : dutch ? "document" : "cards",
-              title: "A place to begin",
-              items:
-                openingIds ??
-                (knownArtist
-                  ? [dutch ? "dutch-junk" : "out"]
-                  : artistSeed.slice(0, 3).map((item) => item.id)),
-              span: 1,
-            },
-          ]
-        : [],
+      blocks:
+        (openingIds?.length ?? artistSeed.length)
+          ? [
+              {
+                id: "starting-work",
+                kind: profile ? "cards" : dutch ? "document" : "cards",
+                title: "A place to begin",
+                items:
+                  openingIds ??
+                  (knownArtist
+                    ? [dutch ? "dutch-junk" : "out"]
+                    : artistSeed.slice(0, 3).map((item) => item.id)),
+                span: 1,
+              },
+            ]
+          : [],
     },
     revision: 0,
     evidence: artistSeed,
