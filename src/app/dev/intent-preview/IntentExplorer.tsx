@@ -114,6 +114,16 @@ export default function IntentExplorer({
     transport,
     onData: (part) => {
       if (part.type === "data-canvas" && pending.current) {
+        // A cancelled turn may drain after a newer turn has staged its update.
+        // Ignore that packet instead of clearing the current valid candidate.
+        const packet = part.data;
+        if (
+          packet &&
+          typeof packet === "object" &&
+          "turnId" in packet &&
+          packet.turnId !== pending.current.turnId
+        )
+          return;
         try {
           staged.current = applyCanvasUpdate(part.data, pending.current);
         } catch {

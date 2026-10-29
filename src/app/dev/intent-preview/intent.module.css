@@ -991,3 +991,33 @@
   color: var(--muted);
   font-size: 14px;
 }
+
+/* A lone result uses the canvas, rather than leaving an empty second column. */
+.composition > .compositionBlock:only-child {
+  grid-column: 1 / -1;
+}
+@media (min-width: 1001px) {
+  .composition
+    > .compositionBlock:only-child
+    .blockCards
+    > .evidenceCard:only-child
+    .evidenceBody:has(> .evidenceArt) {
+    display: flow-root;
+  }
+  .composition
+    > .compositionBlock:only-child
+    .blockCards
+    > .evidenceCard:only-child
+    .evidenceArt {
+    float: left;
+    width: 45%;
+    margin: 0 24px 18px 0;
+  }
+  .composition
+    > .compositionBlock:only-child
+    .blockCards
+    > .evidenceCard:only-child
+    .source {
+    clear: both;
+  }
+}
