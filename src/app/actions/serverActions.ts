@@ -4,21 +4,10 @@
 // Only tiny re-exports here – all logic lives in src/server/utils/queries/**
 
 import {
-  approveUgcAdmin as approveUgcAdminQuery,
   addArtistData as addArtistDataQuery,
   AddArtistDataResp,
   AddArtistResp,
 } from "@/server/utils/queries/artistQueries";
-
-import {
-  searchForUsersByWallet as searchForUsersByWalletQuery,
-  addUsersToWhitelist as addUsersToWhitelistQuery,
-  removeFromWhitelist as removeFromWhitelistQuery,
-  addUsersToAdmin as addUsersToAdminQuery,
-  removeFromAdmin as removeFromAdminQuery,
-  addUsersToHidden as addUsersToHiddenQuery,
-  removeFromHidden as removeFromHiddenQuery,
-} from "@/server/utils/queries/userQueries";
 
 import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
 
@@ -26,38 +15,6 @@ import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
 export type { AddArtistDataResp, AddArtistResp, LeaderboardEntry };
 
 // ---- Wrapped functions (actions) ----
-export async function approveUgcAdminAction(ugcIds: string[]) {
-  return approveUgcAdminQuery(ugcIds);
-}
-
 export async function addArtistDataAction(url: string, artist: Parameters<typeof addArtistDataQuery>[1]) {
   return addArtistDataQuery(url, artist);
 }
-
-export async function searchForUsersByWalletAction(wallet: string) {
-  return searchForUsersByWalletQuery(wallet);
-}
-
-export async function addUsersToWhitelistAction(wallets: string[]) {
-  return addUsersToWhitelistQuery(wallets);
-}
-
-export async function removeFromWhitelistAction(userIds: string[]) {
-  return removeFromWhitelistQuery(userIds);
-}
-
-export async function addUsersToAdminAction(wallets: string[]) {
-  return addUsersToAdminQuery(wallets);
-}
-
-export async function removeFromAdminAction(userIds: string[]) {
-  return removeFromAdminQuery(userIds);
-}
-
-export async function addUsersToHiddenAction(wallets: string[]) {
-  return addUsersToHiddenQuery(wallets);
-}
-
-export async function removeFromHiddenAction(userIds: string[]) {
-  return removeFromHiddenQuery(userIds);
-} 

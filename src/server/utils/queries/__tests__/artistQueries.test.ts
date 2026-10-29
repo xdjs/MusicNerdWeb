@@ -68,7 +68,7 @@ describe("artistQueries", () => {
     const { ArtistLinkConflictError, setArtistLink } = await import(
       "@/server/utils/artistLinkService"
     );
-    const { addArtistData, approveUgcAdmin, approveUGC } = await import(
+    const { addArtistData, approveUGC } = await import(
       "../artistQueries"
     );
 
@@ -86,7 +86,6 @@ describe("artistQueries", () => {
       ArtistLinkConflictError,
       setArtistLink: setArtistLink as jest.Mock,
       addArtistData,
-      approveUgcAdmin,
       approveUGC,
       mockSet,
       mockWhere,
@@ -270,49 +269,6 @@ describe("artistQueries", () => {
       await expect(
         approveUGC("ugc-1", "artist-1", "instagram", "testuser")
       ).rejects.toThrow("Error approving UGC");
-    });
-  });
-
-  describe("approveUgcAdmin", () => {
-    it("waits for every item and reports per-ID partial failures", async () => {
-      const {
-        approveUgcAdmin,
-        ArtistLinkConflictError,
-        getServerAuthSession,
-        getUserById,
-        setArtistLink,
-        db,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({ user: { id: "admin-1" } });
-      getUserById.mockResolvedValue({ id: "admin-1", isAdmin: true });
-      db.query.ugcresearch.findMany.mockResolvedValue([
-        {
-          id: "ugc-conflict",
-          artistId: "artist-1",
-          siteName: "spotify",
-          siteUsername: "spotify-taken",
-        },
-        {
-          id: "ugc-success",
-          artistId: "artist-2",
-          siteName: "instagram",
-          siteUsername: "available",
-        },
-      ]);
-      setArtistLink
-        .mockRejectedValueOnce(new ArtistLinkConflictError(
-          "That spotify artist ID is already linked to a different artist",
-        ))
-        .mockResolvedValueOnce({ oldValue: null });
-
-      const result = await approveUgcAdmin(["ugc-conflict", "ugc-success"]);
-
-      expect(setArtistLink).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({
-        status: "error",
-        message:
-          "Approved 1 of 2 UGC items. Failed: ugc-conflict (That spotify artist ID is already linked to a different artist)",
-      });
     });
   });
 
