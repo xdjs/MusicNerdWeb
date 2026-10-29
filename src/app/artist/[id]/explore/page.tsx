@@ -14,7 +14,14 @@ const schema = z.object({
   sourceCount: z.number(),
   generationEnabled: z.boolean(),
   introduction: z
-    .object({ text: z.string(), sourceUrl: z.string().url() })
+    .object({
+      text: z.string(),
+      sourceUrl: z.string().url(),
+      kind: z.enum(["profile", "orientation"]).optional(),
+      sources: z
+        .array(z.object({ url: z.string().url(), label: z.string() }))
+        .optional(),
+    })
     .nullable(),
   openingIds: z.array(z.string()).max(3),
   openingQuestion: z.string(),

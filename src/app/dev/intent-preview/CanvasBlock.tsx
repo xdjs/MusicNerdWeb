@@ -1,3 +1,4 @@
+import { formatCanvasDate } from "@/lib/intent/formatCanvasDate";
 import { useState } from "react";
 import { Pin, Maximize2, Minimize2, X } from "lucide-react";
 import type { CanvasEvidence, CanvasSpec } from "@/lib/intent/canvasProtocol";
@@ -144,7 +145,9 @@ export default function CanvasBlock({
                 </>
               )}
               <p className={styles.date}>
-                {item.date ? `${item.date} · ${item.dateKind}` : item.dateKind}
+                {item.date
+                  ? `${formatCanvasDate(item.date)} · ${item.dateKind}`
+                  : item.dateKind}
               </p>
               <div className={styles.evidenceControls}>
                 <button

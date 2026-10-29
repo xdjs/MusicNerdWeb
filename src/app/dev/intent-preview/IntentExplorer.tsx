@@ -63,7 +63,12 @@ export default function IntentExplorer({
   coverage?: string;
   generationEnabled?: boolean;
   embedded?: boolean;
-  introduction?: { text: string; sourceUrl: string } | null;
+  introduction?: {
+    text: string;
+    sourceUrl: string;
+    kind?: "profile" | "orientation";
+    sources?: { url: string; label: string }[];
+  } | null;
   openingIds?: string[];
   openingQuestion?: string;
   openingSuggestions?: { label: string; prompt: string }[];
@@ -724,9 +729,22 @@ export default function IntentExplorer({
                 {introduction ? (
                   <>
                     <p>{introduction.text}</p>
-                    <a href={introduction.sourceUrl}>
-                      From the artist’s Music Nerd profile ↗
-                    </a>
+                    {introduction.kind === "orientation" ? (
+                      introduction.sources?.map((source) => (
+                        <a
+                          key={source.url}
+                          href={source.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {source.label} ↗{" "}
+                        </a>
+                      ))
+                    ) : (
+                      <a href={introduction.sourceUrl}>
+                        From the artist’s Music Nerd profile ↗
+                      </a>
+                    )}
                   </>
                 ) : (
                   <p>
