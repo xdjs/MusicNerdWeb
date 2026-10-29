@@ -11,8 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useSession } from "next-auth/react";
-import { addArtist } from "@/app/actions/addArtist";
+import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
+import { requestAddArtist } from "@/lib/artist/requestAddArtist";
 import { isDevMode } from "@/lib/dev-mode";
 import DuplicateArtistChoice, { type DuplicateArtistCandidate, type SelectedArtistContext } from "@/app/_components/DuplicateArtistChoice";
 import type { MusicPlatform } from "@/server/utils/musicPlatform";
@@ -60,7 +60,7 @@ type PossibleDuplicateResponse = {
     canCreateSeparate?: boolean;
 };
 
-function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProps) {
+function SearchBarInner({ isTopSide = false, appearance = "nav", signedIn }: SearchBarProps & { signedIn: boolean }) {
     const router = useRouter();
     const pathname = usePathname();
     const [openingArtist, setOpeningArtist] = useState<{ id: string; name: string } | null>(null);
@@ -72,7 +72,6 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
     const resultsContainer = useRef(null);
     const search = searchParams.get('search');
     const blurTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-    const { data: session } = useSession();
     const [addingPlatformId, setAddingPlatformId] = useState<string | null>(null);
     const [isCreatingSeparate, setIsCreatingSeparate] = useState(false);
     const [duplicateChoice, setDuplicateChoice] = useState<PossibleDuplicateResponse | null>(null);
@@ -94,7 +93,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         addRequestInFlightRef.current = true;
         try {
             setAddingPlatformId(platformId);
-            const addResult = await addArtist(platformId, platform as 'deezer' | 'spotify');
+            const addResult = await requestAddArtist(platformId, platform as 'deezer' | 'spotify');
             trackAddArtistResult('search', addResult);
 
             if (addRequestGenerationRef.current !== requestGeneration) return;
@@ -143,7 +142,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         addRequestInFlightRef.current = true;
         setIsCreatingSeparate(true);
         try {
-            const addResult = await addArtist(
+            const addResult = await requestAddArtist(
                 response.platformId,
                 response.platform,
                 { forceCreate: true },
@@ -191,7 +190,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
 
     // After login + page reload, complete the pending add-artist flow
     useEffect(() => {
-        if (!session) return;
+        if (!signedIn) return;
         const pendingId = sessionStorage.getItem(PENDING_ADD_KEY);
         if (!pendingId) return;
 
@@ -205,7 +204,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         if (Date.now() - timestamp > PENDING_ADD_TTL_MS) return;
 
         handleAddArtist(pendingId, pendingPlatform);
-    }, [session, handleAddArtist]);
+    }, [signedIn, handleAddArtist]);
 
     useEffect(() => {
         setQuery(search ?? '');
@@ -297,7 +296,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             if (!result.platformId) return;
             trackEvent('add_artist', { surface: 'search', step: 'start' });
 
-            if (!session && !isDevMode) {
+            if (!signedIn && !isDevMode) {
                 try {
                     sessionStorage.setItem(PENDING_ADD_KEY, result.platformId);
                     sessionStorage.setItem(PENDING_ADD_PLATFORM_KEY, result.platform || 'deezer');
@@ -511,9 +510,11 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
 }
 
 export default function SearchBar(props: SearchBarProps) {
+    // Read outside the search-only query client so the account request is shared app-wide.
+    const { user } = useMusicNerdUser();
     return (
         <QueryClientProvider client={queryClient}>
-            <SearchBarInner {...props} />
+            <SearchBarInner {...props} signedIn={!!user} />
         </QueryClientProvider>
     );
 }

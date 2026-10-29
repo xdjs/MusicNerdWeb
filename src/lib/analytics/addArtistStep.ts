@@ -1,4 +1,4 @@
-import type { AddArtistResp } from '@/server/utils/queries/artistQueries';
+import type { AddArtistResp } from '@/lib/artist/addArtistTypes';
 import type { AnalyticsEvents } from '@/lib/analytics/events';
 
 /** How an add resolved, for `add_artist`; null while a possible duplicate waits on the visitor's choice. */

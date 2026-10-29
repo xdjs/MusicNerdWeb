@@ -1,7 +1,5 @@
-import type { getAdminReviewQueue } from '@/server/utils/contributions/getAdminReviewQueue';
 import LoreReviewQueue from './LoreReviewQueue';
-import type { getAllUsers } from "@/server/utils/queries/userQueries";
-import type { getAllMcpKeys } from "@/server/utils/queries/mcpKeyQueries";
+import type { AdminUser, McpKey, ReviewQueue } from "@/lib/admin/adminReadTypes";
 import { whitelistedColumns } from "./columns";
 import ClaimsDataTable from "./claims-data-table";
 import { claimsColumns } from "./claims-columns";
@@ -17,9 +15,9 @@ import surface from "@/app/profile/ProfileConcept.module.css";
 import styles from "@/components/community/Community.module.css";
 
 type Props = {
-  reviews: Awaited<ReturnType<typeof getAdminReviewQueue>>;
-  allUsers: Awaited<ReturnType<typeof getAllUsers>>;
-  mcpKeys: Awaited<ReturnType<typeof getAllMcpKeys>>;
+  reviews: ReviewQueue;
+  allUsers: AdminUser[];
+  mcpKeys: McpKey[];
   allClaims: ClaimRow[];
   initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections";
   activityContent?: React.ReactNode;

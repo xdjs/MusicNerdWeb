@@ -16,9 +16,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRefreshAdmin } from "@/hooks/useRefreshAdmin";
 import { useToast } from "@/hooks/use-toast";
-import { approveClaimAction, rejectClaimAction, revokeClaimAction } from "@/app/actions/adminClaimActions";
+import { reviewClaim } from "./reviewClaim";
 import type { ClaimRow } from "./claims-columns";
 import styles from "@/components/community/Community.module.css";
 
@@ -28,7 +28,7 @@ interface ClaimsDataTableProps {
 }
 
 export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps) {
-    const router = useRouter();
+    const refreshAdmin = useRefreshAdmin();
     const { toast } = useToast();
     const [loadingId, setLoadingId] = useState<string | null>(null);
     const [query,setQuery] = useState("");
@@ -54,7 +54,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                 toast(result.warning
                     ? { title: 'Research needs attention', description: result.warning, duration: 15000 }
                     : { title: `Claim ${label}` });
-                router.refresh();
+                void refreshAdmin();
             } else {
                 toast({ title: "Error", description: result.error, variant: "destructive" });
             }
@@ -63,11 +63,11 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
         } finally {
             setLoadingId(null);
         }
-    }, [toast, router]);
+    }, [toast, refreshAdmin]);
 
-    const handleApprove = useCallback((id: string) => handleAction(() => approveClaimAction(id), id, "approved"), [handleAction]);
-    const handleReject = useCallback((id: string) => handleAction(() => rejectClaimAction(id), id, "rejected"), [handleAction]);
-    const handleRevoke = useCallback((id: string) => handleAction(() => revokeClaimAction(id), id, "revoked"), [handleAction]);
+    const handleApprove = useCallback((id: string) => handleAction(() => reviewClaim(id, "approve"), id, "approved"), [handleAction]);
+    const handleReject = useCallback((id: string) => handleAction(() => reviewClaim(id, "reject"), id, "rejected"), [handleAction]);
+    const handleRevoke = useCallback((id: string) => handleAction(() => reviewClaim(id, "revoke"), id, "revoked"), [handleAction]);
 
     const allColumns = useMemo<ColumnDef<ClaimRow>[]>(() => [
         ...columns,

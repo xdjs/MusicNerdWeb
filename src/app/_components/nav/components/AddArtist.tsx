@@ -25,11 +25,11 @@ import {
     FormLabel,
     FormDescription,
 } from "@/components/ui/form";
-import { addArtist } from "@/app/actions/addArtist";
-import type { AddArtistResp } from "@/app/actions/serverActions";
+import { requestAddArtist } from "@/lib/artist/requestAddArtist";
+import type { AddArtistResp } from "@/lib/artist/addArtistTypes";
 import { cn } from "@/lib/utils";
 import { Plus } from 'lucide-react';
-import { useSession } from "next-auth/react";
+import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
 import DuplicateArtistChoice from "@/app/_components/DuplicateArtistChoice";
 import { parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
@@ -46,7 +46,7 @@ const formSchema = z.object({
 export default function AddArtist() {
     const router = useRouter();
     const pathname = usePathname();
-    const { data: session, status: sessionStatus } = useSession();
+    const { user, status: userStatus } = useMusicNerdUser();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isCreatingSeparate, setIsCreatingSeparate] = useState(false);
@@ -94,7 +94,7 @@ export default function AddArtist() {
         setAddedArtist(null);
 
         try {
-            const response = await addArtist(parsed.id, parsed.platform);
+            const response = await requestAddArtist(parsed.id, parsed.platform);
             trackAddArtistResult("nav", response);
             if (requestGenerationRef.current === requestGeneration) {
                 applyResponse(response);
@@ -122,7 +122,7 @@ export default function AddArtist() {
         requestInFlightRef.current = true;
         setIsCreatingSeparate(true);
         try {
-            const resp = await addArtist(
+            const resp = await requestAddArtist(
                 addArtistStatus.platformId,
                 addArtistStatus.platform,
                 { forceCreate: true },
@@ -162,10 +162,10 @@ export default function AddArtist() {
     }
 
     function handleAddArtistClick() {
-        if (sessionStatus === "loading") return;
+        if (userStatus === "loading") return;
         trackEvent("add_artist", { surface: "nav", step: "start" });
 
-        if (session) {
+        if (user) {
             setIsModalOpen(true);
         } else {
             if (!requestLogin("add_artist") && process.env.NODE_ENV !== "production") {
@@ -181,7 +181,7 @@ export default function AddArtist() {
                 onClick={handleAddArtistClick}
                 aria-label="Add new artist"
                 title="Add new artist"
-                disabled={sessionStatus === "loading"}
+                disabled={userStatus === "loading"}
                 size="lg"
             >
                 <Plus color="white" aria-hidden="true" />

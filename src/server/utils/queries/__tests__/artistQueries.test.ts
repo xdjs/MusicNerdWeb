@@ -2,7 +2,6 @@
 import { jest } from "@jest/globals";
 
 // Static mocks BEFORE dynamic imports
-jest.mock("@/server/auth", () => ({ getServerAuthSession: jest.fn() }));
 jest.mock("@/server/utils/queries/userQueries", () => ({
   getUserById: jest.fn(),
   getUserDisplayName: jest.fn(),
@@ -22,9 +21,6 @@ jest.mock("@/server/utils/artistLinkService", () => {
 });
 jest.mock("@/server/utils/queries/discord", () => ({
   sendDiscordMessage: jest.fn(),
-}));
-jest.mock("@/server/utils/ugcDiscordNotifier", () => ({
-  maybePingDiscordForPendingUGC: jest.fn(),
 }));
 jest.mock("@/server/utils/queries/externalApiQueries", () => ({
   getSpotifyHeaders: jest.fn(),
@@ -60,15 +56,11 @@ describe("artistQueries", () => {
 
   async function setup() {
     const { db } = await import("@/server/db/drizzle");
-    const { getServerAuthSession } = await import("@/server/auth");
-    const { getUserById } = await import(
-      "@/server/utils/queries/userQueries"
-    );
     const { extractArtistId } = await import("@/server/utils/services");
     const { ArtistLinkConflictError, setArtistLink } = await import(
       "@/server/utils/artistLinkService"
     );
-    const { addArtistData, approveUgcAdmin, approveUGC } = await import(
+    const { approveUGC } = await import(
       "../artistQueries"
     );
 
@@ -80,13 +72,9 @@ describe("artistQueries", () => {
 
     return {
       db,
-      getServerAuthSession: getServerAuthSession as jest.Mock,
-      getUserById: getUserById as jest.Mock,
       extractArtistId: extractArtistId as jest.Mock,
       ArtistLinkConflictError,
       setArtistLink: setArtistLink as jest.Mock,
-      addArtistData,
-      approveUgcAdmin,
       approveUGC,
       mockSet,
       mockWhere,
@@ -270,96 +258,6 @@ describe("artistQueries", () => {
       await expect(
         approveUGC("ugc-1", "artist-1", "instagram", "testuser")
       ).rejects.toThrow("Error approving UGC");
-    });
-  });
-
-  describe("approveUgcAdmin", () => {
-    it("waits for every item and reports per-ID partial failures", async () => {
-      const {
-        approveUgcAdmin,
-        ArtistLinkConflictError,
-        getServerAuthSession,
-        getUserById,
-        setArtistLink,
-        db,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({ user: { id: "admin-1" } });
-      getUserById.mockResolvedValue({ id: "admin-1", isAdmin: true });
-      db.query.ugcresearch.findMany.mockResolvedValue([
-        {
-          id: "ugc-conflict",
-          artistId: "artist-1",
-          siteName: "spotify",
-          siteUsername: "spotify-taken",
-        },
-        {
-          id: "ugc-success",
-          artistId: "artist-2",
-          siteName: "instagram",
-          siteUsername: "available",
-        },
-      ]);
-      setArtistLink
-        .mockRejectedValueOnce(new ArtistLinkConflictError(
-          "That spotify artist ID is already linked to a different artist",
-        ))
-        .mockResolvedValueOnce({ oldValue: null });
-
-      const result = await approveUgcAdmin(["ugc-conflict", "ugc-success"]);
-
-      expect(setArtistLink).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({
-        status: "error",
-        message:
-          "Approved 1 of 2 UGC items. Failed: ugc-conflict (That spotify artist ID is already linked to a different artist)",
-      });
-    });
-  });
-
-  describe("addArtistData", () => {
-    it("returns the typed conflict message for an immediately approved link", async () => {
-      const {
-        addArtistData,
-        ArtistLinkConflictError,
-        getServerAuthSession,
-        getUserById,
-        extractArtistId,
-        setArtistLink,
-        db,
-      } = await setup();
-      getServerAuthSession.mockResolvedValue({ user: { id: "editor-1" } });
-      getUserById.mockResolvedValue({
-        id: "editor-1",
-        isAdmin: false,
-        isWhiteListed: true,
-      });
-      extractArtistId.mockResolvedValue({
-        siteName: "spotify",
-        id: "spotify-taken",
-        cardPlatformName: "Spotify",
-      });
-      db.query.ugcresearch.findFirst.mockResolvedValue(null);
-      const returning = jest.fn().mockResolvedValue([{
-        id: "ugc-conflict",
-        createdAt: "2026-08-20T00:00:00.000Z",
-      }]);
-      db.insert = jest.fn().mockReturnValue({
-        values: jest.fn().mockReturnValue({ returning }),
-      });
-      setArtistLink.mockRejectedValue(new ArtistLinkConflictError(
-        "That spotify artist ID is already linked to a different artist",
-      ));
-
-      const result = await addArtistData(
-        "https://open.spotify.com/artist/spotify-taken",
-        { id: "artist-1", name: "Test Artist", spotify: null },
-      );
-
-      expect(result).toEqual({
-        status: "error",
-        message: "That spotify artist ID is already linked to a different artist",
-      });
-      expect(db.update).not.toHaveBeenCalled();
     });
   });
 

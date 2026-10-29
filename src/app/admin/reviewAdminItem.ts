@@ -1,5 +1,5 @@
-import { approveUgcAdminAction } from '@/app/actions/serverActions';
-import { updateSourceStatus } from '@/app/actions/dashboardActions';
+import { approveLinkSuggestion } from '@/lib/admin/approveLinkSuggestion';
+import { reviewLoreSource } from '@/lib/source/reviewLoreSource';
 import type { ReviewItem } from '@/lib/contributions/adminReviewTypes';
 import { requestAdminApi } from '@/lib/admin/requestAdminApi';
 
@@ -15,9 +15,7 @@ export async function reviewAdminItem(item: ReviewItem, action: ReviewAction): P
   }
   if (action !== 'approved' && action !== 'rejected') throw new Error('Invalid approval action');
   if (item.type === 'links' && action !== 'approved') throw new Error('Link rejection is not supported');
-  const result = item.type === 'links'
-    ? await approveUgcAdminAction([item.id])
-    : await updateSourceStatus(item.id, action, 'pending');
-  const success = 'success' in result ? result.success : result.status === 'success';
-  if (!success) throw new Error(('error' in result ? result.error : 'message' in result ? result.message : undefined) || 'Could not review this item.');
+  if (item.type === 'links') return approveLinkSuggestion(item.artistId, item.id);
+  const result = await reviewLoreSource(item.artistId, item.id, action);
+  if (!result.success) throw new Error(result.error || 'Could not review this item.');
 }

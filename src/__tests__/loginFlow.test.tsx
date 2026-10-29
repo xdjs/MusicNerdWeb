@@ -9,14 +9,12 @@ jest.mock('@/app/_components/nav/components/AccountMenuAvatar', () => ({
 let mockPrivyReady = true;
 let mockPrivyAuthenticated = false;
 let mockPrivyUser: any = null;
-let mockSessionData: any = null;
-let mockSessionStatus = 'unauthenticated';
+let mockAccount: any = null;
+let mockAccountStatus = 'unauthenticated';
 let loginCallbacks: { onComplete?: Function } = {};
 
 const mockPrivyLogin = jest.fn();
 const mockPrivyLogout = jest.fn();
-const mockSignIn = jest.fn().mockResolvedValue({ ok: true });
-const mockSignOut = jest.fn().mockResolvedValue({ ok: true });
 
 jest.mock('@privy-io/react-auth', () => ({
     usePrivy: () => ({
@@ -30,13 +28,10 @@ jest.mock('@privy-io/react-auth', () => ({
         return { login: mockPrivyLogin };
     },
     useLogout: () => ({ logout: mockPrivyLogout }),
-    useIdentityToken: () => ({ identityToken: 'mock-identity-token' }),
 }));
 
-jest.mock('next-auth/react', () => ({
-    useSession: () => ({ data: mockSessionData, status: mockSessionStatus, update: jest.fn() }),
-    signIn: (...args: any[]) => mockSignIn(...args),
-    signOut: (...args: any[]) => mockSignOut(...args),
+jest.mock('@/hooks/useMusicNerdUser', () => ({
+    useMusicNerdUser: () => ({ user: mockAccount?.user ?? null, status: mockAccountStatus, isError: false, refetch: jest.fn().mockResolvedValue({}) }),
 }));
 
 jest.mock('@/hooks/use-toast', () => ({
@@ -79,10 +74,6 @@ jest.mock('next/link', () => {
     };
 });
 
-jest.mock('@/server/utils/privyConstants', () => ({
-    TOKEN_PREFIXES: { PRIVY_ID: 'privyid:', ID_TOKEN: 'idtoken:' },
-}));
-
 import PrivyLogin from '@/app/_components/nav/components/PrivyLogin';
 
 describe('Login flow', () => {
@@ -92,8 +83,8 @@ describe('Login flow', () => {
         mockPrivyReady = true;
         mockPrivyAuthenticated = false;
         mockPrivyUser = null;
-        mockSessionData = null;
-        mockSessionStatus = 'unauthenticated';
+        mockAccount = null;
+        mockAccountStatus = 'unauthenticated';
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
             json: () => Promise.resolve({ count: 0 }),
@@ -117,6 +108,7 @@ describe('Login flow', () => {
 
         it('shows a disabled loading button when Privy is not ready', () => {
             mockPrivyReady = false;
+            mockAccountStatus = 'loading'; // useMusicNerdUser is loading until Privy is ready
             render(<PrivyLogin />);
             expect(screen.getByRole('button')).toBeDisabled();
         });
@@ -130,8 +122,8 @@ describe('Login flow', () => {
         });
     });
 
-    describe('Post-login NextAuth handshake', () => {
-        it('calls NextAuth signIn after a fresh Privy login', async () => {
+    describe('Post-login', () => {
+        it('needs no second sign-in after a fresh Privy login', async () => {
             mockPrivyAuthenticated = true;
             mockPrivyUser = { id: 'did:privy:user123' };
             render(<PrivyLogin />);
@@ -142,33 +134,18 @@ describe('Login flow', () => {
                 wasAlreadyAuthenticated: false,
             });
 
-            await waitFor(() => {
-                expect(mockSignIn).toHaveBeenCalledWith('privy', expect.objectContaining({ redirect: false }));
-            });
-        });
-
-        it('skips NextAuth signIn when user was already authenticated in Privy', async () => {
-            mockPrivyAuthenticated = true;
-            render(<PrivyLogin />);
-
-            await loginCallbacks.onComplete?.({
-                user: { id: 'did:privy:user123' },
-                isNewUser: false,
-                wasAlreadyAuthenticated: true,
-            });
-
-            expect(mockSignIn).not.toHaveBeenCalled();
+            expect(mockPrivyLogin).not.toHaveBeenCalled();
+            expect(mockPrivyLogout).not.toHaveBeenCalled();
         });
     });
 
     describe('Authenticated state', () => {
         beforeEach(() => {
             mockPrivyAuthenticated = true;
-            mockSessionData = {
+            mockAccount = {
                 user: { id: 'user-uuid', isAdmin: false, needsLegacyLink: false },
-                expires: '2026-12-31',
             };
-            mockSessionStatus = 'authenticated';
+            mockAccountStatus = 'authenticated';
         });
 
         it('shows the profile avatar (not the login icon)', () => {
@@ -186,19 +163,17 @@ describe('Login flow', () => {
     describe('Logout flow', () => {
         beforeEach(() => {
             mockPrivyAuthenticated = true;
-            mockSessionData = {
+            mockAccount = {
                 user: { id: 'user-uuid', isAdmin: false, needsLegacyLink: false },
-                expires: '2026-12-31',
             };
-            mockSessionStatus = 'authenticated';
+            mockAccountStatus = 'authenticated';
         });
 
-        it('calls NextAuth signOut and Privy logout when Log Out is clicked', async () => {
+        it('logs out of Privy when Log Out is clicked', async () => {
             render(<PrivyLogin />);
             fireEvent.click(screen.getByText('Log Out'));
 
             await waitFor(() => {
-                expect(mockSignOut).toHaveBeenCalledWith({ redirect: false });
                 expect(mockPrivyLogout).toHaveBeenCalled();
             });
         });

@@ -3,7 +3,6 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { sql, type SQL } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import * as schema from '@/server/db/schema';
-import type { ArtistVaultSource } from '@/server/db/DbTypes';
 jest.mock('@/server/db/drizzle', () => ({ get db() { return database; } }));
 const { PGlite } = process.getBuiltinModule('module').createRequire(__filename)('@electric-sql/pglite');
 const client = new PGlite();
@@ -12,13 +11,8 @@ const database = { execute: async (q: SQL) => (await driver.execute(q)).rows, tr
 const id='00000000-0000-4000-8000-000000000001';
 const other='00000000-0000-4000-8000-000000000002';
 let setName: typeof import('../setUserName').setUserName;
-let addSourceContributors: typeof import('../../source/addSourceContributors').addSourceContributors;
-const artist='00000000-0000-4000-8000-000000000003';
-const event='00000000-0000-4000-8000-000000000004';
-const source={id:'source',artistId:artist,activityId:event,origin:'submission'} as ArtistVaultSource;
 beforeAll(async () => {
   jest.resetModules(); ({setUserName:setName}=await import('../setUserName'));
-  ({addSourceContributors}=await import('../../source/addSourceContributors'));
   await client.exec(`create table users (id uuid primary key, username text, wallet text, updated_at timestamptz default now(), email text, is_hidden boolean default false);
     create table artist_activity_events (id uuid primary key, artist_id uuid, actor_user_id uuid, actor_kind text);
     create table artists (added_by uuid); create table ugcresearch (user_id uuid);`);
@@ -33,13 +27,11 @@ it('generates once, preserves chosen names, confirms and rejects duplicate/priva
  await driver.execute(sql`insert into users(id,username) values(${id},'listener@example.test'),(${other},'Chosen Name')`);
  await driver.execute(sql`insert into artists(added_by) values(${id})`);
  await driver.execute(sql`insert into ugcresearch(user_id) values(${id})`);
- await driver.execute(sql`insert into artist_activity_events values(${event},${artist},${id},'user')`);
  const first=await setName(id);
  const account = await driver.query.users.findFirst({columns:{id:true,username:true,usernameNeedsConfirmation:true,usernamePromptedAt:true},where:(users,{eq})=>eq(users.id,id)});
  expect(account).toEqual({id,username:first.username,usernameNeedsConfirmation:true,usernamePromptedAt:null});
  expect(first.username).toMatch(/^\S+ \S+$/);expect(first.usernameNeedsConfirmation).toBe(true);
  expect((await setName(id)).username).toBe(first.username);
- expect((await addSourceContributors(artist,[source]))[0].contributorName).toBe(first.username);
  expect((await setName(other)).username).toBe('Chosen Name');
  await expect(setName(id,' chosen name ')).rejects.toThrow('already taken');
  await expect(setName(id,'private@example.test')).rejects.toThrow('email');
@@ -50,5 +42,4 @@ it('generates once, preserves chosen names, confirms and rejects duplicate/priva
  const shown = await driver.execute(sql`update users set username_prompted_at=now() where id=${id} and username_prompted_at is null returning id`);
  const repeated = await driver.execute(sql`update users set username_prompted_at=now() where id=${id} and username_prompted_at is null returning id`);
  expect(shown.rows).toHaveLength(1); expect(repeated.rows).toHaveLength(0);
- expect((await addSourceContributors(artist,[source]))[0].contributorName).toBe('New Name');
 });

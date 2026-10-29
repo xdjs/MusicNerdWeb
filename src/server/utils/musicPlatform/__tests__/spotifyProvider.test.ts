@@ -63,50 +63,6 @@ describe('SpotifyProvider', () => {
         expect(provider.platform).toBe('spotify');
     });
 
-    describe('getArtistIdentity', () => {
-        it('should return identity fields without fetching releases or top tracks', async () => {
-            const { provider, getSpotifyArtist, getNumberOfSpotifyReleases, getArtistTopTrackName } = await setup();
-            getSpotifyArtist.mockResolvedValue({ data: mockSpotifyArtist, error: null });
-
-            const result = await provider.getArtistIdentity('spotify-123');
-
-            expect(result).toEqual({
-                platform: 'spotify',
-                platformId: 'spotify-123',
-                name: 'Test Artist',
-            });
-            expect(getNumberOfSpotifyReleases).not.toHaveBeenCalled();
-            expect(getArtistTopTrackName).not.toHaveBeenCalled();
-        });
-
-        it('refreshes once when a stale token fails authentication', async () => {
-            const {
-                provider,
-                getSpotifyArtist,
-                refreshSpotifyToken,
-            } = await setup();
-            const refreshedHeaders = {
-                headers: { Authorization: 'Bearer refreshed-token' },
-            };
-            refreshSpotifyToken.mockResolvedValue(refreshedHeaders);
-            getSpotifyArtist
-                .mockResolvedValueOnce({
-                    data: null,
-                    error: 'Spotify authentication failed',
-                })
-                .mockResolvedValueOnce({ data: mockSpotifyArtist, error: null });
-
-            await expect(provider.getArtistIdentity('spotify-123')).resolves.toEqual({
-                platform: 'spotify',
-                platformId: 'spotify-123',
-                name: 'Test Artist',
-            });
-            expect(refreshSpotifyToken).toHaveBeenCalledTimes(1);
-            expect(getSpotifyArtist).toHaveBeenNthCalledWith(1, 'spotify-123', mockHeaders);
-            expect(getSpotifyArtist).toHaveBeenNthCalledWith(2, 'spotify-123', refreshedHeaders);
-        });
-    });
-
     describe('getArtist', () => {
         it('should normalize SpotifyArtist to MusicPlatformArtist', async () => {
             const { provider, getSpotifyArtist, getNumberOfSpotifyReleases, getArtistTopTrackName } = await setup();

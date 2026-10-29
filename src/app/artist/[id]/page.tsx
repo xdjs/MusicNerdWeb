@@ -1,36 +1,28 @@
 import { getPublicArtistAbout } from '@/server/utils/bio/getPublicArtistAbout';
-import DirectoryDiscoveryObserver from "./_components/DirectoryDiscoveryObserver";
 import { publicLinkRevision } from "@/server/utils/directoryDiscovery/publicLinkRevision";
 import { projectUnclaimedProfile } from '@/lib/artist/projectUnclaimedProfile';
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { getHiddenLinkSourceIds } from "@/server/utils/artistLinkReview/getHiddenLinkSourceIds";
 import { getConflictingMusicSourceIds } from "@/server/utils/musicLinks/getConflictingMusicSourceIds";
-import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { customImageUrl } from "@/lib/artist/customImageUrl";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
-import { getServerAuthSession } from "@/server/auth";
-import { getDevSession } from "@/server/utils/dev-auth";
-import { getUserById } from "@/server/utils/queries/userQueries";
 import { getClaimByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { notFound } from "next/navigation";
-import { EditModeProvider } from "@/app/_components/EditModeContext";
 import OutboundClickTracker from "./_components/OutboundClickTracker";
-import ArtistProfileContent from "./_components/ArtistProfileContent";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
+import { Suspense } from "react";
+import ArtistProfileView from "./_components/ArtistProfileView";
+import LatestSection from "./_components/LatestSection";
+import { getListeningLinks } from "@/lib/artist/artistProfileLinks";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 import type { Metadata } from "next";
 import SeoArtistLinks from "./_components/SeoArtistLinks";
 import ArtistJsonLd from "./_components/ArtistJsonLd";
-import OnboardingGate from "./_components/onboarding/OnboardingGate";
-import ProfileTour from "./_components/onboarding/ProfileTour";
-import ApiInterview from "./_components/onboarding/ApiInterview";
-import { fetchOnboardingState } from "@/server/utils/onboarding/fetchOnboardingState";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { isRealBio } from "@/lib/bio/bioConstants";
 import { getProfileLinks } from "@/lib/artist/artistProfileLinks";
 import { getSourceLinks } from "@/lib/musicLinks/getSourceLinks";
-import ProfileTourPreview from "./_components/onboarding/ProfileTourPreview";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
@@ -126,9 +118,6 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const tourPreview = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview')
         && resolvedSearchParams?.tourPreview === "1";
     const addLinkPrefill = getAddLinkPrefill(resolvedSearchParams?.addLink);
-    const session = await getServerAuthSession() ?? await getDevSession();
-    const dbUser = session ? await getUserById(session.user.id) : null;
-    const isAdmin = !!dbUser?.isAdmin;
 
     const artist = await getArtistById(id);
     if (!artist) {
@@ -153,102 +142,51 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
 
     const isClaimed = !!existingClaim && existingClaim.status === "approved";
     const isPending = !!existingClaim && existingClaim.status === "pending";
-    const isClaimedByUser = isClaimed && !!session && existingClaim.userId === session.user.id;
-    const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
-    const canEdit = isClaimedByUser || isAdmin;
     const directoryAbout = isClaimed ? null : await getPublicArtistAbout(id);
+    // The public page. The claimant and admins get the stored About and every
+    // source from MusicNerdAPI on the client (ArtistProfileView).
     const publicProfile = isClaimed ? { artist, sources: approvedSources } : projectUnclaimedProfile(artist, approvedSources, directoryAbout);
 
-    // Private review data must not delay visitors who cannot use it (#1261).
-    const pendingSourcesRaw = canEdit ? await getVaultSourcesByArtistId(id, "pending") : [];
-    // Resolve contributor display names only for authorized reviewers, never visitors.
-    const editorSources = canEdit
-        ? await addSourceContributors(id, [...approvedSources, ...pendingSourcesRaw])
-        : [];
-    const editorApproved = editorSources.slice(0, approvedSources.length);
-    const editorPending = editorSources.slice(approvedSources.length);
-
-    // Onboarding state costs a request to MusicNerdAPI — made ONLY for the
-    // approved claimant (docs/research-view.md). fetchOnboardingState returns null
-    // when the state can't be read (fail CLOSED — spec C1), not just when there's
-    // nothing to show. The gate below renders neither the takeover nor the banner
-    // in that case — never fall back to a default/guessed state here.
-    const onboardingState = isClaimedByUser ? await fetchOnboardingState(id) : null;
-
+    // A new artist's directory is watched for its adder or an admin while it is
+    // unclaimed and less than a day old; ArtistProfileView decides who.
     const createdAt = artist.createdAt ? Date.parse(artist.createdAt) : NaN;
-    const observeDirectory = !!session && (isAdmin || artist.addedBy === session.user.id)
-        && !existingClaim && createdAt <= Date.now() && Date.now() - createdAt < 24 * 60 * 60_000;
+    const watchDirectory = !existingClaim && createdAt <= Date.now() && Date.now() - createdAt < 24 * 60 * 60_000
+        ? publicLinkRevision(artist, artistLinks, approvedSources, blockedMusicSourceIds) : null;
 
     const imageUrl = customImageUrl(artist.customImage) || platformImage || "/default_pfp_pink.png";
-
-    const profile = (
-        <ArtistProfileContent
-            publicAbout={directoryAbout}
-            interviewAction={!tourPreview && isClaimedByUser && onboardingState?.complete
-                ? <ApiInterview key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
-                : null}
-            artist={canEdit ? artist : publicProfile.artist}
-            claimStatusKnown={existingClaim !== undefined}
-            imageUrl={imageUrl}
-            platformImage={platformImage}
-            artistLinks={artistLinks}
-            blockedMusicSourceIds={blockedMusicSourceIds}
-            approvedSources={canEdit ? editorApproved : publicProfile.sources}
-            pendingSources={editorPending}
-            urlMapList={urlMapList}
-            addLinkPrefill={addLinkPrefill}
-            isClaimed={isClaimed}
-            isClaimedByUser={isClaimedByUser}
-            isPending={isPending}
-            isPendingByUser={isPendingByUser}
-            canEdit={canEdit}
-            autoApprove={isAdmin || !!dbUser?.isWhiteListed}
-            researching={!tourPreview && onboardingState?.complete === false}
-        />
-    );
+    const profileLinks = [...getProfileLinks(artist, artistLinks, "links"), ...getProfileLinks(artist, artistLinks, "support")];
+    const publicLinkSources = publicProfile.sources.filter(source => !blockedMusicSourceIds.includes(source.id));
 
     return (
         <>
-            <EditModeProvider canEdit={canEdit}>
-            <AutoRefresh showLoading={false} />
-            {observeDirectory && <DirectoryDiscoveryObserver key={artist.id} artistId={artist.id}
-                initialRevision={publicLinkRevision(artist, artistLinks, approvedSources, blockedMusicSourceIds)} />}
-            <div className="artist-profile w-full max-w-[800px] mx-auto px-4 pt-2 pb-24 space-y-5 sm:pt-5 sm:space-y-6">
-
-                {/* Gated on onboarding being COMPLETE, which is the only state in
-                    which a post-build tour makes sense. Without this, a stale
-                    "pending" flag from an earlier session started the tour while
-                    the build was still running — the artist watched a card say
-                    "we drafted your About" over an About that did not exist yet.
-                    Note this is the INVERSE of the gate on OnboardingGate below:
-                    once complete it stays complete, so unlike that one this
-                    cannot be unmounted out from under the tour. */}
-                {tourPreview ? (
-                    <ProfileTourPreview key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
-                ) : isClaimedByUser && onboardingState?.complete && (
-                    <ProfileTour key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
-                )}
-
-                {/* The artist page. While a fresh claim's onboarding runs, research
-                    paints it in place, section by section (docs/research-view.md). The
-                    gate is rendered for the claimant whatever the state, so a build
-                    that completes during the visit keeps its ready card and new-item
-                    marks; a page that arrives complete renders just the profile. */}
-                {!tourPreview && onboardingState ? (
-                    <OnboardingGate
-                        artistId={artist.id}
-                        state={onboardingState}
-                        researchItems={{
-                            links: [...getProfileLinks(artist, artistLinks, 'links'), ...getProfileLinks(artist, artistLinks, 'support')].map(link => link.siteName),
-                            sources: approvedSources.map(source => source.id),
-                        }}
-                    >
-                        {profile}
-                    </OnboardingGate>
-                ) : profile}
-            </div>
-            <OutboundClickTracker />
-            </EditModeProvider>
+            <ArtistProfileView
+                tourPreview={tourPreview}
+                hasSupportLinks={hasSupportLinks}
+                researchLinks={profileLinks.map(link => link.siteName)}
+                watchDirectory={watchDirectory}
+                content={{
+                    publicAbout: directoryAbout,
+                    artist: publicProfile.artist,
+                    claimStatusKnown: existingClaim !== undefined,
+                    imageUrl,
+                    platformImage,
+                    artistLinks,
+                    blockedMusicSourceIds,
+                    approvedSources: publicProfile.sources,
+                    urlMapList,
+                    addLinkPrefill,
+                    isClaimed,
+                    isPending,
+                    latest: (
+                        <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
+                            <LatestSection artist={publicProfile.artist} imageUrl={imageUrl} sources={publicProfile.sources.map(({ url, title }) => ({ url, title }))} listenLinks={getListeningLinks(artist, artistLinks, publicLinkSources)} />
+                        </Suspense>
+                    ),
+                }}
+            >
+                <AutoRefresh showLoading={false} />
+                <OutboundClickTracker />
+            </ArtistProfileView>
             <SeoArtistLinks artist={artist} />
             <ArtistJsonLd
                 artist={publicProfile.artist}

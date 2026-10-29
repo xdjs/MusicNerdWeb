@@ -7,8 +7,6 @@ Object.defineProperty(process, 'env', {
         ...process.env,
         NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID: 'test_client_id',
         SPOTIFY_WEB_CLIENT_SECRET: 'test_client_secret',
-        NEXTAUTH_SECRET: 'test_secret',
-        NEXTAUTH_URL: 'http://localhost:3000',
         NODE_ENV: 'test'
     }
 });
@@ -21,50 +19,6 @@ jest.mock('next/headers', () => ({
         delete: jest.fn(),
     })),
     headers: jest.fn(),
-}));
-
-// next-auth mock removed - authentication disabled
-
-// Mock auth options
-jest.mock('@/server/auth', () => ({
-    authOptions: {
-        providers: [
-            {
-                id: 'credentials',
-                name: 'Credentials',
-                credentials: {
-                    message: { label: 'Message', type: 'text' },
-                    signature: { label: 'Signature', type: 'text' }
-                },
-                authorize: jest.fn()
-            }
-        ],
-        session: {
-            strategy: 'jwt',
-            maxAge: 30 * 24 * 60 * 60,
-        },
-        cookies: {
-            sessionToken: {
-                name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
-                options: {
-                    httpOnly: true,
-                    sameSite: 'lax',
-                    path: '/',
-                    secure: process.env.NODE_ENV === 'production'
-                },
-            },
-        },
-        callbacks: {
-            jwt: jest.fn(),
-            session: jest.fn(),
-            redirect: jest.fn((params) => {
-                const { url, baseUrl } = params;
-                if (url.startsWith('/')) return url;
-                if (new URL(url).origin === baseUrl) return url;
-                return baseUrl;
-            }),
-        },
-    }
 }));
 
 // Reset all mocks before each test

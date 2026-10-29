@@ -23,8 +23,9 @@ function LinkItem({ link, artistId, canEdit, editing, saving }: {
     </div>;
 }
 
-export default function SortableArtistLinks({ artistId, section, links, supplementalLinks = [], canEdit }: { artistId: string; section: LinkSection; links: ProfileLink[]; supplementalLinks?: (ProfileLink & {sourceId?: string; kind?: string})[]; canEdit: boolean }) {
-    const { isEditing, suspendedEditMode, isSaving = false, registerSave } = useContext(EditModeContext);
+export default function SortableArtistLinks({ artistId, section, links, supplementalLinks = [], canEdit: canEditProp }: { artistId: string; section: LinkSection; links: ProfileLink[]; supplementalLinks?: (ProfileLink & {sourceId?: string; kind?: string})[]; /** Defaults to the page's edit permission. */ canEdit?: boolean }) {
+    const { isEditing, suspendedEditMode, isSaving = false, registerSave, canEdit: pageCanEdit } = useContext(EditModeContext);
+    const canEdit = canEditProp ?? pageCanEdit;
     const [draftOrder, setDraftOrder] = useState<string[] | null>(null);
     const sourceOrder = JSON.stringify(links.map(link => link.siteName));
     const [previousSourceOrder, setPreviousSourceOrder] = useState(sourceOrder);

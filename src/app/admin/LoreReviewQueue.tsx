@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MusicNerdSelect from '@/components/ui/MusicNerdSelect';
-import type { getAdminReviewQueue } from '@/server/utils/contributions/getAdminReviewQueue';
+import type { ReviewQueue } from '@/lib/admin/adminReadTypes';
+import { useRefreshAdmin } from '@/hooks/useRefreshAdmin';
 import type { ReviewItem } from '@/lib/contributions/adminReviewTypes';
 import LoreReviewRow from './LoreReviewRow';
 import { reviewAdminItem, type ReviewAction } from './reviewAdminItem';
 
 /** All contribution types share one ordered, searchable list and one details surface. */
-export default function LoreReviewQueue({data}: {data:Awaited<ReturnType<typeof getAdminReviewQueue>>}) {
+export default function LoreReviewQueue({data}: {data:ReviewQueue}) {
   const router=useRouter();
+  const refreshAdmin=useRefreshAdmin();
   const [pending,startTransition]=useTransition();
   const [selected,setSelected]=useState<Set<string>>(()=>new Set());
   const [editing,setEditing]=useState<string|null>(null);
@@ -44,7 +46,7 @@ export default function LoreReviewQueue({data}: {data:Awaited<ReturnType<typeof 
     }
     setMessage(`${succeeded} of ${targets.length} items reviewed.${succeeded<targets.length?' Failed items remain selected for retry.':''}`);
     inFlight.current=false;setBusy(false);
-    startTransition(()=>router.refresh());
+    startTransition(()=>{void refreshAdmin();});
   }
   const counts={...data.counts};
   hidden.forEach(item=>{counts[item.type]=Math.max(0,counts[item.type]-1);});
@@ -78,7 +80,7 @@ export default function LoreReviewQueue({data}: {data:Awaited<ReturnType<typeof 
         setReviewed(previous=>new Set(previous).add(key(item)));
         setSelected(previous=>{const next=new Set(previous);next.delete(key(item));return next;});
         setMessage('About updated and report resolved.');
-        startTransition(()=>router.refresh());
+        startTransition(()=>{void refreshAdmin();});
       }}/>)}
       {!items.length && <li className="p-8 text-center text-sm text-muted-foreground">No pending items match these filters.</li>}
     </ul>

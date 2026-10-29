@@ -1,7 +1,6 @@
 'use client';
 
 import { useLinkAccount } from '@privy-io/react-auth';
-import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 import {
   Dialog,
@@ -13,8 +12,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { dismissLegacyLink } from '@/app/actions/dismissLegacyLink';
 import { requestLinkWallet } from '@/lib/account/requestLinkWallet';
+import { requestUserApi } from '@/lib/user/requestUserApi';
+import { trackEvent } from '@/lib/analytics/trackEvent';
+import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 
 interface LegacyAccountModalProps {
   open: boolean;
@@ -22,7 +23,7 @@ interface LegacyAccountModalProps {
 }
 
 export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
-  const { update: updateSession } = useSession();
+  const { user, refetch } = useMusicNerdUser();
   const { toast } = useToast();
   const [isLinking, setIsLinking] = useState(false);
   const [isDismissing, setIsDismissing] = useState(false);
@@ -43,7 +44,7 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
               title: result.merged ? 'Account Merged!' : 'Wallet Linked!',
               description: result.message,
             });
-            await updateSession();
+            await refetch();
             onClose();
           } else {
             setError(result.error || 'Failed to link wallet');
@@ -86,15 +87,17 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
     setIsDismissing(true);
     setError(null);
     try {
-      const result = await dismissLegacyLink();
-      if (result.success) {
-        await updateSession();
+      if (!user) throw new Error('Not signed in');
+      const response = await requestUserApi(`/api/user/${user.id}/dismiss-legacy-link`, { method: 'POST' });
+      if (response.ok) {
+        trackEvent('profile_edit', { action: 'dismiss', target: null });
+        await refetch();
         onClose();
       } else {
-        setError(result.error || 'Failed to dismiss');
+        setError('Failed to dismiss legacy link prompt');
         toast({
           title: 'Error',
-          description: result.error || 'Failed to dismiss',
+          description: 'Failed to dismiss legacy link prompt',
           variant: 'destructive',
         });
       }
