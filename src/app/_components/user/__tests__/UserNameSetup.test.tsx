@@ -1,6 +1,5 @@
 import {render,screen,fireEvent,waitFor} from '@testing-library/react';
 import UserNameSetup from '../UserNameSetup';
-import {useSession} from 'next-auth/react';
 const refetch=jest.fn().mockResolvedValue({});
 const refresh=jest.fn();
 let user: any;
@@ -35,24 +34,6 @@ it.each([false,true])('does not auto-prompt a confirmed or previously prompted a
  await new Promise(resolve=>setTimeout(resolve,0));
  expect(global.fetch).not.toHaveBeenCalled();
  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-});
-it('waits for the NextAuth sign-in, whose reload would lose the prompt',async()=>{
- (useSession as jest.Mock).mockReturnValueOnce({data:null,status:'unauthenticated',update:jest.fn()});
- global.fetch=jest.fn();
- render(<UserNameSetup/>);
- await new Promise(resolve=>setTimeout(resolve,0));
- expect(global.fetch).not.toHaveBeenCalled();
-});
-it('waits for the next page load when NextAuth signs in after this one started',async()=>{
- const session=useSession as jest.Mock;
- session.mockReturnValue({data:null,status:'unauthenticated',update:jest.fn()});
- global.fetch=jest.fn();
- const {rerender}=render(<UserNameSetup/>);
- session.mockReturnValue({data:{},status:'authenticated',update:jest.fn()});
- rerender(<UserNameSetup/>);
- await new Promise(resolve=>setTimeout(resolve,0));
- expect(global.fetch).not.toHaveBeenCalled();
- session.mockReturnValue({data:{},status:'authenticated',update:jest.fn()});
 });
 it('never loads account setup while logged out',()=>{user=null;global.fetch=jest.fn();render(<UserNameSetup/>);expect(global.fetch).not.toHaveBeenCalled();});
 it('shows the API error when the name is rejected',async()=>{

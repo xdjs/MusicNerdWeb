@@ -57,27 +57,12 @@ describe('verifyPrivyToken', () => {
     });
   });
 
-  it('handles identity token prefix (idtoken:)', async () => {
-    mockGetUser.mockResolvedValue(mockPrivyUser);
+  it('verifies a prefixed string as an ordinary access token', async () => {
+    mockVerifyAuthToken.mockRejectedValue(new Error('Invalid token'));
 
-    const result = await verifyPrivyToken('idtoken:my-identity-token');
-
-    expect(mockVerifyAuthToken).not.toHaveBeenCalled();
-    expect(mockGetUser).toHaveBeenCalledWith({ idToken: 'my-identity-token' });
-    expect(result).not.toBeNull();
-    expect(result?.userId).toBe('did:privy:user123');
-  });
-
-  describe('direct Privy ID prefix (privyid:)', () => {
-    // In the test environment, isDev is false (NODE_ENV=test),
-    // so direct Privy ID tokens are rejected (same as production behavior)
-    it('rejects direct Privy ID when not in development', async () => {
-      const result = await verifyPrivyToken('privyid:did:privy:user123');
-
-      expect(result).toBeNull();
-      expect(mockGetUser).not.toHaveBeenCalled();
-      expect(mockVerifyAuthToken).not.toHaveBeenCalled();
-    });
+    expect(await verifyPrivyToken('idtoken:my-identity-token')).toBeNull();
+    expect(mockVerifyAuthToken).toHaveBeenCalledWith('idtoken:my-identity-token');
+    expect(mockGetUser).not.toHaveBeenCalled();
   });
 
   it('returns null when token verification throws', async () => {
@@ -94,13 +79,6 @@ describe('verifyPrivyToken', () => {
 
     const result = await verifyPrivyToken('valid-token');
 
-    expect(result).toBeNull();
-  });
-
-  it('returns null when getUser throws for identity token', async () => {
-    mockGetUser.mockRejectedValue(new Error('Not found'));
-
-    const result = await verifyPrivyToken('idtoken:some-token');
     expect(result).toBeNull();
   });
 

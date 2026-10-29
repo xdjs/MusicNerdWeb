@@ -1,16 +1,12 @@
 'use client';
 
-import { usePrivy, useLogin, useLogout, useIdentityToken, getIdentityToken } from '@privy-io/react-auth';
-import { getSession, signIn, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { resumeCorrectionSession } from '@/lib/bio/resumeCorrectionSession';
+import { usePrivy, useLogin, useLogout } from '@privy-io/react-auth';
 import { requestAdminApi } from '@/lib/admin/requestAdminApi';
-import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
+import { useEffect, useState, useCallback, forwardRef } from 'react';
 import { trackEvent } from '@/lib/analytics/trackEvent';
 import { requestContributions } from '@/lib/contributions/requestContributions';
 import { requestUserApi } from '@/lib/user/requestUserApi';
-import { markLoginCompleted } from '@/lib/analytics/markLoginCompleted';
-import { takeCompletedLogin } from '@/lib/analytics/takeCompletedLogin';
+import { takeLoginTrigger } from '@/lib/analytics/takeLoginTrigger';
 import { rememberLoginTrigger } from '@/lib/analytics/rememberLoginTrigger';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,7 +23,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/app/_components/ThemeProvider';
 import AccountMenuAvatar from './AccountMenuAvatar';
 import { LegacyAccountModal } from './LegacyAccountModal';
-import { TOKEN_PREFIXES } from '@/server/utils/privyConstants';
 import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 
 interface PrivyLoginProps {
@@ -40,16 +35,10 @@ const accountMenuClass = "profile-account-panel w-72 max-w-[calc(100vw-2rem)] ma
 const isDev = process.env.NODE_ENV === 'development';
 const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
 
-// Retry configuration from environment variables
-const maxRetries = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_MAX_RETRIES || '5', 10);
-const retryDelay = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_RETRY_DELAY_MS || '500', 10);
-
 const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
   ({ buttonStyles = '' }, ref) => {
-    const { ready, authenticated, user: privyUser, getAccessToken } = usePrivy();
-    const { identityToken } = useIdentityToken();
-    const { user: account, status, refetch: refetchAccount } = useMusicNerdUser();
-    const router = useRouter();
+    const { authenticated } = usePrivy();
+    const { user: account, status } = useMusicNerdUser();
     const { toast } = useToast();
     const { theme, setTheme } = useTheme();
     const [showLegacyModal, setShowLegacyModal] = useState(false);
@@ -57,13 +46,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [ugcCount, setUgcCount] = useState<number>(0);
     const [hasNewUGC, setHasNewUGC] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
-    const [pendingNextAuthLogin, setPendingNextAuthLogin] = useState(false);
     const [hasDashboardClaim, setHasDashboardClaim] = useState(false);
     const [claimedArtistId, setClaimedArtistId] = useState<string | null>(null);
-    const reloadingRef = useRef(false);
-    // Privy tells us once, in onComplete; the `login` event is sent after the reload.
-    const isNewUserRef = useRef(false);
-
     // Check for approved claim via API (replaces unreliable localStorage check)
     const accountId = account?.id;
     useEffect(() => {
@@ -86,190 +70,18 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       return () => controller.abort();
     }, [accountId]);
 
+    // Privy is the session: the account and every API call follow its token.
     const { login } = useLogin({
-      onComplete: async (params) => {
-        const { user, isNewUser, wasAlreadyAuthenticated } = params;
-        isNewUserRef.current = Boolean(isNewUser);
+      onComplete: ({ user, isNewUser, wasAlreadyAuthenticated }) => {
         if (isDev) {
-          console.log('[PrivyLogin] onComplete called:', {
-            userId: user?.id,
-            isNewUser,
-            wasAlreadyAuthenticated,
-            currentAuthenticated: authenticated,
-            currentReady: ready,
-          });
+          console.log('[PrivyLogin] onComplete called:', { userId: user?.id, isNewUser, wasAlreadyAuthenticated });
         }
-        // If Privy says already authenticated, only re-trigger NextAuth
-        // if NextAuth is out of sync (split state from a previous failed update).
-        if (wasAlreadyAuthenticated) {
-          if (!(await getSession())) {
-            if (isDev) {
-              console.log('[PrivyLogin] wasAlreadyAuthenticated but NextAuth unauthenticated — re-triggering login');
-            }
-            setIsLoggingIn(true);
-            setPendingNextAuthLogin(true);
-          }
-          return;
-        }
-        // Set flag to trigger NextAuth login once Privy state is ready
-        setIsLoggingIn(true);
-        setPendingNextAuthLogin(true);
+        if (!wasAlreadyAuthenticated) trackEvent('login', { trigger: takeLoginTrigger(), new: Boolean(isNewUser) });
       },
       onError: (error) => {
         console.error('[PrivyLogin] Privy login error:', error);
-        setIsLoggingIn(false);
-        setPendingNextAuthLogin(false);
       },
     });
-
-    // The page reloads after signIn, so the `login` event is sent from the next mount.
-    useEffect(() => {
-      const completed = takeCompletedLogin();
-      if (completed) trackEvent('login', completed);
-    }, []);
-
-    // Handle NextAuth login after Privy authentication is complete
-    useEffect(() => {
-      const completeLogin = async () => {
-        if (isDev) {
-          console.log('[PrivyLogin] completeLogin check:', {
-            pendingNextAuthLogin,
-            authenticated,
-            ready,
-            hasPrivyUser: !!privyUser,
-            privyUserId: privyUser?.id,
-          });
-        }
-
-        if (!pendingNextAuthLogin || !authenticated || !ready) {
-          return;
-        }
-
-        try {
-          // Retry logic for getAccessToken - it may return null initially due to timing
-          let token: string | null = null;
-
-          for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            const authToken = await getAccessToken();
-            if (isDev) {
-              console.log('[PrivyLogin] getAccessToken result:', {
-                attempt,
-                hasToken: !!authToken,
-                tokenLength: typeof authToken === 'string' ? authToken.length : 'not a string',
-              });
-            }
-
-            // Handle case where getAccessToken might return an object with token property
-            token = typeof authToken === 'string' ? authToken : (authToken as any)?.token || (authToken as any)?.accessToken || null;
-
-            if (token) {
-              break;
-            }
-
-            // Fallback: try identity token (available even when access token isn't)
-            try {
-              const idToken = await getIdentityToken();
-              if (idToken) {
-                token = `${TOKEN_PREFIXES.ID_TOKEN}${idToken}`;
-                if (isDev) {
-                  console.log('[PrivyLogin] Identity token obtained on attempt', attempt);
-                }
-                break;
-              }
-            } catch (idTokenError) {
-              if (isDev) {
-                console.log('[PrivyLogin] getIdentityToken failed:', idTokenError);
-              }
-            }
-
-            if (attempt < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, retryDelay));
-            }
-          }
-
-          if (!token) {
-            // Final fallback: use Privy user ID directly (for test users that don't get tokens)
-            // This path is intentionally blocked in production — verifyPrivyToken returns null
-            // for privyid: prefixed tokens in production environments.
-            if (process.env.NODE_ENV !== 'production' && privyUser?.id) {
-              if (isDev) {
-                console.log('[PrivyLogin] Using direct Privy ID fallback:', privyUser.id);
-              }
-              token = `${TOKEN_PREFIXES.PRIVY_ID}${privyUser.id}`;
-            } else {
-              console.error('[PrivyLogin] Failed to get auth token after all retries');
-              toast({
-                title: 'Login Error',
-                description: process.env.NODE_ENV === 'production'
-                  ? 'Authentication temporarily unavailable, please refresh the page.'
-                  : 'Failed to get authentication token. Please try again.',
-                variant: 'destructive',
-              });
-              return;
-            }
-          }
-
-          // MusicNerdAPI creates the account on first sight; let it finish before
-          // NextAuth looks the account up, so the two never insert it at once.
-          await refetchAccount({ cancelRefetch: false });
-
-          // Sign in with NextAuth using the Privy provider
-          const result = await signIn('privy', {
-            authToken: token,
-            redirect: false,
-          });
-
-          if (result?.error) {
-            console.error('[PrivyLogin] NextAuth sign in failed:', result.error);
-            toast({
-              title: 'Login Error',
-              description: 'Failed to complete login. Please try again.',
-              variant: 'destructive',
-            });
-          } else {
-            if (await resumeCorrectionSession(window.location.pathname, () => getSession({ broadcast: false }))) {
-              markLoginCompleted(isNewUserRef.current);
-              const completed = takeCompletedLogin();
-              if (completed) trackEvent('login', completed);
-              router.refresh();
-              return;
-            }
-            // Reload so server-rendered pages read the new NextAuth cookie.
-            reloadingRef.current = true;
-            markLoginCompleted(isNewUserRef.current);
-            window.location.reload();
-          }
-        } catch (error) {
-          console.error('[PrivyLogin] Login error:', error);
-          toast({
-            title: 'Login Error',
-            description: 'An unexpected error occurred. Please try again.',
-            variant: 'destructive',
-          });
-        } finally {
-          if (!reloadingRef.current) {
-            setIsLoggingIn(false);
-            setPendingNextAuthLogin(false);
-          }
-        }
-      };
-
-      completeLogin();
-    }, [pendingNextAuthLogin, authenticated, ready, getAccessToken, toast, privyUser, refetchAccount]);
-
-    // Server-rendered pages still read the NextAuth session until #1628 deletes it,
-    // while the nav reads the account from MusicNerdAPI. A Privy sign-in can outlive
-    // the NextAuth cookie, so restore the cookie once per mount when it is missing.
-    const nextAuthCheckedRef = useRef(false);
-    useEffect(() => {
-      if (!ready || !authenticated || nextAuthCheckedRef.current) return;
-      nextAuthCheckedRef.current = true;
-      void getSession().then(existing => {
-        if (existing) return;
-        setIsLoggingIn(true);
-        setPendingNextAuthLogin(true);
-      });
-    }, [ready, authenticated]);
 
     const { logout: privyLogout } = useLogout({
       onSuccess: () => {
@@ -279,8 +91,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       },
     });
 
-    // Handle login click — if Privy is already authenticated but NextAuth isn't,
-    // we have a stale/split session. Log out of Privy first, then start fresh.
+    // Handle login click — if Privy is signed in but the account can't be read,
+    // the Privy session is stale. Log out of Privy first, then start fresh.
     const handleLogin = useCallback(async () => {
       if (authenticated && status === 'unauthenticated') {
         if (isDev) {
@@ -373,8 +185,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const handleLogout = async () => {
       try {
         sessionStorage.removeItem(LEGACY_MODAL_SHOWN_KEY);
-        await signOut({ redirect: false });
         await privyLogout();
+        // Start the signed-out page clean, without the previous account's reads.
         window.location.reload();
       } catch (error) {
         console.error('[PrivyLogin] Logout error:', error);
@@ -394,7 +206,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     );
 
     // Loading state
-    if (!ready || isLoggingIn) {
+    if (status === 'loading' || isLoggingIn) {
       return (
         <Button
           className="button-pink bg-highlightpink animate-pulse w-12 h-12 px-0"

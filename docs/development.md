@@ -27,7 +27,6 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | --- | --- |
 | `SUPABASE_DB_CONNECTION` | Dev Postgres connection as `mnweb`; verify project and role before use |
 | `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID`, `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET` | Existing catalog credentials; the public secret name is known debt, not a pattern to copy |
-| `NEXTAUTH_URL`, `NEXTAUTH_SECRET` | Session configuration; local URL is HTTPS when using `npm run dev` |
 | `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET` | Real Privy login |
 | `AI_GATEWAY_API_KEY` | Every model call (Ask, About, research, interview, onboarding, fun facts) through Vercel AI Gateway; see [llm.md](llm.md). Locally, the OIDC token from `vercel env pull` also works |
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
@@ -69,8 +68,8 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   The combined search route then applies its existing external-result deduplication.
   This compatibility read changes no stored names, provider identities or artist records;
   the existing indexes and fuzzy fallback remain in use. Regression: issue #1256.
-- **Auth:** `src/server/auth.ts` uses a Privy CredentialsProvider and NextAuth JWT sessions.
-  `src/server/utils/privy.ts` verifies tokens. Privy login UI lives under
+- **Auth:** Privy only. Clients send the Privy access token to MusicNerdAPI, which resolves the
+  account; `src/server/utils/privy.ts` verifies it for the one remaining server action. Privy login UI lives under
   `src/app/_components/nav/components/`. Legacy wallets are linked by MusicNerdAPI's `POST /api/auth/link-wallet`
   (`src/lib/account/requestLinkWallet.ts`), which runs `mergeAccounts`;
   inspect account-owned data whenever changing that path.

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { searchWebForSources } from "@/app/actions/dashboardActions";
+import { getAccessToken } from "@privy-io/react-auth";
 import { requestArtistSources } from "@/lib/source/requestArtistSources";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
@@ -225,7 +226,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   async function handleWebSearch() {
     setSearching(true);
     try {
-      const res = await searchWebForSources(artistId);
+      const res = await searchWebForSources(artistId, await getAccessToken());
       if (res.success) {
         // Derive both the count shown and the list update from the same array, so the
         // toast can never claim "Found N" while nothing actually renders.

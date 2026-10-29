@@ -5,10 +5,6 @@ jest.mock('@/server/utils/bio/getPublicArtistAbout', () => ({ getPublicArtistAbo
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 
-jest.mock('@/server/auth', () => ({
-    getServerAuthSession: jest.fn(),
-}));
-
 jest.mock('@/server/utils/queries/externalApiQueries', () => ({
     getSpotifyHeaders: jest.fn(),
     getSpotifyArtist: jest.fn(),
@@ -86,7 +82,6 @@ jest.mock('@/server/utils/queries/dashboardQueries', () => ({
 
 import AddArtistPage from '@/app/add-artist/page';
 import ArtistProfile from '@/app/artist/[id]/page';
-import { getServerAuthSession } from '@/server/auth';
 import { getArtistById, getAllLinks } from '@/server/utils/queries/artistQueries';
 import { spotifyProvider, musicPlatformData } from '@/server/utils/musicPlatform';
 import { useArtistViewer } from '@/hooks/useArtistViewer';
@@ -114,12 +109,11 @@ describe('Protected routes', () => {
             });
         });
 
-        it('renders the form without reading a server session', async () => {
+        it('renders the form on the server without an account', async () => {
             const jsx = await AddArtistPage({ searchParams: Promise.resolve({ spotify: 'some-id' }) });
             render(jsx as React.ReactElement);
             expect(screen.getByTestId('add-artist-content')).toBeInTheDocument();
             expect(mockRedirect).not.toHaveBeenCalled();
-            expect(getServerAuthSession).not.toHaveBeenCalled();
         });
 
         it('shows an error page (not a redirect) when no platform param is present', async () => {
@@ -142,12 +136,11 @@ describe('Protected routes', () => {
             (getAllLinks as jest.Mock).mockResolvedValue([]);
         });
 
-        it('is accessible without authentication, and reads no server session', async () => {
+        it('is accessible without authentication', async () => {
             const jsx = await ArtistProfile({ params: Promise.resolve({ id: 'artist-uuid' }) });
             render(jsx as React.ReactElement);
             expect(screen.getByText('Test Artist')).toBeInTheDocument();
             expect(mockRedirect).not.toHaveBeenCalled();
-            expect(getServerAuthSession).not.toHaveBeenCalled();
         });
 
         it('shows edit controls only when admin', async () => {

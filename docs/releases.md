@@ -54,7 +54,7 @@ Git is part of the transition; merging the workflow alone does not establish a w
   `vercel.json` disables Git auto-deployment only for main. Keep normal feature previews.
 - Custom Vercel environment `staging`: no branch matcher; attach only `staging.musicnerd.net` after
   the initial known-SHA validation. Import Preview variables, then verify DB/storage point to the development
-  resources and auth uses the test app/callbacks. Configure its `NEXTAUTH_URL` for staging.
+  resources and auth uses the test app/callbacks.
   Inspect credentials privately; record only pass/fail and configuration names in public docs.
   Shared provider keys are not proof of isolated databases/auth. No production DB writes.
 - Keep Vercel system environment variables enabled and the Build Command unset or

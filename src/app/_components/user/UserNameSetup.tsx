@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import UserNamePrompt from './UserNamePrompt';
 import { requestUserApi } from '@/lib/user/requestUserApi';
 import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
@@ -12,12 +11,7 @@ export default function UserNameSetup() {
   const currentId = useRef(id); currentId.current = id;
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  // A NextAuth sign-in during this page load ends in PrivyLogin's reload, which would close the
-  // prompt after it is recorded as shown; only prompt when the page loaded signed in.
-  const { status: sessionStatus } = useSession();
-  const loadedStatus = useRef(sessionStatus);
-  if (loadedStatus.current === 'loading') loadedStatus.current = sessionStatus;
-  const needsPrompt = !!user && user.usernameNeedsConfirmation && !user.usernamePromptedAt && loadedStatus.current === 'authenticated';
+  const needsPrompt = !!user && user.usernameNeedsConfirmation && !user.usernamePromptedAt;
   useEffect(() => {
     setOpen(false);
     if (!id || !needsPrompt) return;

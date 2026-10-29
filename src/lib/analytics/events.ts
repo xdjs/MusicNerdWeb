@@ -26,6 +26,5 @@ export type AnalyticsEventName = keyof AnalyticsEvents;
 export const LOGIN_TRIGGERS = ['nav', 'search_add', 'add_link', 'claim', 'add_artist', 'dashboard', 'please_login'] as const;
 export type LoginTrigger = (typeof LOGIN_TRIGGERS)[number];
 
-/** sessionStorage keys carrying the login trigger and outcome across the post-login reload. */
+/** sessionStorage key carrying the surface that asked for the login. */
 export const LOGIN_TRIGGER_KEY = 'mn-login-trigger';
-export const LOGIN_COMPLETED_KEY = 'mn-login-completed';

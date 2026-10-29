@@ -1,11 +1,11 @@
 "use server"
 
-import { getServerAuthSession } from "@/server/auth";
-import { getDevSession } from "@/server/utils/dev-auth";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { canEditArtist } from "@/server/utils/artistEditAuth";
+import { verifyPrivyToken } from "@/server/utils/privy";
+import { getUserByPrivyId } from "@/server/utils/queries/userQueries";
 
 /** Authorize editing a specific artist: admins may edit any, owners only their claimed artist. */
 async function verifyArtistEditable(userId: string, artistId: string): Promise<{ ok: true; claimId: string | null } | { ok: false; error: string }> {
@@ -13,15 +13,20 @@ async function verifyArtistEditable(userId: string, artistId: string): Promise<{
     return (await canEditArtist(userId, artistId)) ? { ok: true, claimId } : { ok: false, error: "Not authorized for this artist" };
 }
 
-export async function searchWebForSources(artistId: string): Promise<{ success: boolean; count?: number; sources?: ArtistVaultSource[]; error?: string }> {
-    const session = await getServerAuthSession() ?? await getDevSession();
-    if (!session) return { success: false, error: "Not authenticated" };
+/**
+ * Search the web for new Lore sources for an artist. The caller is the holder
+ * of the Privy access token; it moves to MusicNerdAPI with xdjs/MusicNerdWeb#1589.
+ */
+export async function searchWebForSources(artistId: string, accessToken: string | null): Promise<{ success: boolean; count?: number; sources?: ArtistVaultSource[]; error?: string }> {
+    const privyUser = accessToken ? await verifyPrivyToken(accessToken) : null;
+    const user = privyUser ? await getUserByPrivyId(privyUser.userId) : null;
+    if (!user) return { success: false, error: "Not authenticated" };
 
     try {
-        const auth = await verifyArtistEditable(session.user.id, artistId);
+        const auth = await verifyArtistEditable(user.id, artistId);
         if (!auth.ok) return { success: false, error: auth.error };
 
-        const sources = await searchAndPopulateVault(artistId, { ownership: { userId: session.user.id, expectedClaimId: auth.claimId, trigger: 'editor_search' } });
+        const sources = await searchAndPopulateVault(artistId, { ownership: { userId: user.id, expectedClaimId: auth.claimId, trigger: 'editor_search' } });
         return { success: true, count: sources.length, sources };
     } catch (error) {
         console.error("[searchWebForSources] Error:", error);

@@ -27,8 +27,6 @@ jest.mock('@privy-io/react-auth', () => ({
     logoutCallbacks = opts || {};
     return { logout: mockPrivyLogout };
   },
-  useIdentityToken: () => ({ identityToken: 'mock-identity-token' }),
-  getIdentityToken: jest.fn().mockResolvedValue('mock-identity-token'),
   getAccessToken: jest.fn().mockResolvedValue('mock-access-token'),
 }));
 jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api.test${path}` }));
@@ -36,12 +34,6 @@ jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path:
 const mockRequestAdminApi = jest.fn();
 jest.mock('@/lib/admin/requestAdminApi', () => ({ requestAdminApi: (...a: unknown[]) => mockRequestAdminApi(...a) }));
 
-const mockReadSession = jest.fn();
-const mockRouterRefresh = jest.fn();
-jest.mock('next/navigation', () => ({ useRouter: () => ({refresh: mockRouterRefresh}) }));
-
-const mockSignIn = jest.fn().mockResolvedValue({ ok: true, error: null });
-const mockSignOut = jest.fn().mockResolvedValue({ ok: true });
 let mockAccount: any = null;
 let mockAccountStatus = 'unauthenticated';
 
@@ -54,12 +46,6 @@ jest.mock('@/hooks/useMusicNerdUser', () => ({
   }),
 }));
 const mockRefetchAccount = jest.fn().mockResolvedValue({});
-
-jest.mock('next-auth/react', () => ({
-  getSession: (...args) => mockReadSession(...args),
-  signIn: (...args) => mockSignIn(...args),
-  signOut: (...args) => mockSignOut(...args),
-}));
 
 const mockToast = jest.fn();
 jest.mock('@/hooks/use-toast', () => ({
@@ -123,13 +109,6 @@ jest.mock('@/app/_components/ThemeProvider', () => ({
   useTheme: () => ({ theme: mockTheme, setTheme: mockSetTheme }),
 }));
 
-jest.mock('@/server/utils/privyConstants', () => ({
-  TOKEN_PREFIXES: {
-    PRIVY_ID: 'privyid:',
-    ID_TOKEN: 'idtoken:',
-  },
-}));
-
 // Import the component after mocks
 import PrivyLogin from '@/app/_components/nav/components/PrivyLogin';
 
@@ -148,7 +127,6 @@ describe('PrivyLogin', () => {
       getAccessToken: jest.fn().mockResolvedValue('mock-access-token'),
     };
     mockAccount = null;
-    mockReadSession.mockReset().mockResolvedValue({ user: { id: "user-uuid" } });
     mockAccountStatus = 'unauthenticated';
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -170,6 +148,7 @@ describe('PrivyLogin', () => {
   describe('Loading state', () => {
     it('shows spinner when Privy is not ready', () => {
       mockPrivyState.ready = false;
+      mockAccountStatus = 'loading'; // useMusicNerdUser is loading until Privy is ready
 
       render(<PrivyLogin />);
 
@@ -180,14 +159,17 @@ describe('PrivyLogin', () => {
   });
 
   describe('login event', () => {
-    it('reports a login that completed before the reload, once, with the surface that asked', () => {
+    it('reports a fresh login once, with the surface that asked', () => {
       mockSessionStorage['mn-login-trigger'] = 'claim';
-      mockSessionStorage['mn-login-completed'] = 'new';
-      const { unmount } = render(<PrivyLogin />);
-      expect(mockTrackEvent).toHaveBeenCalledWith('login', { trigger: 'claim', new: true });
-      unmount();
-      mockTrackEvent.mockClear();
       render(<PrivyLogin />);
+      loginCallbacks.onComplete?.({ user: { id: 'did:privy:user123' }, isNewUser: true, wasAlreadyAuthenticated: false });
+      expect(mockTrackEvent).toHaveBeenCalledWith('login', { trigger: 'claim', new: true });
+      expect(mockSessionStorage['mn-login-trigger']).toBeUndefined();
+    });
+
+    it('does not report a restored Privy session as a login', () => {
+      render(<PrivyLogin />);
+      loginCallbacks.onComplete?.({ user: { id: 'did:privy:user123' }, isNewUser: false, wasAlreadyAuthenticated: true });
       expect(mockTrackEvent).not.toHaveBeenCalled();
     });
 
@@ -448,14 +430,13 @@ describe('PrivyLogin', () => {
       mockAccountStatus = 'authenticated';
     });
 
-    it('calls signOut and Privy logout on log out', async () => {
+    it('logs out of Privy on log out', async () => {
       render(<PrivyLogin />);
 
       const logoutItem = screen.getByText('Log Out');
       fireEvent.click(logoutItem);
 
       await waitFor(() => {
-        expect(mockSignOut).toHaveBeenCalledWith({ redirect: false });
         expect(mockPrivyLogout).toHaveBeenCalled();
       });
     });
@@ -470,89 +451,6 @@ describe('PrivyLogin', () => {
       fireEvent.click(loginItem);
 
       expect(mockLogin).toHaveBeenCalled();
-    });
-
-    it('does not trigger NextAuth login when wasAlreadyAuthenticated is true', async () => {
-      mockPrivyState.ready = true;
-      mockPrivyState.authenticated = true;
-
-      render(<PrivyLogin />);
-
-      // Simulate Privy calling onComplete with wasAlreadyAuthenticated: true
-      await loginCallbacks.onComplete?.({
-        user: { id: 'did:privy:user123' },
-        isNewUser: false,
-        wasAlreadyAuthenticated: true,
-      });
-
-      // signIn should NOT be called — no need to re-establish NextAuth session
-      expect(mockSignIn).not.toHaveBeenCalled();
-      // Toast should NOT show
-      expect(mockToast).not.toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Welcome!' })
-      );
-    });
-
-    it('refreshes the shared correction session and server data without remounting the page', async () => {
-      window.history.replaceState({}, '', '/artist/artist');
-      sessionStorage.setItem('mn:bio-correction:artist', JSON.stringify({reason:'incorrect',details:'',sourceUrl:'',bio:'Bio'}));
-      mockReadSession.mockResolvedValue({user:{id:'user'}});
-      mockPrivyState.authenticated = true;
-      mockPrivyState.user = {id:'did:privy:user123'};
-      render(<PrivyLogin />);
-      await loginCallbacks.onComplete?.({user:mockPrivyState.user,isNewUser:false,wasAlreadyAuthenticated:false});
-      await waitFor(() => expect(mockRouterRefresh).toHaveBeenCalledTimes(1));
-      // Once for the mount-time NextAuth check, once to verify the correction session.
-      expect(mockReadSession).toHaveBeenCalledTimes(2);
-      expect(sessionStorage.getItem('mn:bio-correction:artist')).not.toBeNull();
-      window.history.replaceState({}, '', '/');
-    });
-
-    it('triggers NextAuth login when wasAlreadyAuthenticated is false', async () => {
-      mockPrivyState.ready = true;
-      mockPrivyState.authenticated = true;
-      mockPrivyState.user = { id: 'did:privy:user123' };
-
-      render(<PrivyLogin />);
-
-      // Simulate Privy calling onComplete with a fresh login
-      await loginCallbacks.onComplete?.({
-        user: { id: 'did:privy:user123' },
-        isNewUser: false,
-        wasAlreadyAuthenticated: false,
-      });
-
-      // pendingNextAuthLogin should now be true, wait for the effect to run
-      await waitFor(() => {
-        expect(mockSignIn).toHaveBeenCalledWith('privy', expect.objectContaining({
-          redirect: false,
-        }));
-      });
-    });
-
-    it('lets MusicNerdAPI create the account before the NextAuth exchange', async () => {
-      mockPrivyState.authenticated = true;
-      mockPrivyState.user = { id: 'did:privy:user123' };
-      render(<PrivyLogin />);
-      await loginCallbacks.onComplete?.({ user: mockPrivyState.user, isNewUser: true, wasAlreadyAuthenticated: false });
-      await waitFor(() => expect(mockSignIn).toHaveBeenCalled());
-      expect(mockRefetchAccount).toHaveBeenCalledWith({ cancelRefetch: false });
-      expect(mockRefetchAccount.mock.invocationCallOrder[0]).toBeLessThan(mockSignIn.mock.invocationCallOrder[0]);
-    });
-
-    it('restores a missing NextAuth session for a Privy sign-in on mount', async () => {
-      mockReadSession.mockResolvedValue(null);
-      mockPrivyState.authenticated = true;
-      mockPrivyState.user = { id: 'did:privy:user123' };
-      render(<PrivyLogin />);
-      await waitFor(() => expect(mockSignIn).toHaveBeenCalledWith('privy', expect.objectContaining({ redirect: false })));
-    });
-
-    it('does not check NextAuth while signed out of Privy', async () => {
-      render(<PrivyLogin />);
-      await new Promise(resolve => setTimeout(resolve, 0));
-      expect(mockReadSession).not.toHaveBeenCalled();
-      expect(mockSignIn).not.toHaveBeenCalled();
     });
   });
 });

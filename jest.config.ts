@@ -33,8 +33,6 @@ const customJestConfig: Config = {
         // Privy mocks
         '^@privy-io/server-auth$': '<rootDir>/__mocks__/@privy-io/server-auth.js',
         '^@privy-io/react-auth$': '<rootDir>/__mocks__/@privy-io/react-auth.js',
-        '^next-auth/react$': '<rootDir>/src/test/__mocks__/next-auth.ts',
-        '^next-auth/next$': '<rootDir>/src/test/__mocks__/next-auth-next.ts',
         // ESM-only AI SDK packages; the real wrappers are unit-tested with explicit jest.mock factories
         '^ai$': '<rootDir>/src/test/__mocks__/ai.ts',
         '^@ai-sdk/google$': '<rootDir>/src/test/__mocks__/ai-sdk-google.ts',
