@@ -2,7 +2,6 @@
 import { jest } from "@jest/globals";
 
 // Static mocks BEFORE dynamic imports
-jest.mock("@/server/auth", () => ({ getServerAuthSession: jest.fn() }));
 jest.mock("@/server/utils/queries/userQueries", () => ({
   getUserById: jest.fn(),
   getUserDisplayName: jest.fn(),
@@ -57,10 +56,6 @@ describe("artistQueries", () => {
 
   async function setup() {
     const { db } = await import("@/server/db/drizzle");
-    const { getServerAuthSession } = await import("@/server/auth");
-    const { getUserById } = await import(
-      "@/server/utils/queries/userQueries"
-    );
     const { extractArtistId } = await import("@/server/utils/services");
     const { ArtistLinkConflictError, setArtistLink } = await import(
       "@/server/utils/artistLinkService"
@@ -77,8 +72,6 @@ describe("artistQueries", () => {
 
     return {
       db,
-      getServerAuthSession: getServerAuthSession as jest.Mock,
-      getUserById: getUserById as jest.Mock,
       extractArtistId: extractArtistId as jest.Mock,
       ArtistLinkConflictError,
       setArtistLink: setArtistLink as jest.Mock,

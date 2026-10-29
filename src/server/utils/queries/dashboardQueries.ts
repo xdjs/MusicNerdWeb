@@ -8,21 +8,6 @@ import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 
 export { getClaimByArtistId } from './getClaimByArtistId';
 
-export async function getApprovedClaimByUserId(userId: string) {
-    try {
-        return await db.query.artistClaims.findFirst({
-            where: and(
-                eq(artistClaims.userId, userId),
-                eq(artistClaims.status, "approved"),
-            ),
-            with: { artist: true },
-        });
-    } catch (e) {
-        console.error("[getApprovedClaimByUserId] Error:", e);
-        return undefined;
-    }
-}
-
 // TODO: Add cursor-based pagination when claims exceed ~500 rows
 // Pending claims sort first so they're never crowded out by older approved/rejected ones
 export async function getAllClaims() {

@@ -6,7 +6,6 @@ jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/dev-auth', () => ({ getDevSession: jest.fn() }));
 jest.mock('@/server/utils/queries/userQueries', () => ({ getUserById: jest.fn() }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({
-  getApprovedClaimByUserId: jest.fn(),
   getApprovedClaimForArtistByUserId: jest.fn(),
   getVaultSourceById: jest.fn(),
   getVaultSourcesByArtistId: jest.fn(),

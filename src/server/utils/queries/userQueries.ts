@@ -1,6 +1,6 @@
 import { getUserDisplayName as publicUserName } from '@/lib/user/getUserDisplayName';
 import { db } from "@/server/db/drizzle";
-import { eq, ilike, inArray } from "drizzle-orm";
+import { eq, ilike } from "drizzle-orm";
 import { users } from "@/server/db/schema";
 import { getServerAuthSession } from "@/server/auth";
 

@@ -1,13 +1,9 @@
-import { approveUGC } from "./approveUGC";
 export { approveUGC } from "./approveUGC";
 import { db } from "@/server/db/drizzle";
-import { eq, sql, inArray } from "drizzle-orm";
-import { artists, ugcresearch } from "@/server/db/schema";
+import { eq, sql } from "drizzle-orm";
+import { artists } from "@/server/db/schema";
 import { Artist, UrlMap } from "@/server/db/DbTypes";
 import { isObjKey } from "@/server/utils/services";
-import { getServerAuthSession } from "@/server/auth";
-
-import { getUserById } from "@/server/utils/queries/userQueries";
 
 // ----------------------------------
 // Types

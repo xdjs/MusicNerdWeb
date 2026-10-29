@@ -13,37 +13,6 @@ async function verifyArtistEditable(userId: string, artistId: string): Promise<{
     return (await canEditArtist(userId, artistId)) ? { ok: true, claimId } : { ok: false, error: "Not authorized for this artist" };
 }
 
-export async function updateSourceStatus(
-    sourceId: string,
-    status: "approved" | "rejected",
-    expectedStatus?: "pending",
-): Promise<{ success: boolean; error?: string }> {
-    const session = await getServerAuthSession() ?? await getDevSession();
-    if (!session) return { success: false, error: "Not authenticated" };
-
-    try {
-        const ownership = await verifySourceEditable(session.user.id, sourceId);
-        if (!ownership.authorized) return { success: false, error: ownership.error };
-
-        const updated = await withArtistOperation(ownership.artistId,
-            { userId: session.user.id, expectedClaimId: ownership.claimId, trigger: 'source_review' },
-            () => expectedStatus ? updateVaultSourceStatus(sourceId, status, expectedStatus) : updateVaultSourceStatus(sourceId, status));
-        if (expectedStatus && !updated) {
-            return { success: false, error: "This Lore source was already reviewed. Refresh the queue to see its current status." };
-        }
-
-        // The document follows the sources in BOTH directions. Approving is not
-        // the only change that matters: rejecting a source the document cites is
-        // exactly the case the artist is trying to fix.
-        await scheduleDocRefresh(ownership.artistId, ownership.claimId, session.user.id, 'source_change');
-
-        return { success: true };
-    } catch (error) {
-        console.error("[updateSourceStatus] Error:", error);
-        return { success: false, error: "Failed to update source status" };
-    }
-}
-
 export async function searchWebForSources(artistId: string): Promise<{ success: boolean; count?: number; sources?: ArtistVaultSource[]; error?: string }> {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return { success: false, error: "Not authenticated" };
