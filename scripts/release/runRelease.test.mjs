@@ -43,9 +43,12 @@ function harness(options = {}) {
     if (parsed.pathname === '/v13/deployments/dpl_stage') return json({ ...stage, ...options.stagedDeployment });
     if (parsed.pathname === '/v13/deployments/dpl_candidate') return json({ ...candidate,
       ...(promoted && options.productionAliasError ? { aliasError: options.productionAliasError } : {}) });
+    if (['api.musicnerd.net', 'musicnerd-api-staging.vercel.app'].includes(parsed.hostname)) {
+      assert.equal(parsed.pathname, '/api/health');
+      return json({ status: options.apiStatus || (options.unhealthy ? 'error' : 'ok') }, options.unhealthy ? 503 : 200);
+    }
     if (parsed.hostname.endsWith('.vercel.app')) {
-      if (parsed.pathname === '/api/health') return json({ ok: !options.unhealthy,
-        checks: { database: !options.unhealthy, storage: true } });
+      assert.equal(parsed.pathname, '/');
       return new Response(options.home || '<html>Music Nerd</html>', { headers: { 'content-type': 'text/html' } });
     }
     if (parsed.pathname === '/v10/projects/prj_test/promote/dpl_candidate') {
@@ -74,10 +77,14 @@ test('staging builds exact SHA, checks immutable URL and verifies staging alias,
   assert.equal(writes[0].body.customEnvironmentSlugOrId, 'env_stage');
   assert.equal(writes[0].body.target, undefined);
   assert.equal(writes.length, 1);
-  assert(h.calls.findIndex(c => c.url.includes('/api/health')) < h.calls.findIndex(c => c.url.includes('/v4/aliases/')));
+  assert(h.calls.findIndex(c => c.url === 'https://musicnerd-api-staging.vercel.app/api/health') <
+    h.calls.findIndex(c => c.url.includes('/v4/aliases/')));
+  assert(h.calls.findIndex(c => c.url === 'https://music-nerd-candidate.vercel.app/') <
+    h.calls.findIndex(c => c.url.includes('/v4/aliases/')));
+  assert(!h.calls.some(c => c.url.includes('api.musicnerd.net')));
   assert(!JSON.stringify(h.records).includes('private'));
   for (const call of h.calls.filter(c => c.headers['x-vercel-protection-bypass'])) {
-    assert(new URL(call.url).hostname.endsWith('.vercel.app')); assert.equal(call.redirect, 'error');
+    assert(new URL(call.url).hostname.startsWith('music-nerd-')); assert.equal(call.redirect, 'error');
   }
 });
 
@@ -88,8 +95,10 @@ test('production revalidates staged deployment and builds separate production ca
   assert.equal(writes[0].body.customEnvironmentSlugOrId, undefined);
   assert.equal(writes[0].body.deploymentId, undefined);
   assert(writes[1].url.includes('/promote/dpl_candidate'));
-  assert(h.calls.findIndex(c => c.url.includes('music-nerd-stage.vercel.app/api/health')) < h.calls.indexOf(writes[0]));
-  assert(h.calls.findIndex(c => c.url.includes('music-nerd-candidate.vercel.app/api/health')) < h.calls.indexOf(writes[1]));
+  assert(h.calls.findIndex(c => c.url === 'https://music-nerd-stage.vercel.app/') < h.calls.indexOf(writes[0]));
+  assert(h.calls.findIndex(c => c.url === 'https://musicnerd-api-staging.vercel.app/api/health') < h.calls.indexOf(writes[0]));
+  assert(h.calls.findIndex(c => c.url === 'https://music-nerd-candidate.vercel.app/') < h.calls.indexOf(writes[1]));
+  assert(h.calls.findIndex(c => c.url === 'https://api.musicnerd.net/api/health') < h.calls.indexOf(writes[1]));
 });
 
 for (const promotionStatus of [201, 202]) test(`accepts bodyless promotion ${promotionStatus} and verifies completion`, async () => {
@@ -137,7 +146,8 @@ for (const [name, options, message, maximumWrites] of [
   ['wrong staging environment', { deployment: { customEnvironment: { id: 'env_other' } } }, /environment mismatch/, 1],
   ['failed remote build', { deployment: { readyState: 'ERROR' } }, /Deployment ERROR/, 1],
   ['timeout does not publish', { deployment: { readyState: 'BUILDING' } }, /identity or state/, 1],
-  ['health fails', { unhealthy: true }, /health check failed/, 1],
+  ['MusicNerdAPI health fails', { unhealthy: true }, /HTTP 503/, 1],
+  ['MusicNerdAPI health not ok', { apiStatus: 'degraded' }, /MusicNerdAPI health check failed/, 1],
   ['homepage not HTML', { home: 'login required' }, /HTML check failed/, 1],
   ['foreign immutable host', { deployment: { url: 'attacker.example' } }, /Invalid created/, 1],
   ['provider body stays private', { failure: p => p.pathname.includes('/v9/projects/') }, /HTTP 403/, 0],

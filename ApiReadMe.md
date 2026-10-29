@@ -77,7 +77,6 @@ The public lookups `searchArtists`, `findArtistBySpotifyID`, `findArtistByIG`, `
 | Uploads | Vault upload and artist profile image are on [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) |
 | Admin and worker operations | [Admin routes](src/app/api/admin), [agent routes](src/app/api/agent) |
 | MCP | [Reference](docs/mcp.md) |
-| Health | [Health handler](src/app/api/health/route.ts) |
 
 The former `/api/coverage` endpoint is absent. Use `npm run test:coverage` for local coverage
 and `npm run test:ci` for CI verification.
