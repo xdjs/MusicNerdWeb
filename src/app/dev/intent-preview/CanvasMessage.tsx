@@ -2,9 +2,25 @@ import type { UIMessage } from "ai";
 import { getChatSources } from "@/lib/artistChat/getChatSources";
 import { getMessageText } from "@/lib/artistChat/getMessageText";
 /** Reuse the chat's citation evidence; never turn unverified model text into a link. */
-export default function CanvasMessage({ message }: { message: UIMessage }) {
-  const sources = getChatSources(message);
-  const text = getMessageText(message).replace(/\*\*?/g, "");
+export default function CanvasMessage({
+  message,
+  explanation,
+}: {
+  message: UIMessage;
+  explanation?: string;
+}) {
+  const sources = getChatSources(
+    explanation
+      ? {
+          ...message,
+          parts: [
+            ...message.parts.filter((p) => p.type !== "text"),
+            { type: "text", text: explanation },
+          ],
+        }
+      : message,
+  );
+  const text = (explanation ?? getMessageText(message)).replace(/\*\*?/g, "");
   return (
     <p>
       {text.split(/(\[\d+(?:,\s*\d+)*\])/g).map((part, index) => {

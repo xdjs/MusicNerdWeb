@@ -63,3 +63,8 @@ This is an experiment covering two artists, not complete universal search. Curat
 Junk Planet artwork is sourced from the exact artist Bandcamp album linked by its workUrl, verified October 29: `#tralbumArt img` points to `https://f4.bcbits.com/img/a1141999039_2.jpg`. Clicking that artwork opens the work; the PDF source controls continue to open the cited discography page.
 
 Budget settlement retains historical reservations at $1 and only credits newly confirmed complete usage at conservative $3/M input and $12/M output. Failed, aborted, unknown or out-of-bounds usage retains $1. Original reservation rows remain, so older deployments still enforce their attempt guard. No new credentials or production writes.
+
+## Completion and session refinement
+
+Composition now requires a bounded completed explanation, committed with the validated canvas. The client displays that explanation instead of draft or empty streamed prose, retaining verified citation links. Pinned objects keep their contents and relative order among pins; removing preceding unpinned content does not require filler.
+The Web preview saves bounded, validated canvas state and text/source conversation parts in tab-scoped sessionStorage, keyed by artist, mode and version. No credentials/tool payloads or server persistence. Reload resumes the same artist; switching artists keeps separate sessions; Reset exploration clears the current exploration. Closing the tab ends the session. Stored data is untrusted and parsed before restoration.

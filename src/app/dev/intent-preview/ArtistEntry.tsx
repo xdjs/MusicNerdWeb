@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CANVAS_ARTIST_ID, DUTCH_ARTIST_ID } from "@/lib/intent/canvasProtocol";
 import IntentExplorer from "./IntentExplorer";
 import styles from "./intent.module.css";
@@ -25,6 +25,22 @@ export default function ArtistEntry({ liveApiUrl }: { liveApiUrl?: string }) {
     id: string;
     intent?: string;
   } | null>(null);
+  useEffect(() => {
+    try {
+      const id = sessionStorage.getItem("musicnerd-canvas-active-v2");
+      if (artists.some((a) => a.id === id)) setSelected({ id: id! });
+    } catch {
+      /* Session storage unavailable. */
+    }
+  }, []);
+  useEffect(() => {
+    if (selected)
+      try {
+        sessionStorage.setItem("musicnerd-canvas-active-v2", selected.id);
+      } catch {
+        /* Session storage unavailable. */
+      }
+  }, [selected]);
   if (selected)
     return (
       <IntentExplorer
@@ -32,7 +48,14 @@ export default function ArtistEntry({ liveApiUrl }: { liveApiUrl?: string }) {
         artistId={selected.id}
         initialIntent={selected.intent}
         liveApiUrl={liveApiUrl}
-        onBack={() => setSelected(null)}
+        onBack={() => {
+          setSelected(null);
+          try {
+            sessionStorage.removeItem("musicnerd-canvas-active-v2");
+          } catch {
+            /* Session storage unavailable. */
+          }
+        }}
       />
     );
   const normalized = query

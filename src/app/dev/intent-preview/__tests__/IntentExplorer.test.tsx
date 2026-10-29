@@ -9,8 +9,10 @@ jest.mock("@/app/_components/ThemeProvider", () => ({
 }));
 const mockUseChat = useChat as jest.Mock;
 beforeEach(() => {
+  sessionStorage.clear();
   mockUseChat.mockReturnValue({
     messages: [],
+    setMessages: jest.fn(),
     sendMessage: jest.fn(),
     status: "ready",
     stop: jest.fn(),
@@ -105,6 +107,7 @@ it("ignores a late data packet without discarding the current valid turn", () =>
   const options = mockUseChat.mock.calls.at(-1)[0];
   const request = options.transport.options.prepareSendMessagesRequest({
     messages: [],
+    setMessages: jest.fn(),
   }).body.canvas;
   const update = {
     version: "canvas.v1",
@@ -151,6 +154,7 @@ it("keeps the canvas when stop is followed by late completion", () => {
   const options = mockUseChat.mock.calls.at(-1)[0];
   const request = options.transport.options.prepareSendMessagesRequest({
     messages: [],
+    setMessages: jest.fn(),
   }).body.canvas;
   const result = mockUseChat.mock.results.at(-1)!.value;
   mockUseChat.mockReturnValue({ ...result, status: "streaming" });
@@ -190,4 +194,22 @@ it("uses existing anonymous access when the optional login helper throws synchro
   render(<IntentExplorer liveApiUrl="https://api.example.com" />);
   const options = mockUseChat.mock.calls.at(-1)[0];
   await expect(options.transport.options.headers()).resolves.toEqual({});
+});
+
+it("restores pins and canvas after remount, and reset clears the saved exploration", () => {
+  const first = render(<IntentExplorer />);
+  fireEvent.click(screen.getByRole("button", { name: "Pin A place to begin" }));
+  first.unmount();
+  render(<IntentExplorer />);
+  expect(
+    screen.getByRole("button", { name: "Unpin A place to begin" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("Restored this tab’s saved exploration."),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Reset exploration" }));
+  expect(
+    screen.getByRole("button", { name: "Pin A place to begin" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Started a fresh exploration.")).toBeInTheDocument();
 });

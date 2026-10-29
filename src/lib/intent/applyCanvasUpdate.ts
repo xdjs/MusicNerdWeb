@@ -5,7 +5,7 @@ import {
   type CanvasUpdate,
 } from "./canvasProtocol";
 import { validateCanvasSpec } from "./validateCanvasSpec";
-const evidenceSchema = z
+export const evidenceSchema = z
   .object({
     id: z.string().max(300),
     title: z.string().max(300),
@@ -37,6 +37,7 @@ const evidenceSchema = z
   .strict();
 const updateSchema = z
   .object({
+    explanation: z.string().trim().min(20).max(900).optional(),
     version: z.literal("canvas.v1"),
     sessionId: z.string().uuid(),
     turnId: z.string().uuid(),

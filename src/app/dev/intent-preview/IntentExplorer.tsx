@@ -15,6 +15,8 @@ import {
   type CanvasSpec,
 } from "@/lib/intent/canvasProtocol";
 import { createReplayResponse } from "@/lib/intent/createReplayResponse";
+import { readCanvasSession } from "@/lib/intent/canvasSession";
+import { getMessageText } from "@/lib/artistChat/getMessageText";
 import { getCanvasError } from "@/lib/intent/getCanvasError";
 import { applyCanvasUpdate } from "@/lib/intent/applyCanvasUpdate";
 import { profileUrl } from "@/lib/intent/latashaSnapshot";
@@ -75,11 +77,15 @@ export default function IntentExplorer({
     revision: 0,
     evidence: artistSeed,
   });
+  const initialState = useRef(state);
+  const [restored, setRestored] = useState(false);
+  const storageKey = `musicnerd-canvas-v2:${liveApiUrl ? "live" : "replay"}:${artistId}`;
   const [pinned, setPinned] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [focus, setFocus] = useState<string | null>(null);
   const [history, setHistory] = useState<(typeof state)[]>([]);
+  const [explanations, setExplanations] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
   const conversationElement = useRef<HTMLDivElement>(null);
   const inputElement = useRef<HTMLInputElement>(null);
@@ -115,7 +121,7 @@ export default function IntentExplorer({
       }),
     [liveApiUrl, artistId],
   );
-  const { messages, sendMessage, status, stop, error } = useChat({
+  const { messages, setMessages, sendMessage, status, stop, error } = useChat({
     transport,
     onData: (part) => {
       if (part.type === "data-canvas" && pending.current) {
@@ -150,6 +156,11 @@ export default function IntentExplorer({
         request &&
         latest.current.revision === request.baseRevision
       ) {
+        if (update.explanation)
+          setExplanations((previous) => ({
+            ...previous,
+            [request.turnId]: update.explanation!,
+          }));
         setHistory((previous) => [...previous, latest.current]);
         setState({
           spec: update.nextSpec,
@@ -186,6 +197,90 @@ export default function IntentExplorer({
   });
   const busy = status === "submitted" || status === "streaming";
   useEffect(() => {
+    try {
+      const saved = readCanvasSession(
+        sessionStorage.getItem(storageKey),
+        artistId,
+      );
+      if (saved) {
+        setState(saved.state);
+        setPinned(saved.pinned);
+        setSelected(saved.selected);
+        setExpanded(saved.expanded);
+        setExplanations(saved.explanations);
+        setMessages(saved.messages);
+        session.current = saved.sessionId;
+        setNotice("Restored this tab’s saved exploration.");
+      }
+    } catch {
+      /* Storage may be unavailable; exploration still works. */
+    }
+    setRestored(true);
+  }, [artistId, storageKey, setMessages]);
+  useEffect(() => {
+    if (!restored || busy) return;
+    try {
+      const value = {
+        version: 2,
+        artistId,
+        sessionId: session.current,
+        state,
+        pinned,
+        selected,
+        expanded,
+        explanations,
+        messages: messages
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .slice(-60)
+          .map((m) => ({
+            id: m.id,
+            role: m.role,
+            parts: [
+              ...m.parts.filter((p) => p.type === "source-url"),
+              { type: "text", text: explanations[m.id] ?? getMessageText(m) },
+            ],
+          })),
+      };
+      const raw = JSON.stringify(value);
+      if (raw.length <= 250000) sessionStorage.setItem(storageKey, raw);
+    } catch {
+      /* No persistence when storage is unavailable. */
+    }
+  }, [
+    restored,
+    busy,
+    state,
+    pinned,
+    selected,
+    expanded,
+    explanations,
+    messages,
+    artistId,
+    storageKey,
+  ]);
+  function resetExploration() {
+    if (busy) return;
+    session.current = null;
+    pending.current = null;
+    staged.current = null;
+    setState(initialState.current);
+    setPinned([]);
+    setSelected([]);
+    setExpanded([]);
+    setFocus(null);
+    setHistory([]);
+    setExplanations({});
+    setMessages([]);
+    setInput("");
+    setNotice("Started a fresh exploration.");
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch {
+      /* Unavailable storage. */
+    }
+  }
+
+  useEffect(() => {
     if (busy && conversationElement.current)
       conversationElement.current.scrollTop =
         conversationElement.current.scrollHeight;
@@ -210,7 +305,7 @@ export default function IntentExplorer({
   }
   const initialSent = useRef(false);
   useEffect(() => {
-    if (liveApiUrl && initialIntent && !initialSent.current) {
+    if (restored && liveApiUrl && initialIntent && !initialSent.current) {
       initialSent.current = true;
       ask(initialIntent);
     }
@@ -263,6 +358,9 @@ export default function IntentExplorer({
           </span>
         </a>
         <div className={styles.headerActions}>
+          <button disabled={busy} onClick={resetExploration}>
+            Reset exploration
+          </button>
           {onBack && (
             <button
               onClick={() => {
@@ -364,7 +462,10 @@ export default function IntentExplorer({
                         ? "Music Nerd"
                         : "Music Nerd · replay"}
                   </span>
-                  <CanvasMessage message={message} />
+                  <CanvasMessage
+                    message={message}
+                    explanation={explanations[message.id]}
+                  />
                 </div>
               ))}
             </div>
@@ -514,7 +615,9 @@ export default function IntentExplorer({
                   {liveApiUrl
                     ? "This preview uses Music Nerd’s existing chat backend to compose source-backed blocks. Starting entries are curated; questions can retrieve other stored public sources and pages from two published Dutchyyy PDFs. PDF passages retain physical page links and document attribution. Model choices can still be mistaken; inspect evidence."
                     : "The canvas, selection, pinning, undo, revision validation and streamed message handling work. Responses are authored replay fixtures, not model output. The isolated API extension reuses Music Nerd’s chat model and retrieval, but live execution remains disabled."}{" "}
-                  Conversations exist only in this tab and reset on reload.
+                  This tab saves its exploration across reloads. Reset
+                  exploration clears it. Closing the tab ends this session;
+                  nothing is saved to your artist profile.
                 </p>
                 {!dutch && <SourceNote id="profile" />}
               </details>

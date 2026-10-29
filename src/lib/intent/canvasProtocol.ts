@@ -52,6 +52,7 @@ export type CanvasEvidence = {
   workUrl?: string;
 };
 export type CanvasUpdate = {
+  explanation?: string;
   version: "canvas.v1";
   sessionId: string;
   turnId: string;
