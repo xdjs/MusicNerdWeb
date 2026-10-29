@@ -504,3 +504,25 @@ it("keeps the previous answer paired with its own question during a follow-up", 
   expect(answer).toHaveTextContent("Original answer");
   expect(answer).not.toHaveTextContent("Pending follow-up");
 });
+
+it("uses canonical public artist identity imagery rather than source artwork", () => {
+  const id = "50f23458-df64-4381-8042-7333e8b64531";
+  render(
+    <IntentExplorer
+      liveApiUrl="https://api.example.test"
+      artistId={id}
+      profile={{ id, name: "Pete Rango", profileUrl: `/artist/${id}` }}
+      initialEvidence={[]}
+    />,
+  );
+  const portrait = screen.getByRole("img", { name: "Pete Rango" });
+  expect(portrait).toHaveAttribute(
+    "src",
+    `https://api.example.test/api/artist/${id}/image`,
+  );
+  fireEvent.error(portrait);
+  expect(
+    screen.queryByRole("img", { name: "Pete Rango" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText("P")).toBeInTheDocument();
+});

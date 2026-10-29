@@ -92,7 +92,7 @@ export default function PreviewExplorationShell({
             animate={{ height: home ? "auto" : 0, opacity: home ? 1 : 0 }}
             transition={{ duration: reduced ? 0 : 0.2 }}
             style={{
-              overflow: "hidden",
+              overflow: home ? "visible" : "hidden",
               visibility: home ? "visible" : "hidden",
             }}
           >

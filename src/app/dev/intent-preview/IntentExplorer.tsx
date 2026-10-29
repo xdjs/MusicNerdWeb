@@ -75,6 +75,12 @@ export default function IntentExplorer({
 }) {
   const dutch = artistId === DUTCH_ARTIST_ID;
   const knownArtist = dutch || artistId === CANVAS_ARTIST_ID;
+  const [portraitFailed, setPortraitFailed] = useState(false);
+  const artistPortrait = liveApiUrl
+    ? `${liveApiUrl}/api/artist/${artistId}/image`
+    : knownArtist
+      ? `/demo/${dutch ? "dutchyyy" : "latasha"}/portrait.jpg`
+      : null;
   const artistName = profile?.name ?? (dutch ? "Dutchyyy" : "LATASHÁ");
   const artistProfile =
     profile?.profileUrl ??
@@ -482,10 +488,11 @@ export default function IntentExplorer({
       <div className={styles.layout}>
         <aside className={styles.identity}>
           <div className={styles.portrait}>
-            {knownArtist ? (
+            {artistPortrait && !portraitFailed ? (
               <img
-                src={`/demo/${dutch ? "dutchyyy" : "latasha"}/portrait.jpg`}
+                src={artistPortrait}
                 alt={artistName}
+                onError={() => setPortraitFailed(true)}
               />
             ) : (
               <span aria-hidden="true" className={styles.artistInitial}>

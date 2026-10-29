@@ -41,6 +41,9 @@ it("keeps the actual search and artist DOM nodes across home, exploration and Ba
   const view = render(
     <PreviewExplorationShell>{null}</PreviewExplorationShell>,
   );
+  expect(screen.getByText("Home manifesto").parentElement).toHaveStyle({
+    overflow: "visible",
+  });
   const search = screen.getByTestId("persistent-search");
   fireEvent.change(search, { target: { value: "Dutchyyy" } });
   mockPath = "/artist/example/explore";
@@ -54,6 +57,9 @@ it("keeps the actual search and artist DOM nodes across home, exploration and Ba
   expect(
     view.container.querySelector("[data-exploration-shell]"),
   ).toHaveAttribute("data-exploring", "true");
+  expect(screen.getByText("Home manifesto").parentElement).toHaveStyle({
+    overflow: "hidden",
+  });
   const composer = screen.getByTestId("persistent-composer");
   fireEvent.change(composer, { target: { value: "An unfinished follow-up" } });
   mockPath = "/";
@@ -64,4 +70,7 @@ it("keeps the actual search and artist DOM nodes across home, exploration and Ba
     view.container.querySelector("[data-exploration-shell]"),
   ).toHaveAttribute("data-exploring", "false");
   expect(screen.getAllByTestId("persistent-search")).toHaveLength(1);
+  expect(screen.getByText("Home manifesto").parentElement).toHaveStyle({
+    overflow: "visible",
+  });
 });
