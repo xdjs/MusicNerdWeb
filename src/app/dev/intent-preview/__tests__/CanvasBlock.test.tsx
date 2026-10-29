@@ -86,3 +86,68 @@ it("uses a post action and clear fallback when an Instagram thumbnail fails", ()
   fireEvent.error(screen.getByRole("img"));
   expect(screen.getByText(/Image unavailable/)).toBeInTheDocument();
 });
+
+it.each([
+  ["Title: Salsa System (EP) · Type: EP · Release date: 2006-01-01", true],
+  [
+    '{ "provider": "deezer", "artist_account": "416544", "title": "Salsa System (EP)" }',
+    false,
+  ],
+  ["0 Skip to Content English English Salsa System Electric Cowbell", false],
+])(
+  "renders release evidence as readable fields or a source fallback: %s",
+  (text, readable) => {
+    render(
+      <CanvasBlock
+        block={{
+          id: "release",
+          title: "Release evidence",
+          kind: "cards",
+          items: ["release"],
+          span: 1,
+        }}
+        evidence={[
+          {
+            id: "release",
+            title: "Salsa System (EP)",
+            text,
+            category: "source",
+            url: "https://www.deezer.com/album/6733078",
+            date: "2006-01-01",
+            dateKind: "Release date from stored provider record",
+            attribution: "Deezer · stored release metadata",
+            limitation: "Provider metadata, not an artist quotation.",
+          },
+        ]}
+        pinned={false}
+        expanded={false}
+        selected={[]}
+        busy={false}
+        onPin={jest.fn()}
+        onExpand={jest.fn()}
+        onRemove={jest.fn()}
+        onSelect={jest.fn()}
+        onFocus={jest.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "Salsa System (EP)" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Jan 1, 2006 · Release date from stored provider record",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Read the original source")).toHaveAttribute(
+      "href",
+      "https://www.deezer.com/album/6733078",
+    );
+    if (readable) expect(screen.getAllByText(text)).toHaveLength(2);
+    else {
+      expect(screen.queryByText(text)).not.toBeInTheDocument();
+      expect(
+        screen.getAllByText("Open the source to read this record."),
+      ).toHaveLength(2);
+    }
+  },
+);
