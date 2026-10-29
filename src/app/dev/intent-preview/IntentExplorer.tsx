@@ -58,7 +58,21 @@ export default function IntentExplorer({
     spec: CanvasSpec;
     revision: number;
     evidence: typeof canvasSeed;
-  }>({ spec: { blocks: [] }, revision: 0, evidence: artistSeed });
+  }>({
+    spec: {
+      blocks: [
+        {
+          id: "starting-work",
+          kind: dutch ? "document" : "cards",
+          title: "A place to begin",
+          items: [dutch ? "dutch-junk" : "out"],
+          span: 1,
+        },
+      ],
+    },
+    revision: 0,
+    evidence: artistSeed,
+  });
   const [pinned, setPinned] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
