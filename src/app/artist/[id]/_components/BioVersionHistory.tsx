@@ -5,12 +5,7 @@ import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Pin, Trash2 } from "lucide-react";
-import {
-    getArtistBioVersions,
-    pinBioVersionAction,
-    deleteBioVersionAction,
-    unpinBioAction,
-} from "@/app/actions/dashboardActions";
+import { requestMusicNerdApi } from "@/lib/musicNerdApi/requestMusicNerdApi";
 
 interface BioVersion {
     id: string;
@@ -33,7 +28,7 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0, s
         if (!isEditing) return;
         let active = true;
         setLoading(true);
-        getArtistBioVersions(artistId)
+        requestMusicNerdApi<{ versions: BioVersion[] }>(`/api/artistBio/${artistId}/versions`)
             .then(res => {
                 if (active && res.success && res.versions) {
                     const sorted = [...res.versions].sort(
@@ -51,7 +46,7 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0, s
     if (!isEditing) return null;
 
     async function handlePin(id: string) {
-        const res = await pinBioVersionAction(id, artistId);
+        const res = await requestMusicNerdApi(`/api/artistBio/${artistId}/pin`, { method: 'PUT', body: { versionId: id } });
         if (res.success) {
             setVersions(prev => prev.map(v => ({ ...v, isPinned: v.id === id })));
             const selected = versions.find(v => v.id === id);
@@ -60,22 +55,22 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0, s
             refreshProfile?.();
             toast({ title: 'Bio pinned and locked', description: 'Unpin it before editing or regenerating.' });
         } else {
-            toast({ title: "Couldn't pin version", description: res.error ?? "Please try again", variant: "destructive" });
+            toast({ title: "Couldn't pin version", description: res.error, variant: "destructive" });
         }
     }
 
     async function handleDelete(id: string) {
         setConfirmDeleteId(null);
-        const res = await deleteBioVersionAction(id, artistId);
+        const res = await requestMusicNerdApi(`/api/artistBio/${artistId}/versions/${id}`, { method: 'DELETE' });
         if (res.success) {
             setVersions(prev => prev.filter(v => v.id !== id));
         } else {
-            toast({ title: "Couldn't delete version", description: res.error ?? "Please try again", variant: "destructive" });
+            toast({ title: "Couldn't delete version", description: res.error, variant: "destructive" });
         }
     }
 
     async function handleUnpin() {
-        const res = await unpinBioAction(artistId);
+        const res = await requestMusicNerdApi(`/api/artistBio/${artistId}/pin`, { method: 'DELETE' });
         if (res.success) {
             setVersions(prev => prev.map(v => ({ ...v, isPinned: false })));
             // Unpin changes only the lock. Refetching the bio can trigger generation

@@ -16,12 +16,17 @@ jest.mock('@/hooks/useArtistBio', () => ({
 
 import { useArtistBio } from '@/hooks/useArtistBio';
 
-jest.mock('@/app/actions/dashboardActions', () => ({
-    getArtistBioVersions: jest.fn().mockResolvedValue({ success: true, versions: [] }),
-    pinBioVersionAction: jest.fn().mockResolvedValue({ success: true }),
-    unpinBioAction: jest.fn().mockResolvedValue({ success: true }),
+const getArtistBioVersions = jest.fn().mockResolvedValue({ success: true, versions: [] });
+const pinBioVersion = jest.fn().mockResolvedValue({ success: true });
+const unpinBio = jest.fn().mockResolvedValue({ success: true });
+const deleteBioVersion = jest.fn();
+jest.mock('@/lib/musicNerdApi/requestMusicNerdApi', () => ({
+  requestMusicNerdApi: (path: string, init?: { method?: string; body?: { versionId?: string } }) => {
+    if (path.endsWith('/versions')) return getArtistBioVersions(path);
+    if (path.endsWith('/pin')) return init?.method === 'PUT' ? pinBioVersion(init.body?.versionId, path) : unpinBio(path);
+    return deleteBioVersion(path);
+  },
 }));
-import { getArtistBioVersions } from '@/app/actions/dashboardActions';
 
 describe('BlurbSection', () => {
     const defaultProps = {
@@ -35,6 +40,7 @@ describe('BlurbSection', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        getArtistBioVersions.mockResolvedValue({ success: true, versions: [] });
         // Default mock implementation
         mockUseArtistBio.mockReturnValue({
             bio: 'Test bio content',
@@ -45,7 +51,7 @@ describe('BlurbSection', () => {
     });
 
     it('explicitly selecting a saved version rebases the editor and locks it', async () => {
-        (getArtistBioVersions as jest.Mock).mockResolvedValueOnce({ success: true, versions: [
+        getArtistBioVersions.mockResolvedValue({ success: true, versions: [
             { id: 'v1', bioText: 'Selected saved bio', isPinned: false, createdAt: '2026-01-01' },
         ] });
         render(<EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}><BlurbSection {...defaultProps} /></EditModeContext.Provider>);

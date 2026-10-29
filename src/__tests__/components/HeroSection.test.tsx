@@ -6,6 +6,8 @@ import HeroSection from '@/app/artist/[id]/_components/HeroSection';
 import { trackEvent } from '@/lib/analytics/trackEvent';
 import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: jest.fn() }));
+// The bio version history reads MusicNerdAPI; keep it off the photo flow's fetch mocks.
+jest.mock('@/lib/musicNerdApi/requestMusicNerdApi', () => ({ requestMusicNerdApi: jest.fn(async () => ({ success: true, versions: [] })) }));
 const toast = jest.fn();
 jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }));
 const researchNone = { profiles: null, vault: null, interview: null, publish: null };

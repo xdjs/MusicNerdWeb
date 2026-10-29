@@ -5,10 +5,14 @@ import { EditModeContext } from '@/app/_components/EditModeContext';
 const getKnowledgeDoc = jest.fn();
 const correctDocClaim = jest.fn();
 const undoDocCorrection = jest.fn();
-jest.mock('@/app/actions/dashboardActions', () => ({
-    getKnowledgeDoc: (...a) => getKnowledgeDoc(...a),
-    correctDocClaim: (...a) => correctDocClaim(...a),
-    undoDocCorrection: (...a) => undoDocCorrection(...a),
+// The API calls, translated back to (artistId, ...args) so each test reads as the action it covers.
+jest.mock('@/lib/musicNerdApi/requestMusicNerdApi', () => ({
+    requestMusicNerdApi: (path, init = {}) => {
+        const artistId = path.split('/')[3];
+        if (path.endsWith('/knowledge-doc')) return getKnowledgeDoc(artistId);
+        if (init.method === 'POST') return correctDocClaim(artistId, init.body.claim, init.body.kind, init.body.correction);
+        return undoDocCorrection(artistId, path.split('/').pop());
+    },
 }));
 
 jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({
@@ -100,7 +104,7 @@ describe('KnowledgeSection', () => {
         renderEditing();
         fireEvent.click(await screen.findByTitle('Not me'));
         await waitFor(() => expect(correctDocClaim).toHaveBeenCalledWith(
-            'a1', "Won the i-Standard's Music Producers competition with Parris Pierce.", 'wrong', undefined,
+            'a1', "Won the i-Standard's Music Producers competition with Parris Pierce.", 'wrong', null,
         ));
         expect(await screen.findByText(/you said this isn't you/i)).toBeInTheDocument();
     });
@@ -127,7 +131,7 @@ describe('KnowledgeSection', () => {
     });
 
     it('says so plainly when there is no document yet', async () => {
-        getKnowledgeDoc.mockResolvedValue({ success: true, content: undefined, sources: [], corrections: [] });
+        getKnowledgeDoc.mockResolvedValue({ success: true, content: null, sources: [], corrections: [] });
         renderEditing();
         expect(await screen.findByText(/nothing here yet/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /look again/i })).toBeEnabled();
