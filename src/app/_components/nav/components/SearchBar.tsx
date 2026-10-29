@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
-import { addArtist } from "@/app/actions/addArtist";
+import { requestAddArtist } from "@/lib/artist/requestAddArtist";
 import { isDevMode } from "@/lib/dev-mode";
 import DuplicateArtistChoice, { type DuplicateArtistCandidate, type SelectedArtistContext } from "@/app/_components/DuplicateArtistChoice";
 import type { MusicPlatform } from "@/server/utils/musicPlatform";
@@ -93,7 +93,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav", signedIn }: Sea
         addRequestInFlightRef.current = true;
         try {
             setAddingPlatformId(platformId);
-            const addResult = await addArtist(platformId, platform as 'deezer' | 'spotify');
+            const addResult = await requestAddArtist(platformId, platform as 'deezer' | 'spotify');
             trackAddArtistResult('search', addResult);
 
             if (addRequestGenerationRef.current !== requestGeneration) return;
@@ -142,7 +142,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav", signedIn }: Sea
         addRequestInFlightRef.current = true;
         setIsCreatingSeparate(true);
         try {
-            const addResult = await addArtist(
+            const addResult = await requestAddArtist(
                 response.platformId,
                 response.platform,
                 { forceCreate: true },

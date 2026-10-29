@@ -14,8 +14,8 @@ jest.mock('@/hooks/useMusicNerdUser', () => ({
     useMusicNerdUser: () => ({ user: { id: 'user-id' }, status: 'authenticated' }),
 }));
 
-jest.mock('@/app/actions/addArtist', () => ({
-    addArtist: (...args: unknown[]) => mockAddArtist(...args),
+jest.mock('@/lib/artist/requestAddArtist', () => ({
+    requestAddArtist: (...args: unknown[]) => mockAddArtist(...args),
 }));
 
 import AddArtistContent from '@/app/add-artist/_components/AddArtistContent';

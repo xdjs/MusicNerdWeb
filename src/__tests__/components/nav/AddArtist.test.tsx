@@ -55,8 +55,8 @@ jest.mock('@/hooks/useMusicNerdUser', () => ({
     useMusicNerdUser: () => ({ user: mockAccount?.user ?? null, status: mockAccountStatus }),
 }));
 
-jest.mock('@/app/actions/addArtist', () => ({
-    addArtist: (...args: unknown[]) => mockAddArtist(...args),
+jest.mock('@/lib/artist/requestAddArtist', () => ({
+    requestAddArtist: (...args: unknown[]) => mockAddArtist(...args),
 }));
 
 jest.mock('next/link', () => {

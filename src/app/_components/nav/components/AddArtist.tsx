@@ -25,8 +25,8 @@ import {
     FormLabel,
     FormDescription,
 } from "@/components/ui/form";
-import { addArtist } from "@/app/actions/addArtist";
-import type { AddArtistResp } from "@/app/actions/serverActions";
+import { requestAddArtist } from "@/lib/artist/requestAddArtist";
+import type { AddArtistResp } from "@/lib/artist/addArtistTypes";
 import { cn } from "@/lib/utils";
 import { Plus } from 'lucide-react';
 import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
@@ -94,7 +94,7 @@ export default function AddArtist() {
         setAddedArtist(null);
 
         try {
-            const response = await addArtist(parsed.id, parsed.platform);
+            const response = await requestAddArtist(parsed.id, parsed.platform);
             trackAddArtistResult("nav", response);
             if (requestGenerationRef.current === requestGeneration) {
                 applyResponse(response);
@@ -122,7 +122,7 @@ export default function AddArtist() {
         requestInFlightRef.current = true;
         setIsCreatingSeparate(true);
         try {
-            const resp = await addArtist(
+            const resp = await requestAddArtist(
                 addArtistStatus.platformId,
                 addArtistStatus.platform,
                 { forceCreate: true },

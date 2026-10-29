@@ -4,9 +4,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AddArtistData from '@/app/artist/[id]/_components/AddArtistData';
 import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 import { LINK_NOT_SUPPORTED } from '@/lib/linkSubmissionMessages';
-import { addArtistDataAction } from '@/app/actions/serverActions';
+import { requestArtistLinkSuggestion } from '@/lib/artistLinks/requestArtistLinkSuggestion';
 import { requestArtistLinkEdit } from '@/lib/artistLinks/requestArtistLinkEdit';
 jest.mock('@/lib/artistLinks/requestArtistLinkEdit', () => ({ requestArtistLinkEdit: jest.fn() }));
+jest.mock('@/lib/artistLinks/requestArtistLinkSuggestion', () => ({ requestArtistLinkSuggestion: jest.fn() }));
 
 const mockTrackEvent = jest.fn();
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
@@ -23,7 +24,7 @@ const baseProps = {
 describe('AddArtistData "+" trigger', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (addArtistDataAction as jest.Mock).mockReset();
+    (requestArtistLinkSuggestion as jest.Mock).mockReset();
   });
 
   it('does nothing while the session is still loading', () => {
@@ -89,7 +90,7 @@ describe('AddArtistData "+" trigger', () => {
       expect(loginClick).toHaveBeenCalledTimes(1);
       expect(screen.queryByRole('heading', { name: /Suggest a link for Test Artist/i })).not.toBeInTheDocument();
       expect(window.location.search).toContain('addLink=');
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
 
       // The real Privy flow reloads after login. An account update on the same
       // mount is enough to verify the pending handoff resumes as well.
@@ -101,7 +102,7 @@ describe('AddArtistData "+" trigger', () => {
 
       expect(screen.getByRole('heading', { name: /Suggest a link for Test Artist/i })).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/Paste a profile link/i)).toHaveValue(spotifyUrl);
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
       await waitFor(() => expect(window.location.search).toBe('?view=links'));
       expect(window.location.hash).toBe('#social-links');
     } finally {
@@ -178,7 +179,7 @@ describe('AddArtistData "+" trigger', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'Submit' })).toBeEnabled());
       fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
       await waitFor(() => expect(mockTrackEvent).toHaveBeenCalledWith('add_link_submit', { platform: null, result: 'invalid' }));
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     } finally {
       global.fetch = originalFetch;
     }
@@ -236,7 +237,7 @@ describe('AddArtistData "+" trigger', () => {
 
       expect(screen.getByRole('heading', { name: /Suggest a link for Test Artist/i })).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/Paste a profile link/i)).toHaveValue(spotifyUrl);
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
 
       await waitFor(() => {
         expect(nextReplaceState).toHaveBeenCalledWith(
@@ -287,7 +288,7 @@ describe('AddArtistData "+" trigger', () => {
       expect(submitButton).toBeDisabled();
       expect(submitButton).toHaveAttribute('aria-busy', 'true');
       fireEvent.click(submitButton);
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     } finally {
       global.fetch = originalFetch;
     }
@@ -299,7 +300,7 @@ describe('AddArtistData "+" trigger', () => {
     const originalFetch = global.fetch;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     global.fetch = jest.fn().mockRejectedValue(new Error('offline')) as unknown as typeof fetch;
-    (addArtistDataAction as jest.Mock).mockResolvedValue({ status: 'error', message: 'Server rejected link' });
+    (requestArtistLinkSuggestion as jest.Mock).mockResolvedValue({ status: 'error', message: 'Server rejected link' });
 
     try {
       render(<AddArtistData {...baseProps} isOpenOnLoad prefillUrl={spotifyUrl} />);
@@ -309,7 +310,7 @@ describe('AddArtistData "+" trigger', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(addArtistDataAction).toHaveBeenCalledWith(spotifyUrl, baseProps.artist);
+        expect(requestArtistLinkSuggestion).toHaveBeenCalledWith(baseProps.artist.id, spotifyUrl);
       });
     } finally {
       global.fetch = originalFetch;
@@ -337,7 +338,7 @@ describe('AddArtistData "+" trigger', () => {
       await waitFor(() => {
         expect(screen.getByText(LINK_NOT_SUPPORTED)).toBeInTheDocument();
       });
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     } finally {
       global.fetch = originalFetch;
       errorSpy.mockRestore();
@@ -400,7 +401,7 @@ describe('AddArtistData "+" trigger', () => {
       ok: true,
       json: async () => ({ status: 'ok', regexes: [{ siteName: 'spotify', regex: '^https://open\\.spotify\\.com/artist/[A-Za-z0-9]+$' }] }),
     }) as unknown as typeof fetch;
-    (addArtistDataAction as jest.Mock).mockResolvedValue({ status: 'success', message: 'Link added', siteName: 'spotify' });
+    (requestArtistLinkSuggestion as jest.Mock).mockResolvedValue({ status: 'success', message: 'Link added', siteName: 'spotify' });
     const artist = { ...baseProps.artist, deezer: '123', spotify: null };
     try {
       render(<AddArtistData {...baseProps} artist={artist} autoApprove availableLinks={[
@@ -425,7 +426,7 @@ describe('AddArtistData "+" trigger', () => {
       const submit = screen.getByRole('button', { name: 'Add Link' });
       await waitFor(() => expect(submit).toBeEnabled());
       fireEvent.click(submit);
-      await waitFor(() => expect(addArtistDataAction).toHaveBeenCalledWith(url, artist));
+      await waitFor(() => expect(requestArtistLinkSuggestion).toHaveBeenCalledWith(artist.id, url));
     } finally {
       global.fetch = originalFetch;
     }
@@ -449,7 +450,7 @@ describe('AddArtistData "+" trigger', () => {
       expect(fetch).toHaveBeenLastCalledWith('https://api-preview.test/api/validateLink', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }), credentials: 'omit',
       });
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     } finally {
       global.fetch = originalFetch;
     }
@@ -508,7 +509,7 @@ describe('AddArtistData authenticated API editing', () => {
     request.mockResolvedValue({ ok: true, json: async () => ({ status: 'ok', success: true, siteName: 'spotify', changed }) });
     await submit();
     await waitFor(() => expect(screen.getByText('Link saved successfully.')).toBeInTheDocument());
-    expect(addArtistDataAction).not.toHaveBeenCalled();
+    expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     if (changed) expect(mockTrackEvent).toHaveBeenCalledWith('profile_edit', { action: 'link_add', target: 'spotify' });
     else expect(mockTrackEvent).not.toHaveBeenCalledWith('profile_edit', expect.anything());
   });

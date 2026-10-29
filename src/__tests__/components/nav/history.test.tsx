@@ -19,8 +19,8 @@ jest.mock('@privy-io/react-auth', () => ({
 }));
 
 const mockAddArtist = jest.fn();
-jest.mock('@/app/actions/addArtist', () => ({
-    addArtist: (...args: unknown[]) => mockAddArtist(...args),
+jest.mock('@/lib/artist/requestAddArtist', () => ({
+    requestAddArtist: (...args: unknown[]) => mockAddArtist(...args),
 }));
 
 jest.mock('use-debounce', () => ({

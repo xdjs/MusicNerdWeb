@@ -1,4 +1,4 @@
-import type { AddArtistResp } from '@/server/utils/queries/artistQueries';
+import type { AddArtistResp } from '@/lib/artist/addArtistTypes';
 import type { AnalyticsEvents } from '@/lib/analytics/events';
 import { addArtistStep } from '@/lib/analytics/addArtistStep';
 import { trackEvent } from '@/lib/analytics/trackEvent';
