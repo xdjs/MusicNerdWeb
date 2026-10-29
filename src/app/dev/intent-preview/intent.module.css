@@ -526,9 +526,10 @@
   align-items: start;
 }
 .compositionBlock {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 19px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 24px 0;
   min-width: 0;
   background: var(--paper);
 }
@@ -604,7 +605,7 @@
   margin: 10px 0 7px;
 }
 .evidenceBody > p:not(.date) {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.65;
   color: var(--muted);
 }
@@ -838,11 +839,12 @@
   margin: 12px 0;
 }
 
-/* Keep the conversation and its artifact visible together. */
+/* A persistent bottom conversation entry; content evolves above it. */
 .layout {
   display: block;
-  max-width: 1500px;
-  padding: 28px 36px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 36px 200px;
 }
 .identity {
   position: static;
@@ -878,18 +880,22 @@
   display: none;
 }
 .workspace {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.5fr);
-  gap: 36px;
-  align-items: start;
+  display: block;
 }
 .discussion {
-  position: sticky;
-  top: 120px;
-  min-width: 0;
-  border-right: 1px solid var(--line);
-  padding-right: 28px;
+  position: fixed;
+  z-index: 40;
+  top: auto;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(840px, calc(100% - 32px));
+  padding: 12px 0 calc(18px + env(safe-area-inset-bottom));
+  background: var(--paper);
+  box-shadow: 0 -12px 28px var(--paper);
+  border: 0;
 }
+
 .canvasPanel {
   min-width: 0;
 }
@@ -927,11 +933,6 @@
   }
   .workspace {
     grid-template-columns: 1fr;
-  }
-  .discussion {
-    position: static;
-    border-right: 0;
-    padding-right: 0;
   }
   .conversation {
     max-height: 280px;
@@ -1069,18 +1070,6 @@
   .portraitCaption {
     display: none;
   }
-  .discussion {
-    position: fixed;
-    z-index: 40;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    background: var(--paper);
-    border-top: 1px solid var(--line);
-    box-shadow: 0 -8px 24px #0000000c;
-  }
   .discussion .welcome,
   .discussion .suggestions,
   .discussion .replayNotice {
@@ -1119,3 +1108,39 @@
 .openingFollowUp { margin: 24px 0; }
 .openingFollowUp p { font-size: 18px; line-height: 1.5; margin-bottom: 12px; }
 .openingFollowUp button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 24px; background: var(--soft); color: var(--ink); padding: 10px 14px; margin: 4px 8px 4px 0; text-align: left; max-width: 100%; }
+
+/* Quiet hierarchy, without duplicating the conversation's prompts. */
+.identity { border: 0; margin-bottom: 28px; padding-bottom: 0; gap: 16px; }
+.portrait { width: 64px; height: 64px; min-width: 64px; border-radius: 14px; }
+.artistInfo h1 { font-size: 30px; }
+.artistInfo > p { display: none; }
+.artistInfo > a { font-size: 11px; }
+.discussion .welcome { display: none; }
+.discussion .composer { margin: 8px 0 0; border-radius: 28px; padding: 8px 10px 8px 20px; }
+.discussion .composer button { border-radius: 50%; }
+.discussion .composer input { font-size: 16px; }
+.mobileControls { padding: 0 12px; min-height: 28px; }
+.mobileControls button { border: 0; padding: 4px 0; border-radius: 0; color: var(--muted); }
+.currentAnswer { max-width: 800px; margin: 0 0 30px; font-size: 17px; line-height: 1.65; }
+.questionContext { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+.openingAnswer { max-width: 800px; }
+.openingAnswer > p:not(.context) { font-size: 17px; line-height: 1.65; }
+.openingAnswer > a { margin-right: 12px; }
+.openingFollowUp { margin: 22px 0 32px; }
+.openingFollowUp button { background: transparent; border-color: var(--line); }
+.canvasToolbar { justify-content: flex-end; margin: 14px 0 4px; }
+.canvasToolbar > p { margin-right: auto; }
+.canvasToolbar > button:last-child { opacity: .65; }
+.composition { gap: 28px; }
+.blockHeader h3 { font-size: 19px; }
+.blockActions button { display: grid; place-items: center; min-width: 32px; min-height: 32px; }
+.pinnedMark { display: flex; align-items: center; color: var(--pink); }
+.compositionBlock[data-block-id="starting-work"] .blockHeader h3 { display: none; }
+.compositionBlock[data-block-id="starting-work"] .blockHeader { justify-content: flex-end; margin-bottom: 4px; }
+.evidenceArt { border-radius: 12px; }
+.disclosure { margin-top: 32px; }
+.historySheet { width: min(680px, calc(100vw - 32px)); }
+@media (max-width: 600px) {
+  .layout { padding-bottom: 200px; }
+  .currentAnswer, .openingAnswer > p:not(.context) { font-size: 16px; }
+}

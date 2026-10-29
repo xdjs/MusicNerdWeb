@@ -98,7 +98,6 @@ export default function IntentExplorer({
         ]
       : steps;
   const { theme, setTheme } = useTheme();
-  const [mobile, setMobile] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -121,13 +120,6 @@ export default function IntentExplorer({
   const lastDraft = useRef("");
   const inspectedWhileBusy = useRef(false);
   const revealAfterCommit = useRef(false);
-  useEffect(() => {
-    const query = window.matchMedia("(max-width: 1000px)");
-    const update = () => setMobile(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
   const [input, setInput] = useState(initialIntent ?? "");
   const [state, setState] = useState<{
     spec: CanvasSpec;
@@ -165,7 +157,6 @@ export default function IntentExplorer({
   const [history, setHistory] = useState<(typeof state)[]>([]);
   const [explanations, setExplanations] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
-  const conversationElement = useRef<HTMLDivElement>(null);
   const inputElement = useRef<HTMLInputElement>(null);
   const session = useRef<string | null>(null);
   const pending = useRef<CanvasRequest | null>(null);
@@ -290,11 +281,11 @@ export default function IntentExplorer({
     },
   });
   useEffect(() => {
-    if (mobile && revealAfterCommit.current) {
+    if (revealAfterCommit.current) {
       revealAfterCommit.current = false;
       viewChanges();
     }
-  }, [state.revision, mobile, viewChanges]);
+  }, [state.revision, viewChanges]);
   const busy = status === "submitted" || status === "streaming";
   useEffect(() => {
     try {
@@ -380,11 +371,6 @@ export default function IntentExplorer({
     }
   }
 
-  useEffect(() => {
-    if (busy && conversationElement.current)
-      conversationElement.current.scrollTop =
-        conversationElement.current.scrollHeight;
-  }, [messages, busy]);
   function ask(question: string) {
     if (busy || !question.trim() || !generationEnabled) return;
     session.current ??= crypto.randomUUID();
@@ -452,6 +438,12 @@ export default function IntentExplorer({
       : state.spec.blocks.some((b) => b.id === "voice")
         ? conversationSteps.slice(2)
         : conversationSteps.slice(1, 4);
+  const latestAnswer = messages.findLast(
+    (message) => message.role === "assistant",
+  );
+  const latestQuestion = messages.findLast(
+    (message) => message.role === "user",
+  );
   return (
     <div className={`${styles.experiment} ${embedded ? styles.embedded : ""}`}>
       {!embedded && (
@@ -539,7 +531,8 @@ export default function IntentExplorer({
         <section className={styles.workspace} aria-label="Artist exploration">
           <div
             className={styles.discussion}
-            style={mobile ? { bottom: keyboardOffset } : undefined}
+            style={{ bottom: keyboardOffset }}
+            aria-label="Exploration composer"
           >
             {state.revision === 0 && !profile && (
               <div className={styles.welcome}>
@@ -560,50 +553,17 @@ export default function IntentExplorer({
                 </p>
               </div>
             )}
-            {!mobile && (
-              <div
-                className={styles.conversation}
-                aria-label="Conversation"
-                tabIndex={0}
-                ref={conversationElement}
-              >
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={
-                      message.role === "user"
-                        ? styles.userTurn
-                        : styles.assistantTurn
-                    }
-                  >
-                    <span>
-                      {message.role === "user"
-                        ? "You"
-                        : liveApiUrl
-                          ? "Music Nerd"
-                          : "Music Nerd · replay"}
-                    </span>
-                    <CanvasMessage
-                      message={message}
-                      explanation={explanations[message.id]}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            {mobile && (
-              <div className={styles.mobileControls}>
-                <button onClick={() => setHistoryOpen(true)}>
-                  Conversation{messages.length ? ` · ${messages.length}` : ""}
+            <div className={styles.mobileControls}>
+              <button onClick={() => setHistoryOpen(true)}>
+                Conversation{messages.length ? ` · ${messages.length}` : ""}
+              </button>
+              {changedBlocks.length > 0 && (
+                <button onClick={viewChanges}>
+                  Updated {changedBlocks.length} cards · View changes
                 </button>
-                {changedBlocks.length > 0 && (
-                  <button onClick={viewChanges}>
-                    Updated {changedBlocks.length} cards · View changes
-                  </button>
-                )}
-              </div>
-            )}
-            <Dialog open={mobile && historyOpen} onOpenChange={setHistoryOpen}>
+              )}
+            </div>
+            <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
               <DialogContent className={styles.historySheet}>
                 <DialogHeader>
                   <DialogTitle>Conversation with Music Nerd</DialogTitle>
@@ -658,41 +618,46 @@ export default function IntentExplorer({
                 <ArrowUpRight size={25} />
               </button>
             </form>
-            <div
-              className={styles.suggestions}
-              aria-label={
-                liveApiUrl
-                  ? "Suggested explorations"
-                  : "Replay conversation steps"
-              }
-            >
-              {(generationEnabled ? suggested : [])
-                .filter(
-                  (prompt) =>
-                    prompt !== "Compare my selection" || selected.length === 2,
-                )
-                .map((prompt) => (
-                  <button
-                    disabled={busy}
-                    key={prompt}
-                    onClick={() => ask(prompt)}
-                  >
-                    {prompt}
-                    <ArrowUpRight size={14} />
-                  </button>
-                ))}
-            </div>
+            {!liveApiUrl && (
+              <div
+                className={styles.suggestions}
+                aria-label={
+                  liveApiUrl
+                    ? "Suggested explorations"
+                    : "Replay conversation steps"
+                }
+              >
+                {(generationEnabled ? suggested : [])
+                  .filter(
+                    (prompt) =>
+                      prompt !== "Compare my selection" ||
+                      selected.length === 2,
+                  )
+                  .map((prompt) => (
+                    <button
+                      disabled={busy}
+                      key={prompt}
+                      onClick={() => ask(prompt)}
+                    >
+                      {prompt}
+                      <ArrowUpRight size={14} />
+                    </button>
+                  ))}
+              </div>
+            )}
             {!generationEnabled && (
               <p role="status">
                 You can browse this artist’s saved sources. Live generation for
                 additional artists is not enabled in this preview yet.
               </p>
             )}
-            <p className={styles.replayNotice}>
-              {liveApiUrl
-                ? "Ask a follow-up or select evidence. Your canvas evolves with the conversation."
-                : "Guided replay: these prompts exercise the real canvas protocol. Free-form model planning is not enabled."}
-            </p>
+            {!liveApiUrl && (
+              <p className={styles.replayNotice}>
+                {liveApiUrl
+                  ? "Ask a follow-up or select evidence. Your canvas evolves with the conversation."
+                  : "Guided replay: these prompts exercise the real canvas protocol. Free-form model planning is not enabled."}
+              </p>
+            )}
             {busy && (
               <div role="status" className={styles.status}>
                 Composing the next canvas…{" "}
@@ -723,9 +688,25 @@ export default function IntentExplorer({
               if (busy) inspectedWhileBusy.current = true;
             }}
           >
-            {profile && state.revision === 0 && (
+            {latestAnswer && (
+              <div
+                className={styles.currentAnswer}
+                aria-label="Current exploration answer"
+                aria-live="polite"
+              >
+                {latestQuestion && (
+                  <p className={styles.questionContext}>
+                    {getMessageText(latestQuestion)}
+                  </p>
+                )}
+                <CanvasMessage
+                  message={latestAnswer}
+                  explanation={explanations[latestAnswer.id]}
+                />
+              </div>
+            )}
+            {profile && state.revision === 0 && !messages.length && (
               <div className={styles.openingAnswer}>
-                <p className={styles.context}>Music Nerd</p>
                 {introduction ? (
                   <>
                     <p>{introduction.text}</p>
@@ -755,7 +736,7 @@ export default function IntentExplorer({
                 )}
               </div>
             )}
-            {profile && state.revision === 0 && (
+            {profile && state.revision === 0 && !messages.length && (
               <div className={styles.openingFollowUp}>
                 <p>{openingQuestion}</p>
                 {openingSuggestions.map((suggestion) => (
@@ -770,9 +751,7 @@ export default function IntentExplorer({
               </div>
             )}
             <div className={styles.canvasToolbar}>
-              <p role="status">
-                {notice || `${state.spec.blocks.length} blocks on your canvas`}
-              </p>
+              <p role="status">{notice || ""}</p>
               <button disabled={busy || !history.length} onClick={undo}>
                 <ArrowLeft size={14} /> Undo canvas change
               </button>
@@ -831,10 +810,6 @@ export default function IntentExplorer({
               ))}
             </div>
             <footer className={styles.disclosure}>
-              <p>
-                Sources stay close to the story. Open any card to see where it
-                came from.
-              </p>
               <details>
                 <summary>What is live in this experiment?</summary>
                 <p>

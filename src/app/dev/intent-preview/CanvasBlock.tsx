@@ -1,7 +1,13 @@
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { getReadableCanvasText } from "@/lib/intent/getReadableCanvasText";
 import { formatCanvasDate } from "@/lib/intent/formatCanvasDate";
-import { useState } from "react";
-import { Pin, Maximize2, Minimize2, X } from "lucide-react";
+import { useState, useRef } from "react";
+import { Pin, Maximize2, Minimize2, X, MoreHorizontal } from "lucide-react";
 import type { CanvasEvidence, CanvasSpec } from "@/lib/intent/canvasProtocol";
 import styles from "./intent.module.css";
 export default function CanvasBlock({
@@ -29,6 +35,7 @@ export default function CanvasBlock({
   onSelect: (id: string) => void;
   onFocus: () => void;
 }) {
+  const removing = useRef(false);
   const [failedImages, setFailedImages] = useState<string[]>([]);
   const items = block.items
     .map((id) => evidence.find((item) => item.id === id))
@@ -50,38 +57,54 @@ export default function CanvasBlock({
     >
       <header className={styles.blockHeader}>
         <div>
-          <span>
-            {block.kind === "cards"
-              ? "Sources & works"
-              : block.kind === "quote"
-                ? "Artist voice"
-                : block.kind}
-          </span>
           <h3>{block.title}</h3>
         </div>
         <div className={styles.blockActions}>
-          <button
-            disabled={busy}
-            onClick={onPin}
-            aria-label={`${pinned ? "Unpin" : "Pin"} ${block.title}`}
-            aria-pressed={pinned}
-          >
-            <Pin size={14} />
-          </button>
-          <button
-            disabled={busy}
-            onClick={onExpand}
-            aria-label={`${expanded ? "Collapse" : "Expand"} ${block.title}`}
-          >
-            {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
-          <button
-            disabled={busy || pinned}
-            onClick={onRemove}
-            aria-label={`Remove ${block.title}`}
-          >
-            <X size={15} />
-          </button>
+          {pinned && (
+            <span className={styles.pinnedMark} aria-label="Pinned">
+              <Pin size={13} />
+            </span>
+          )}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <button disabled={busy} aria-label={`Actions for ${block.title}`}>
+                <MoreHorizontal size={20} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              onCloseAutoFocus={(event) => {
+                if (removing.current) event.preventDefault();
+              }}
+            >
+              <DropdownMenuItem
+                disabled={busy}
+                onSelect={onPin}
+                aria-label={`${pinned ? "Unpin" : "Pin"} ${block.title}`}
+              >
+                <Pin size={14} />
+                {pinned ? "Unpin" : "Pin"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={busy}
+                onSelect={onExpand}
+                aria-label={`${expanded ? "Collapse" : "Expand"} ${block.title}`}
+              >
+                {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}{" "}
+                {expanded ? "Collapse" : "Expand"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={busy || pinned}
+                onSelect={() => {
+                  removing.current = true;
+                  onRemove();
+                }}
+                aria-label={`Remove ${block.title}`}
+              >
+                <X size={14} /> Remove
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
       <div

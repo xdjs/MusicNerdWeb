@@ -10,6 +10,7 @@ jest.mock("@/app/_components/ThemeProvider", () => ({
 const mockUseChat = useChat as jest.Mock;
 beforeEach(() => {
   sessionStorage.clear();
+  HTMLElement.prototype.scrollIntoView = jest.fn();
   mockUseChat.mockReturnValue({
     messages: [],
     setMessages: jest.fn(),
@@ -79,8 +80,18 @@ it("labels replay honestly and only changes canvas after a successful complete t
     }),
   );
   expect(screen.getByRole("heading", { name: "Career" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Pin Career" }));
-  expect(screen.getByRole("button", { name: "Remove Career" })).toBeDisabled();
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: "Actions for Career" }),
+    { key: "Enter" },
+  );
+  fireEvent.click(screen.getByRole("menuitem", { name: "Pin Career" }));
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: "Actions for Career" }),
+    { key: "Enter" },
+  );
+  expect(
+    screen.getByRole("menuitem", { name: "Remove Career" }),
+  ).toHaveAttribute("aria-disabled", "true");
 });
 
 it("clears invisible selections when a card is removed and restores keyboard focus", () => {
@@ -89,8 +100,12 @@ it("clears invisible selections when a card is removed and restores keyboard foc
   expect(
     screen.getByRole("button", { name: "Compare selection" }),
   ).toBeInTheDocument();
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: "Actions for A place to begin" }),
+    { key: "Enter" },
+  );
   fireEvent.click(
-    screen.getByRole("button", { name: "Remove A place to begin" }),
+    screen.getByRole("menuitem", { name: "Remove A place to begin" }),
   );
   expect(
     screen.queryByRole("button", { name: "Compare selection" }),
@@ -98,7 +113,7 @@ it("clears invisible selections when a card is removed and restores keyboard foc
   expect(
     screen.getByRole("textbox", { name: "Explore LATASHÁ" }),
   ).toHaveFocus();
-  expect(screen.getByText("0 blocks on your canvas")).toBeInTheDocument();
+  expect(screen.getByText(/Your canvas is clear/)).toBeInTheDocument();
 });
 
 it("ignores a late data packet without discarding the current valid turn", () => {
@@ -198,19 +213,21 @@ it("uses existing anonymous access when the optional login helper throws synchro
 
 it("restores pins and canvas after remount, and reset clears the saved exploration", () => {
   const first = render(<IntentExplorer />);
-  fireEvent.click(screen.getByRole("button", { name: "Pin A place to begin" }));
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: "Actions for A place to begin" }),
+    { key: "Enter" },
+  );
+  fireEvent.click(
+    screen.getByRole("menuitem", { name: "Pin A place to begin" }),
+  );
   first.unmount();
   render(<IntentExplorer />);
-  expect(
-    screen.getByRole("button", { name: "Unpin A place to begin" }),
-  ).toBeInTheDocument();
+  expect(screen.getByLabelText("Pinned")).toBeInTheDocument();
   expect(
     screen.getByText("Restored this tab’s saved exploration."),
   ).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Reset exploration" }));
-  expect(
-    screen.getByRole("button", { name: "Pin A place to begin" }),
-  ).toBeInTheDocument();
+  expect(screen.queryByLabelText("Pinned")).not.toBeInTheDocument();
   expect(screen.getByText("Started a fresh exploration.")).toBeInTheDocument();
 });
 it("preserves the usable canvas after a malformed composition finishes", () => {
@@ -405,4 +422,54 @@ it("does not create an invalid empty block when only a public bio is available",
     screen.queryByRole("heading", { name: "A place to begin" }),
   ).not.toBeInTheDocument();
   expect(screen.getByText(/Your canvas is clear/)).toBeInTheDocument();
+});
+
+it("uses one bottom composer and on-demand history on desktop, with the latest answer above content", () => {
+  mockUseChat.mockReturnValue({
+    messages: [
+      {
+        id: "old",
+        role: "assistant",
+        parts: [{ type: "text", text: "An earlier answer." }],
+      },
+      {
+        id: "question",
+        role: "user",
+        parts: [{ type: "text", text: "Follow the recordings." }],
+      },
+      {
+        id: "latest",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "Here is the latest source-backed answer." },
+        ],
+      },
+    ],
+    setMessages: jest.fn(),
+    sendMessage: jest.fn(),
+    status: "ready",
+    stop: jest.fn(),
+  });
+  render(
+    <IntentExplorer
+      liveApiUrl="https://example.com/chat"
+      embedded
+      profile={{ id: "artist", name: "Artist", profileUrl: "/artist/artist" }}
+    />,
+  );
+  expect(
+    screen.getAllByRole("textbox", { name: "Explore Artist" }),
+  ).toHaveLength(1);
+  expect(screen.getByLabelText("Exploration composer")).toContainElement(
+    screen.getByRole("textbox", { name: "Explore Artist" }),
+  );
+  expect(
+    screen.getByText("Here is the latest source-backed answer."),
+  ).toBeInTheDocument();
+  expect(screen.queryByText("An earlier answer.")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("region", { name: "Conversation" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Conversation · 3" }));
+  expect(screen.getByRole("dialog")).toHaveTextContent("An earlier answer.");
 });
