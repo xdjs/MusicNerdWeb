@@ -6,7 +6,9 @@ import styles from "./HomePageSplash.module.css";
 import FooterLinks from "./FooterLinks";
 
 export default function Footer() {
-    const isHome = usePathname() === "/";
+    const pathname = usePathname();
+    if (pathname === "/dev/intent-preview") return null;
+    const isHome = pathname === "/";
     if (isHome) {
         return (
             <footer className={styles.homeFooter}>

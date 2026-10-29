@@ -11,6 +11,7 @@ import { Suspense } from "react";
 
 export default function NavContent() {
     const pathname = usePathname();
+    if (pathname === "/dev/intent-preview") return null;
     const isProfile = pathname?.startsWith("/artist/");
     if (pathname === "/") {
         return (
