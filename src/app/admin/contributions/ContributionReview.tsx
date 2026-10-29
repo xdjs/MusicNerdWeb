@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { approveUgcAdminAction } from '@/app/actions/serverActions';
-import { updateSourceStatus } from '@/app/actions/dashboardActions';
+import { reviewLoreSource } from '@/lib/source/reviewLoreSource';
 import type { Contribution, getAdminContributions } from '@/server/utils/contributions/getAdminContributions';
 import ContributionFilters from './ContributionFilters';
 import BulkApproveContributor from './BulkApproveContributor';
@@ -16,10 +16,10 @@ import surface from '@/app/profile/ProfileConcept.module.css';
 const origins = { user: 'User submissions', research: 'Automated research', unknown: 'Unknown origin' };
 const types = { link: 'Link submission', lore: 'Lore source', upload: 'Upload' };
 
-export default function ContributionReview({ data, contributorName, onApproveLinks = approveUgcAdminAction, onReviewLore = updateSourceStatus }: {
+export default function ContributionReview({ data, contributorName, onApproveLinks = approveUgcAdminAction, onReviewLore = reviewLoreSource }: {
  data: Awaited<ReturnType<typeof getAdminContributions>>;
  contributorName?: string;
- onApproveLinks?: typeof approveUgcAdminAction; onReviewLore?: typeof updateSourceStatus;
+ onApproveLinks?: typeof approveUgcAdminAction; onReviewLore?: typeof reviewLoreSource;
 }) {
  const router = useRouter();
  const [refreshing, startRefresh] = useTransition();
@@ -34,7 +34,7 @@ export default function ContributionReview({ data, contributorName, onApproveLin
   if(inFlight.current || refreshing) return;
   inFlight.current = true; setBusy(true); setFeedback(null);
   try {
-   const response = item.type === 'link' ? await onApproveLinks([item.id]) : await onReviewLore(item.id,status,'pending');
+   const response = item.type === 'link' ? await onApproveLinks([item.id]) : await onReviewLore(item.artistId,item.id,status);
    const success = 'success' in response ? response.success : response.status === 'success';
    const error = 'error' in response ? response.error : 'message' in response ? response.message : undefined;
    setFeedback({error:!success,message:success ? `Submission ${status}.` : error || 'Could not review this submission.'});

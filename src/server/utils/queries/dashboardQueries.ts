@@ -297,71 +297,13 @@ export async function getVaultSourceByIdAndArtist(sourceId: string, artistId: st
     }
 }
 
-export async function getVaultSourceById(sourceId: string) {
-    try {
-        return await db.query.artistVaultSources.findFirst({
-            where: (s, { eq }) => eq(s.id, sourceId),
-        });
-    } catch (e) {
-        console.error("[getVaultSourceById] Error:", e);
-        return undefined;
-    }
-}
-
 async function withVaultSourceWrite<T>(sourceId: string, write: (tx: ScopedWriteDb, predicate: ReturnType<typeof eq>) => Promise<T>): Promise<T> {
     const scope = getActiveArtistOperation();
     if (!scope) return write(db, eq(artistVaultSources.id, sourceId));
     return withScopedArtistWrite(scope.artistId, tx => write(tx, and(eq(artistVaultSources.id, sourceId), eq(artistVaultSources.artistId, scope.artistId))!));
 }
 
-export { updateVaultSourceStatus } from './updateVaultSourceStatus';
-
 export { insertVaultSource } from './insertVaultSource';
-
-export async function deleteVaultSource(sourceId: string) {
-    try {
-        const [deleted] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
-            .delete(artistVaultSources)
-            .where(predicate)
-            .returning());
-        return deleted;
-    } catch (e) {
-        console.error("[deleteVaultSource] Error:", e);
-        throw e;
-    }
-}
-
-export async function updateVaultSourceType(sourceId: string, type: string) {
-    try {
-        const [updated] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
-            .update(artistVaultSources)
-            .set({
-                type,
-                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
-            })
-            .where(predicate)
-            .returning());
-        return updated;
-    } catch (e) {
-        console.error("[updateVaultSourceType] Error:", e);
-        throw e;
-    }
-}
-
-export async function deleteVaultSources(sourceIds: string[]) {
-    if (sourceIds.length === 0) return [];
-    try {
-        const { inArray } = await import("drizzle-orm");
-        const deleted = await db
-            .delete(artistVaultSources)
-            .where(inArray(artistVaultSources.id, sourceIds))
-            .returning();
-        return deleted;
-    } catch (e) {
-        console.error("[deleteVaultSources] Error:", e);
-        throw e;
-    }
-}
 
 export async function updateVaultSourceContent(sourceId: string, data: {
     title?: string;

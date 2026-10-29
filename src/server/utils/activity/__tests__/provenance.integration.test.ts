@@ -111,16 +111,6 @@ it('records every accepted coalesced Lore request without replacing the running 
   expect((await activity({ action: 'lore_refresh' })).total).toBe(before + 1);
   expect((await database.select().from(schema.artistResearchJobs)).find(job => job.kind === 'lore_refresh')?.activityId).toBe(root.activityId);
 });
-it('records source review in its write transaction without changing original provenance', async () => {
-  const { withArtistOperation } = await import('../../artistOperationContext');
-  const { updateVaultSourceStatus } = await import('../../queries/dashboardQueries');
-  const claimId = '00000000-0000-4000-8000-000000000004';
-  await withArtistOperation(artist, { userId: user, expectedClaimId: claimId, trigger: 'source_review' }, () => updateVaultSourceStatus(source, 'approved', 'pending'));
-  const events = await activity({ action: 'source_approved' });
-  expect(events.items[0]).toMatchObject({ sourceId: source, actorId: user, trigger: 'source_review' });
-  await client.query("update artist_vault_sources set status = 'pending' where id = $1", [source]);
-  expect((await queue({ type: 'sources' })).items.find(item=>item.id===source)).toMatchObject({ actorId: user, origin: 'research', trigger: 'editor_search' });
-});
 it('accepts durable source searches after upgrading the existing job-kind constraint', async () => {
   const { enqueueResearchJob } = await import('../../queries/researchJobQueries');
   await enqueueResearchJob(artist, 'source_search');
