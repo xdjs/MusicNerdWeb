@@ -43,6 +43,17 @@ it('waits for the NextAuth sign-in, whose reload would lose the prompt',async()=
  await new Promise(resolve=>setTimeout(resolve,0));
  expect(global.fetch).not.toHaveBeenCalled();
 });
+it('waits for the next page load when NextAuth signs in after this one started',async()=>{
+ const session=useSession as jest.Mock;
+ session.mockReturnValue({data:null,status:'unauthenticated',update:jest.fn()});
+ global.fetch=jest.fn();
+ const {rerender}=render(<UserNameSetup/>);
+ session.mockReturnValue({data:{},status:'authenticated',update:jest.fn()});
+ rerender(<UserNameSetup/>);
+ await new Promise(resolve=>setTimeout(resolve,0));
+ expect(global.fetch).not.toHaveBeenCalled();
+ session.mockReturnValue({data:{},status:'authenticated',update:jest.fn()});
+});
 it('never loads account setup while logged out',()=>{user=null;global.fetch=jest.fn();render(<UserNameSetup/>);expect(global.fetch).not.toHaveBeenCalled();});
 it('shows the API error when the name is rejected',async()=>{
  global.fetch=jest.fn().mockResolvedValueOnce({ok:true,json:async()=>({status:'ok',showPrompt:true})})
