@@ -107,7 +107,10 @@ export default function CanvasBlock({
               {block.kind === "quote" ? (
                 <blockquote>
                   “{item.text}”
-                  <cite>{item.attribution ?? "Attribution unavailable · inspect source"}</cite>
+                  <cite>
+                    {item.attribution ??
+                      "Attribution unavailable · inspect source"}
+                  </cite>
                 </blockquote>
               ) : (
                 <>
@@ -139,7 +142,9 @@ export default function CanvasBlock({
               <details className={styles.source}>
                 <summary>
                   {item.page
-                    ? `Inspect PDF page ${item.page}`
+                    ? item.pagePreview
+                      ? `Inspect PDF page ${item.page}`
+                      : `Read cited passage · PDF p. ${item.page}`
                     : "Evidence & context"}
                 </summary>
                 <div>
@@ -156,7 +161,9 @@ export default function CanvasBlock({
                   <p>{item.text}</p>
                   <p className={styles.caveat}>{item.limitation}</p>
                   <a href={item.url} target="_blank" rel="noreferrer">
-                    Read the original source
+                    {item.page
+                      ? `Open original PDF · page ${item.page}`
+                      : "Read the original source"}
                   </a>
                 </div>
               </details>
