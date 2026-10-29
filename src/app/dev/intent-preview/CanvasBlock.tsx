@@ -31,7 +31,12 @@ export default function CanvasBlock({
   const [failedImages, setFailedImages] = useState<string[]>([]);
   const items = block.items
     .map((id) => evidence.find((item) => item.id === id))
-    .filter((item): item is CanvasEvidence => !!item);
+    .filter((item): item is CanvasEvidence => !!item)
+    .map((item) =>
+      item.title === "Instagram · saved post"
+        ? { ...item, title: "Instagram" }
+        : item,
+    );
   return (
     <section
       data-canvas-block={block.id}
