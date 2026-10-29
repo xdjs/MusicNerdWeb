@@ -1101,46 +1101,182 @@
   outline: 2px solid var(--pink);
   outline-offset: 4px;
 }
-.openingAnswer { margin: 0 0 22px; max-width: 760px; }
-.openingAnswer h2 { font-size: 24px; line-height: 1.2; margin: 8px 0 14px; letter-spacing: -.025em; }
-.openingAnswer > p:not(.context) { font-size: 15px; line-height: 1.7; }
-.openingAnswer > a { display: inline-block; margin-top: 8px; font-size: 11px; color: var(--muted); }
-.openingFollowUp { margin: 24px 0; }
-.openingFollowUp p { font-size: 18px; line-height: 1.5; margin-bottom: 12px; }
-.openingFollowUp button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 24px; background: var(--soft); color: var(--ink); padding: 10px 14px; margin: 4px 8px 4px 0; text-align: left; max-width: 100%; }
+.openingAnswer {
+  margin: 0 0 22px;
+  max-width: 760px;
+}
+.openingAnswer h2 {
+  font-size: 24px;
+  line-height: 1.2;
+  margin: 8px 0 14px;
+  letter-spacing: -0.025em;
+}
+.openingAnswer > p:not(.context) {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.openingAnswer > a {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.openingFollowUp {
+  margin: 24px 0;
+}
+.openingFollowUp p {
+  font-size: 18px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.openingFollowUp button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--soft);
+  color: var(--ink);
+  padding: 10px 14px;
+  margin: 4px 8px 4px 0;
+  text-align: left;
+  max-width: 100%;
+}
 
 /* Quiet hierarchy, without duplicating the conversation's prompts. */
-.identity { border: 0; margin-bottom: 28px; padding-bottom: 0; gap: 16px; }
-.portrait { width: 64px; height: 64px; min-width: 64px; border-radius: 14px; }
-.artistInfo h1 { font-size: 30px; }
-.artistInfo > p { display: none; }
-.artistInfo > a { font-size: 11px; }
-.discussion .welcome { display: none; }
-.discussion .composer { margin: 8px 0 0; border-radius: 28px; padding: 8px 10px 8px 20px; }
-.discussion .composer button { border-radius: 50%; }
-.discussion .composer input { font-size: 16px; }
-.mobileControls { padding: 0 12px; min-height: 28px; }
-.mobileControls button { border: 0; padding: 4px 0; border-radius: 0; color: var(--muted); }
-.currentAnswer { max-width: 800px; margin: 0 0 30px; font-size: 17px; line-height: 1.65; }
-.questionContext { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
-.openingAnswer { max-width: 800px; }
-.openingAnswer > p:not(.context) { font-size: 17px; line-height: 1.65; }
-.openingAnswer > a { margin-right: 12px; }
-.openingFollowUp { margin: 22px 0 32px; }
-.openingFollowUp button { background: transparent; border-color: var(--line); }
-.canvasToolbar { justify-content: flex-end; margin: 14px 0 4px; }
-.canvasToolbar > p { margin-right: auto; }
-.canvasToolbar > button:last-child { opacity: .65; }
-.composition { gap: 28px; }
-.blockHeader h3 { font-size: 19px; }
-.blockActions button { display: grid; place-items: center; min-width: 32px; min-height: 32px; }
-.pinnedMark { display: flex; align-items: center; color: var(--pink); }
-.compositionBlock[data-block-id="starting-work"] .blockHeader h3 { display: none; }
-.compositionBlock[data-block-id="starting-work"] .blockHeader { justify-content: flex-end; margin-bottom: 4px; }
-.evidenceArt { border-radius: 12px; }
-.disclosure { margin-top: 32px; }
-.historySheet { width: min(680px, calc(100vw - 32px)); }
+.identity {
+  border: 0;
+  margin-bottom: 28px;
+  padding-bottom: 0;
+  gap: 16px;
+}
+.portrait {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  border-radius: 14px;
+}
+.artistInfo h1 {
+  font-size: 30px;
+}
+.artistInfo > p {
+  display: none;
+}
+.artistInfo > a {
+  font-size: 11px;
+}
+.discussion .welcome {
+  display: none;
+}
+.discussion .composer {
+  margin: 8px 0 0;
+  border-radius: 28px;
+  padding: 8px 10px 8px 20px;
+}
+.discussion .composer button {
+  border-radius: 50%;
+}
+.discussion .composer input {
+  font-size: 16px;
+}
+.mobileControls {
+  padding: 0 12px;
+  min-height: 28px;
+}
+.mobileControls button {
+  border: 0;
+  padding: 4px 0;
+  border-radius: 0;
+  color: var(--muted);
+}
+.currentAnswer {
+  max-width: 800px;
+  margin: 0 0 30px;
+  font-size: 17px;
+  line-height: 1.65;
+}
+.questionContext {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+.openingAnswer {
+  max-width: 800px;
+}
+.openingAnswer > p:not(.context) {
+  font-size: 17px;
+  line-height: 1.65;
+}
+.openingAnswer > a {
+  margin-right: 12px;
+}
+.openingFollowUp {
+  margin: 22px 0 32px;
+}
+.openingFollowUp button {
+  background: transparent;
+  border-color: var(--line);
+}
+.canvasToolbar {
+  justify-content: flex-end;
+  margin: 14px 0 4px;
+}
+.canvasToolbar > p {
+  margin-right: auto;
+}
+.canvasToolbar > button:last-child {
+  opacity: 0.65;
+}
+.composition {
+  gap: 28px;
+}
+.blockHeader h3 {
+  font-size: 19px;
+}
+.blockActions button {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+.pinnedMark {
+  display: flex;
+  align-items: center;
+  color: var(--pink);
+}
+.compositionBlock[data-block-id="starting-work"] .blockHeader h3 {
+  display: none;
+}
+.compositionBlock[data-block-id="starting-work"] .blockHeader {
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+.evidenceArt {
+  border-radius: 12px;
+}
+.disclosure {
+  margin-top: 32px;
+}
+.historySheet {
+  width: min(680px, calc(100vw - 32px));
+}
 @media (max-width: 600px) {
-  .layout { padding-bottom: 200px; }
-  .currentAnswer, .openingAnswer > p:not(.context) { font-size: 16px; }
+  .layout {
+    padding-bottom: 200px;
+  }
+  .currentAnswer,
+  .openingAnswer > p:not(.context) {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .blockComparison {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 1000px) {
+  .composition {
+    grid-template-columns: 1fr;
+  }
 }

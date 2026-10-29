@@ -473,3 +473,34 @@ it("uses one bottom composer and on-demand history on desktop, with the latest a
   fireEvent.click(screen.getByRole("button", { name: "Conversation · 3" }));
   expect(screen.getByRole("dialog")).toHaveTextContent("An earlier answer.");
 });
+
+it("keeps the previous answer paired with its own question during a follow-up", () => {
+  mockUseChat.mockReturnValue({
+    messages: [
+      {
+        id: "q1",
+        role: "user",
+        parts: [{ type: "text", text: "Original question" }],
+      },
+      {
+        id: "a1",
+        role: "assistant",
+        parts: [{ type: "text", text: "Original answer" }],
+      },
+      {
+        id: "q2",
+        role: "user",
+        parts: [{ type: "text", text: "Pending follow-up" }],
+      },
+    ],
+    setMessages: jest.fn(),
+    sendMessage: jest.fn(),
+    status: "submitted",
+    stop: jest.fn(),
+  });
+  render(<IntentExplorer liveApiUrl="https://example.test/api" />);
+  const answer = screen.getByLabelText("Current exploration answer");
+  expect(answer).toHaveTextContent("Original question");
+  expect(answer).toHaveTextContent("Original answer");
+  expect(answer).not.toHaveTextContent("Pending follow-up");
+});

@@ -441,9 +441,9 @@ export default function IntentExplorer({
   const latestAnswer = messages.findLast(
     (message) => message.role === "assistant",
   );
-  const latestQuestion = messages.findLast(
-    (message) => message.role === "user",
-  );
+  const latestQuestion = messages
+    .slice(0, latestAnswer ? messages.indexOf(latestAnswer) : 0)
+    .findLast((message) => message.role === "user");
   return (
     <div className={`${styles.experiment} ${embedded ? styles.embedded : ""}`}>
       {!embedded && (
