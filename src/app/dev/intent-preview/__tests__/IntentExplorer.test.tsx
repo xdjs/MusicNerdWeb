@@ -329,13 +329,11 @@ it("restores a failed draft", () => {
 
 it("keeps the mobile canvas visible while conversation history is a dismissible dialog", () => {
   const previous = window.matchMedia;
-  window.matchMedia = jest
-    .fn()
-    .mockReturnValue({
-      matches: true,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    });
+  window.matchMedia = jest.fn().mockReturnValue({
+    matches: true,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  });
   try {
     mockUseChat.mockReturnValue({
       messages: [
@@ -397,4 +395,14 @@ it("opens as a sourced first answer with an artist-specific invitation without c
   expect(
     mockUseChat.mock.results.at(-1)?.value.sendMessage,
   ).not.toHaveBeenCalled();
+});
+
+it("does not create an invalid empty block when only a public bio is available", () => {
+  render(
+    <IntentExplorer initialEvidence={canvasSeed.slice(0, 1)} openingIds={[]} />,
+  );
+  expect(
+    screen.queryByRole("heading", { name: "A place to begin" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText(/Your canvas is clear/)).toBeInTheDocument();
 });
