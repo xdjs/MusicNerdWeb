@@ -4,7 +4,7 @@ import { getContributorApprovalItems } from '@/app/actions/getContributorApprova
 import { approveContributorSubmissions } from '@/app/actions/approveContributorSubmissions';
 
 const refresh = jest.fn();
-jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
+jest.mock('@/hooks/useRefreshAdmin',()=>({useRefreshAdmin:()=>refresh}));
 jest.mock('@/app/actions/getContributorApprovalItems', () => ({ getContributorApprovalItems: jest.fn() }));
 jest.mock('@/app/actions/approveContributorSubmissions', () => ({ approveContributorSubmissions: jest.fn() }));
 const items = [

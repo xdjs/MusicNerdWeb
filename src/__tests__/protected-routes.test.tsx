@@ -75,16 +75,13 @@ jest.mock('@/app/artist/[id]/_components/ClaimButton', () => function ClaimButto
 jest.mock('@/app/artist/[id]/_components/LatestSection', () => function LatestSection() { return <section id="mn-latest">Latest</section>; });
 jest.mock('@/app/artist/[id]/_components/VaultSection', () => function VaultSection() { return <div data-testid="vault-section" />; });
 jest.mock('@/app/artist/[id]/_components/AskAboutArtist', () => function AskAboutArtist() { return null; });
-jest.mock('@/server/utils/queries/userQueries', () => ({
-    getUserById: jest.fn().mockResolvedValue({ id: 'user-uuid', isAdmin: false, isWhiteListed: false }),
-    getAllUsers: jest.fn().mockResolvedValue([]),
-}));
+// Who is looking is read on the client from MusicNerdAPI; a visitor unless a test says otherwise.
+jest.mock('@/hooks/useArtistViewer', () => ({ useArtistViewer: jest.fn(() => ({ user: null, claimStatus: null, addedByCaller: false })) }));
+jest.mock('@/hooks/useArtistEditor', () => ({ useArtistEditor: jest.fn(() => null) }));
+jest.mock('@/hooks/useClaimantOnboarding', () => ({ useClaimantOnboarding: jest.fn(() => null) }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({
     getClaimByArtistId: jest.fn().mockResolvedValue(null),
     getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
-}));
-jest.mock('@/server/utils/dev-auth', () => ({
-    getDevSession: jest.fn().mockResolvedValue(null),
 }));
 
 import AddArtistPage from '@/app/add-artist/page';
@@ -92,11 +89,8 @@ import ArtistProfile from '@/app/artist/[id]/page';
 import { getServerAuthSession } from '@/server/auth';
 import { getArtistById, getAllLinks } from '@/server/utils/queries/artistQueries';
 import { spotifyProvider, musicPlatformData } from '@/server/utils/musicPlatform';
-
-const mockSession = {
-    user: { id: 'user-uuid', email: 'test@test.com', isAdmin: false, isWhiteListed: true },
-    expires: '2026-12-31',
-};
+import { useArtistViewer } from '@/hooks/useArtistViewer';
+import { mockMusicNerdUser } from '@/test/__mocks__/useMusicNerdUser';
 
 const mockArtist = {
     id: 'artist-uuid',
@@ -111,7 +105,7 @@ describe('Protected routes', () => {
         jest.clearAllMocks();
     });
 
-    describe('/add-artist (requires authentication)', () => {
+    describe('/add-artist (sign-in is asked for on Add, in the browser)', () => {
         beforeEach(() => {
             (spotifyProvider.getArtist as jest.Mock).mockResolvedValue({
                 platform: 'spotify', platformId: 'some-id', name: 'New Artist',
@@ -120,29 +114,15 @@ describe('Protected routes', () => {
             });
         });
 
-        it('redirects unauthenticated users to "/"', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(null);
-            await expect(
-                AddArtistPage({ searchParams: Promise.resolve({ spotify: 'some-id' }) })
-            ).rejects.toThrow('NEXT_REDIRECT:/');
-            expect(mockRedirect).toHaveBeenCalledWith('/');
-        });
-
-        it('renders the form for authenticated users', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
+        it('renders the form without reading a server session', async () => {
             const jsx = await AddArtistPage({ searchParams: Promise.resolve({ spotify: 'some-id' }) });
             render(jsx as React.ReactElement);
             expect(screen.getByTestId('add-artist-content')).toBeInTheDocument();
-        });
-
-        it('does not redirect authenticated users', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
-            await AddArtistPage({ searchParams: Promise.resolve({ spotify: 'some-id' }) });
             expect(mockRedirect).not.toHaveBeenCalled();
+            expect(getServerAuthSession).not.toHaveBeenCalled();
         });
 
-        it('shows an error page (not a redirect) when no platform param is present, even if authenticated', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
+        it('shows an error page (not a redirect) when no platform param is present', async () => {
             const jsx = await AddArtistPage({ searchParams: Promise.resolve({}) });
             render(jsx as React.ReactElement);
             expect(screen.getByText('No artist ID provided')).toBeInTheDocument();
@@ -162,40 +142,29 @@ describe('Protected routes', () => {
             (getAllLinks as jest.Mock).mockResolvedValue([]);
         });
 
-        it('is accessible without authentication', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(null);
+        it('is accessible without authentication, and reads no server session', async () => {
             const jsx = await ArtistProfile({ params: Promise.resolve({ id: 'artist-uuid' }) });
             render(jsx as React.ReactElement);
             expect(screen.getByText('Test Artist')).toBeInTheDocument();
             expect(mockRedirect).not.toHaveBeenCalled();
+            expect(getServerAuthSession).not.toHaveBeenCalled();
         });
 
         it('shows edit controls only when admin', async () => {
-            const { getUserById } = await import('@/server/utils/queries/userQueries');
-            (getUserById as jest.Mock).mockResolvedValue({ id: 'user-uuid', isAdmin: true, isWhiteListed: true });
-            (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
+            jest.mocked(useArtistViewer).mockReturnValue({ user: { ...mockMusicNerdUser, isAdmin: true }, claimStatus: null, addedByCaller: false });
             const jsx = await ArtistProfile({ params: Promise.resolve({ id: 'artist-uuid' }) });
             render(jsx as React.ReactElement);
             expect(screen.getByTestId('edit-toggle')).toBeInTheDocument();
         });
 
         it('hides edit controls for unauthenticated visitors', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(null);
+            jest.mocked(useArtistViewer).mockReturnValue({ user: null, claimStatus: null, addedByCaller: false });
             const jsx = await ArtistProfile({ params: Promise.resolve({ id: 'artist-uuid' }) });
             render(jsx as React.ReactElement);
             expect(screen.queryByTestId('edit-toggle')).not.toBeInTheDocument();
         });
 
-        it('returns 404 for nonexistent artist (unauthenticated)', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(null);
-            (getArtistById as jest.Mock).mockResolvedValue(null);
-            await expect(
-                ArtistProfile({ params: Promise.resolve({ id: 'nonexistent' }) })
-            ).rejects.toThrow('NEXT_NOT_FOUND');
-        });
-
-        it('returns 404 for nonexistent artist (authenticated)', async () => {
-            (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
+        it('returns 404 for nonexistent artist', async () => {
             (getArtistById as jest.Mock).mockResolvedValue(null);
             await expect(
                 ArtistProfile({ params: Promise.resolve({ id: 'nonexistent' }) })
