@@ -1,5 +1,7 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { useChat } from "@ai-sdk/react";
+import { getAccessToken } from "@privy-io/react-auth";
+jest.mock("@privy-io/react-auth", () => ({ getAccessToken: jest.fn() }));
 import IntentExplorer from "../IntentExplorer";
 import { canvasSeed } from "@/lib/intent/canvasProtocol";
 jest.mock("@/app/_components/ThemeProvider", () => ({
@@ -179,4 +181,13 @@ it("keeps the canvas when stop is followed by late completion", () => {
   expect(
     screen.getByRole("heading", { name: "A place to begin" }),
   ).toBeInTheDocument();
+});
+
+it("uses existing anonymous access when the optional login helper throws synchronously", async () => {
+  (getAccessToken as jest.Mock).mockImplementation(() => {
+    throw new Error("Provider absent");
+  });
+  render(<IntentExplorer liveApiUrl="https://api.example.com" />);
+  const options = mockUseChat.mock.calls.at(-1)[0];
+  await expect(options.transport.options.headers()).resolves.toEqual({});
 });

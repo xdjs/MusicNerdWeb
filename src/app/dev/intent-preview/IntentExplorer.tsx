@@ -101,8 +101,13 @@ export default function IntentExplorer({
         credentials: "omit",
         headers: async (): Promise<Record<string, string>> => {
           if (!liveApiUrl) return {};
-          const token = await getAccessToken().catch(() => null);
-          return token ? { Authorization: `Bearer ${token}` } : {};
+          try {
+            const token = await getAccessToken();
+            return token ? { Authorization: `Bearer ${token}` } : {};
+          } catch {
+            // This existing public endpoint also supports anonymous visitors.
+            return {};
+          }
         },
         prepareSendMessagesRequest: ({ messages }) => ({
           body: { messages, canvas: pending.current },
