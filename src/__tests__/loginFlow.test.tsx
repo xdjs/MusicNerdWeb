@@ -9,8 +9,8 @@ jest.mock('@/app/_components/nav/components/AccountMenuAvatar', () => ({
 let mockPrivyReady = true;
 let mockPrivyAuthenticated = false;
 let mockPrivyUser: any = null;
-let mockSessionData: any = null;
-let mockSessionStatus = 'unauthenticated';
+let mockAccount: any = null;
+let mockAccountStatus = 'unauthenticated';
 let loginCallbacks: { onComplete?: Function } = {};
 
 const mockPrivyLogin = jest.fn();
@@ -33,8 +33,11 @@ jest.mock('@privy-io/react-auth', () => ({
     useIdentityToken: () => ({ identityToken: 'mock-identity-token' }),
 }));
 
+jest.mock('@/hooks/useMusicNerdUser', () => ({
+    useMusicNerdUser: () => ({ user: mockAccount?.user ?? null, status: mockAccountStatus, isError: false, refetch: jest.fn().mockResolvedValue({}) }),
+}));
 jest.mock('next-auth/react', () => ({
-    useSession: () => ({ data: mockSessionData, status: mockSessionStatus, update: jest.fn() }),
+    getSession: () => Promise.resolve({ user: { id: 'user-uuid' } }),
     signIn: (...args: any[]) => mockSignIn(...args),
     signOut: (...args: any[]) => mockSignOut(...args),
 }));
@@ -92,8 +95,8 @@ describe('Login flow', () => {
         mockPrivyReady = true;
         mockPrivyAuthenticated = false;
         mockPrivyUser = null;
-        mockSessionData = null;
-        mockSessionStatus = 'unauthenticated';
+        mockAccount = null;
+        mockAccountStatus = 'unauthenticated';
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
             json: () => Promise.resolve({ count: 0 }),
@@ -164,11 +167,10 @@ describe('Login flow', () => {
     describe('Authenticated state', () => {
         beforeEach(() => {
             mockPrivyAuthenticated = true;
-            mockSessionData = {
+            mockAccount = {
                 user: { id: 'user-uuid', isAdmin: false, needsLegacyLink: false },
-                expires: '2026-12-31',
             };
-            mockSessionStatus = 'authenticated';
+            mockAccountStatus = 'authenticated';
         });
 
         it('shows the profile avatar (not the login icon)', () => {
@@ -186,11 +188,10 @@ describe('Login flow', () => {
     describe('Logout flow', () => {
         beforeEach(() => {
             mockPrivyAuthenticated = true;
-            mockSessionData = {
+            mockAccount = {
                 user: { id: 'user-uuid', isAdmin: false, needsLegacyLink: false },
-                expires: '2026-12-31',
             };
-            mockSessionStatus = 'authenticated';
+            mockAccountStatus = 'authenticated';
         });
 
         it('calls NextAuth signOut and Privy logout when Log Out is clicked', async () => {

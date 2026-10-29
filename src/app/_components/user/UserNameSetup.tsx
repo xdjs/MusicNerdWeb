@@ -1,31 +1,29 @@
 'use client';
-import { useSession } from 'next-auth/react';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import UserNamePrompt from './UserNamePrompt';
 import { requestUserApi } from '@/lib/user/requestUserApi';
-
-type Account = { id: string; username: string; usernameNeedsConfirmation: boolean; usernamePromptedAt: string | null };
+import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 
 export default function UserNameSetup() {
-  const { data: session, status, update } = useSession();
-  const id = status === 'authenticated' ? session.user.id : null;
+  const { user, refetch } = useMusicNerdUser();
+  const id = user?.id ?? null;
   const currentId = useRef(id); currentId.current = id;
   const router = useRouter();
-  const [account, setAccount] = useState<Account | null>(null);
   const [open, setOpen] = useState(false);
+  // A NextAuth sign-in during this page load ends in PrivyLogin's reload, which would close the
+  // prompt after it is recorded as shown; only prompt when the page loaded signed in.
+  const { status: sessionStatus } = useSession();
+  const loadedStatus = useRef(sessionStatus);
+  if (loadedStatus.current === 'loading') loadedStatus.current = sessionStatus;
+  const needsPrompt = !!user && user.usernameNeedsConfirmation && !user.usernamePromptedAt && loadedStatus.current === 'authenticated';
   useEffect(() => {
-    setAccount(null); setOpen(false);
-    if (!id) return;
+    setOpen(false);
+    if (!id || !needsPrompt) return;
     const controller = new AbortController();
     void (async () => {
       try {
-        const response = await requestUserApi(`/api/user/${id}`, { signal: controller.signal });
-        if (!response.ok) return;
-        const user = await response.json() as Account;
-        if (controller.signal.aborted || user.id !== id) return;
-        setAccount(user);
-        if (!user.usernameNeedsConfirmation || user.usernamePromptedAt) return;
         const shown = await requestUserApi(`/api/user/${id}/name-prompt`, { method: 'POST', signal: controller.signal });
         if (shown.ok) {
           const result = await shown.json();
@@ -34,21 +32,21 @@ export default function UserNameSetup() {
       } catch { /* Setup is optional; the profile reminder remains available. */ }
     })();
     return () => controller.abort();
-  }, [id, session?.user.name]);
+  }, [id, needsPrompt]);
   useEffect(() => {
-    const show = () => { if (account?.id === currentId.current) setOpen(true); };
+    const show = () => { if (id && currentId.current === id) setOpen(true); };
     window.addEventListener('musicnerd:choose-user-name', show);
     return () => window.removeEventListener('musicnerd:choose-user-name', show);
-  }, [account]);
-  if (!open || !account || account.id !== id) return null;
-  return <UserNamePrompt key={account.id} name={account.username} onDismiss={() => setOpen(false)} onSave={async name => {
-    const response = await requestUserApi(`/api/user/${account.id}`, {
+  }, [id]);
+  if (!open || !user) return null;
+  return <UserNamePrompt key={user.id} name={user.username ?? ''} onDismiss={() => setOpen(false)} onSave={async name => {
+    const response = await requestUserApi(`/api/user/${user.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name }),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Could not save your user name.');
-    if (currentId.current !== account.id) return;
-    setOpen(false); setAccount({ ...account, username: name, usernameNeedsConfirmation: false });
-    await update(); router.refresh();
+    if (currentId.current !== user.id) return;
+    setOpen(false);
+    await refetch(); router.refresh();
   }} />;
 }

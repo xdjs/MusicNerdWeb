@@ -42,15 +42,20 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({refresh: mockRouterRefr
 
 const mockSignIn = jest.fn().mockResolvedValue({ ok: true, error: null });
 const mockSignOut = jest.fn().mockResolvedValue({ ok: true });
-let mockSessionData: any = null;
-let mockSessionStatus = 'unauthenticated';
+let mockAccount: any = null;
+let mockAccountStatus = 'unauthenticated';
+
+jest.mock('@/hooks/useMusicNerdUser', () => ({
+  useMusicNerdUser: () => ({
+    user: mockAccount?.user ?? null,
+    status: mockAccountStatus,
+    isError: false,
+    refetch: mockRefetchAccount,
+  }),
+}));
+const mockRefetchAccount = jest.fn().mockResolvedValue({});
 
 jest.mock('next-auth/react', () => ({
-  useSession: () => ({
-    data: mockSessionData,
-    status: mockSessionStatus,
-    update: jest.fn(),
-  }),
   getSession: (...args) => mockReadSession(...args),
   signIn: (...args) => mockSignIn(...args),
   signOut: (...args) => mockSignOut(...args),
@@ -142,8 +147,9 @@ describe('PrivyLogin', () => {
       user: null,
       getAccessToken: jest.fn().mockResolvedValue('mock-access-token'),
     };
-    mockSessionData = null;
-    mockSessionStatus = 'unauthenticated';
+    mockAccount = null;
+    mockReadSession.mockReset().mockResolvedValue({ user: { id: "user-uuid" } });
+    mockAccountStatus = 'unauthenticated';
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ count: 0 }),
@@ -234,11 +240,11 @@ describe('PrivyLogin', () => {
 
     it('shows theme toggle in authenticated dropdown', () => {
       mockPrivyState.authenticated = true;
-      mockSessionData = {
+      mockAccount = {
         user: { id: 'user-uuid', isAdmin: false, needsLegacyLink: false },
         expires: '2025-12-31',
       };
-      mockSessionStatus = 'authenticated';
+      mockAccountStatus = 'authenticated';
       mockTheme = 'dark';
 
       render(<PrivyLogin />);
@@ -249,7 +255,7 @@ describe('PrivyLogin', () => {
   describe('Authenticated state', () => {
     beforeEach(() => {
       mockPrivyState.authenticated = true;
-      mockSessionData = {
+      mockAccount = {
         user: {
           id: 'user-uuid',
           privyUserId: 'did:privy:user123',
@@ -260,7 +266,7 @@ describe('PrivyLogin', () => {
         },
         expires: '2025-12-31',
       };
-      mockSessionStatus = 'authenticated';
+      mockAccountStatus = 'authenticated';
     });
 
     it('renders profile avatar button', () => {
@@ -294,7 +300,7 @@ describe('PrivyLogin', () => {
     });
 
     it('shows Admin Panel when user is admin', () => {
-      mockSessionData.user.isAdmin = true;
+      mockAccount.user.isAdmin = true;
 
       render(<PrivyLogin />);
 
@@ -302,7 +308,7 @@ describe('PrivyLogin', () => {
     });
 
     it('asks MusicNerdAPI for the pending count with the admin token and flags pending work', async () => {
-      mockSessionData.user.isAdmin = true;
+      mockAccount.user.isAdmin = true;
       mockRequestAdminApi.mockResolvedValue({ ok: true, json: () => Promise.resolve({ status: 'ok', count: 2 }) });
 
       const { container } = render(<PrivyLogin />);
@@ -325,7 +331,7 @@ describe('PrivyLogin', () => {
     });
 
     it('shows Link Wallet menu item when needsLegacyLink is true', () => {
-      mockSessionData.user.needsLegacyLink = true;
+      mockAccount.user.needsLegacyLink = true;
 
       render(<PrivyLogin />);
 
@@ -342,7 +348,7 @@ describe('PrivyLogin', () => {
   describe('Legacy account modal', () => {
     it('does not stack a wallet-link modal over user name setup', async () => {
       mockPrivyState.authenticated = true;
-      mockSessionData = {
+      mockAccount = {
         user: {
           id: 'user-uuid',
           needsLegacyLink: true,
@@ -350,7 +356,7 @@ describe('PrivyLogin', () => {
         },
         expires: '2025-12-31',
       };
-      mockSessionStatus = 'authenticated';
+      mockAccountStatus = 'authenticated';
 
       render(<PrivyLogin />);
 
@@ -361,7 +367,7 @@ describe('PrivyLogin', () => {
 
     it('does not auto-show modal when needsLegacyLink is false', () => {
       mockPrivyState.authenticated = true;
-      mockSessionData = {
+      mockAccount = {
         user: {
           id: 'user-uuid',
           needsLegacyLink: false,
@@ -369,7 +375,7 @@ describe('PrivyLogin', () => {
         },
         expires: '2025-12-31',
       };
-      mockSessionStatus = 'authenticated';
+      mockAccountStatus = 'authenticated';
 
       render(<PrivyLogin />);
 
@@ -378,7 +384,7 @@ describe('PrivyLogin', () => {
 
     it('does not auto-show modal on re-render when already shown this session', () => {
       mockPrivyState.authenticated = true;
-      mockSessionData = {
+      mockAccount = {
         user: {
           id: 'user-uuid',
           needsLegacyLink: true,
@@ -386,7 +392,7 @@ describe('PrivyLogin', () => {
         },
         expires: '2025-12-31',
       };
-      mockSessionStatus = 'authenticated';
+      mockAccountStatus = 'authenticated';
 
       // Simulate that the modal was already shown this session
       mockSessionStorage['legacyModalShown'] = 'true';
@@ -398,7 +404,7 @@ describe('PrivyLogin', () => {
 
     it('keeps manual wallet linking available and clears its session flag on logout', async () => {
       mockPrivyState.authenticated = true;
-      mockSessionData = {
+      mockAccount = {
         user: {
           id: 'user-uuid',
           needsLegacyLink: true,
@@ -406,7 +412,7 @@ describe('PrivyLogin', () => {
         },
         expires: '2025-12-31',
       };
-      mockSessionStatus = 'authenticated';
+      mockAccountStatus = 'authenticated';
 
       render(<PrivyLogin />);
 
@@ -431,7 +437,7 @@ describe('PrivyLogin', () => {
   describe('Logout', () => {
     beforeEach(() => {
       mockPrivyState.authenticated = true;
-      mockSessionData = {
+      mockAccount = {
         user: {
           id: 'user-uuid',
           isAdmin: false,
@@ -439,7 +445,7 @@ describe('PrivyLogin', () => {
         },
         expires: '2025-12-31',
       };
-      mockSessionStatus = 'authenticated';
+      mockAccountStatus = 'authenticated';
     });
 
     it('calls signOut and Privy logout on log out', async () => {
@@ -496,7 +502,8 @@ describe('PrivyLogin', () => {
       render(<PrivyLogin />);
       await loginCallbacks.onComplete?.({user:mockPrivyState.user,isNewUser:false,wasAlreadyAuthenticated:false});
       await waitFor(() => expect(mockRouterRefresh).toHaveBeenCalledTimes(1));
-      expect(mockReadSession).toHaveBeenCalledTimes(1);
+      // Once for the mount-time NextAuth check, once to verify the correction session.
+      expect(mockReadSession).toHaveBeenCalledTimes(2);
       expect(sessionStorage.getItem('mn:bio-correction:artist')).not.toBeNull();
       window.history.replaceState({}, '', '/');
     });
@@ -521,6 +528,31 @@ describe('PrivyLogin', () => {
           redirect: false,
         }));
       });
+    });
+
+    it('lets MusicNerdAPI create the account before the NextAuth exchange', async () => {
+      mockPrivyState.authenticated = true;
+      mockPrivyState.user = { id: 'did:privy:user123' };
+      render(<PrivyLogin />);
+      await loginCallbacks.onComplete?.({ user: mockPrivyState.user, isNewUser: true, wasAlreadyAuthenticated: false });
+      await waitFor(() => expect(mockSignIn).toHaveBeenCalled());
+      expect(mockRefetchAccount).toHaveBeenCalledWith({ cancelRefetch: false });
+      expect(mockRefetchAccount.mock.invocationCallOrder[0]).toBeLessThan(mockSignIn.mock.invocationCallOrder[0]);
+    });
+
+    it('restores a missing NextAuth session for a Privy sign-in on mount', async () => {
+      mockReadSession.mockResolvedValue(null);
+      mockPrivyState.authenticated = true;
+      mockPrivyState.user = { id: 'did:privy:user123' };
+      render(<PrivyLogin />);
+      await waitFor(() => expect(mockSignIn).toHaveBeenCalledWith('privy', expect.objectContaining({ redirect: false })));
+    });
+
+    it('does not check NextAuth while signed out of Privy', async () => {
+      render(<PrivyLogin />);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(mockReadSession).not.toHaveBeenCalled();
+      expect(mockSignIn).not.toHaveBeenCalled();
     });
   });
 });
