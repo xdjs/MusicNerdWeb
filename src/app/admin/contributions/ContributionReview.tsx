@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { approveLinkSuggestion } from '@/lib/admin/approveLinkSuggestion';
-import { updateSourceStatus } from '@/app/actions/dashboardActions';
+import { reviewLoreSource } from '@/lib/source/reviewLoreSource';
 import type { Contribution, getAdminContributions } from '@/server/utils/contributions/getAdminContributions';
 import ContributionFilters from './ContributionFilters';
 import BulkApproveContributor from './BulkApproveContributor';
@@ -16,10 +16,10 @@ import surface from '@/app/profile/ProfileConcept.module.css';
 const origins = { user: 'User submissions', research: 'Automated research', unknown: 'Unknown origin' };
 const types = { link: 'Link submission', lore: 'Lore source', upload: 'Upload' };
 
-export default function ContributionReview({ data, contributorName, onApproveLink = approveLinkSuggestion, onReviewLore = updateSourceStatus }: {
+export default function ContributionReview({ data, contributorName, onApproveLink = approveLinkSuggestion, onReviewLore = reviewLoreSource }: {
  data: Awaited<ReturnType<typeof getAdminContributions>>;
  contributorName?: string;
- onApproveLink?: typeof approveLinkSuggestion; onReviewLore?: typeof updateSourceStatus;
+ onApproveLink?: typeof approveLinkSuggestion; onReviewLore?: typeof reviewLoreSource;
 }) {
  const router = useRouter();
  const [refreshing, startRefresh] = useTransition();
@@ -36,7 +36,7 @@ export default function ContributionReview({ data, contributorName, onApproveLin
   try {
    let success = true, error: string | undefined;
    if (item.type === 'link') { try { await onApproveLink(item.artistId,item.id); } catch (e) { success = false; error = e instanceof Error ? e.message : undefined; } }
-   else { const response = await onReviewLore(item.id,status,'pending'); success = response.success; error = response.error; }
+   else { const response = await onReviewLore(item.artistId,item.id,status); success = response.success; error = response.error; }
    setFeedback({error:!success,message:success ? `Submission ${status}.` : error || 'Could not review this submission.'});
    startRefresh(() => router.refresh());
   } catch { setFeedback({error:true,message:'Review could not be confirmed. Refresh before retrying.'}); }

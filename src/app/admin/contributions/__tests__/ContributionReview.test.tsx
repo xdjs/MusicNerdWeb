@@ -5,7 +5,7 @@ const refresh = jest.fn();
 const push = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push }) }));
 jest.mock('@/lib/admin/approveLinkSuggestion', () => ({ approveLinkSuggestion: jest.fn() }));
-jest.mock('@/app/actions/dashboardActions', () => ({ updateSourceStatus: jest.fn() }));
+jest.mock('@/lib/source/reviewLoreSource', () => ({ reviewLoreSource: jest.fn() }));
 const data: Awaited<ReturnType<typeof getAdminContributions>> = {
  items: [{ id:'source', type:'lore', origin:'research', artistId:'artist', artistName:'Demo artist', title:'Interview', url:'https://example.test', userId:'account', username:'Demo user', email:null, actorKind:'user', status:'pending', createdAt:'2026-09-28T10:00:00Z', trigger:'editor_search', activityId:'event' }],
  counts:{user:{total:40,pending:30},research:{total:10,pending:2},unknown:{total:5,pending:5}},total:26,page:1,pageSize:25,userId:'account',query:'demo',origin:'research',type:'',status:'pending',
@@ -26,7 +26,7 @@ it('reviews a single Lore source with pending-state protection and refreshes the
  const onReviewLore = jest.fn().mockResolvedValue({success:true});
  render(<ContributionReview data={data} onReviewLore={onReviewLore} />);
  fireEvent.click(screen.getByRole('button', {name:'Approve Interview'}));
- await waitFor(() => expect(onReviewLore).toHaveBeenCalledWith('source','approved','pending'));
+ await waitFor(() => expect(onReviewLore).toHaveBeenCalledWith(expect.any(String),'source','approved'));
  await waitFor(() => expect(refresh).toHaveBeenCalled());
 });
 it('does not offer review actions for completed submissions', () => {

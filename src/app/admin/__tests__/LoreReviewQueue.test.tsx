@@ -5,7 +5,7 @@ const push=jest.fn();
 const refresh=jest.fn();
 jest.mock('next/navigation',()=>({useRouter:()=>({push,refresh})}));
 jest.mock('@/lib/admin/approveLinkSuggestion',()=>({approveLinkSuggestion:jest.fn()}));
-jest.mock('@/app/actions/dashboardActions',()=>({updateSourceStatus:jest.fn()}));
+jest.mock('@/lib/source/reviewLoreSource',()=>({reviewLoreSource:jest.fn()}));
 const base:ReviewItem={id:'one',type:'links',artistId:'artist',artistName:'Artist One',title:'Bandcamp',url:'https://example.test',createdAt:'2026-10-17T00:00:00Z',origin:'user',actorName:'Contributor',actorId:'user',activityId:null,trigger:null,bioSnapshot:null,details:null,reason:null};
 const data={items:[base,{...base,id:'two',type:'sources' as const,artistName:'Artist Two',title:'Interview'},{...base,id:'three',type:'corrections' as const,artistName:'Artist Three',title:'incorrect',details:'Wrong instrument',bioSnapshot:'Original About'}],counts:{links:1,sources:1,corrections:1},pendingCounts:{links:1,sources:1,corrections:1},total:3,page:1,pageSize:25,type:'all' as const,query:''};
 beforeEach(()=>{push.mockClear();refresh.mockClear();});
@@ -22,16 +22,16 @@ it('shows review details and actions inline without opening a dialog',()=>{
 });
 it('bulk approval excludes corrections and retains failed rows for retry',async()=>{
  const {approveLinkSuggestion}=jest.requireMock('@/lib/admin/approveLinkSuggestion');
- const {updateSourceStatus}=jest.requireMock('@/app/actions/dashboardActions');
+ const {reviewLoreSource}=jest.requireMock('@/lib/source/reviewLoreSource');
  approveLinkSuggestion.mockResolvedValue(undefined);
- updateSourceStatus.mockResolvedValue({success:false,error:'Source failed'});
+ reviewLoreSource.mockResolvedValue({success:false,error:'Source failed'});
  render(<LoreReviewQueue data={data}/>);
  fireEvent.click(screen.getByRole('checkbox',{name:'Select this page'}));
  expect(screen.getByText('3 selected')).toBeVisible();
  fireEvent.click(screen.getByRole('button',{name:'Approve selected (2)'}));
  await waitFor(()=>expect(screen.getByText('Source failed')).toBeVisible());
  expect(approveLinkSuggestion).toHaveBeenCalledWith('artist','one');
- expect(updateSourceStatus).toHaveBeenCalledWith('two','approved','pending');
+ expect(reviewLoreSource).toHaveBeenCalledWith('artist','two','approved');
  expect(screen.queryByText('Bandcamp')).not.toBeInTheDocument();
  expect(screen.getByText('2 selected')).toBeVisible();
  expect(screen.getByText('Original About')).toBeVisible();

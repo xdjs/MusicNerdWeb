@@ -17,17 +17,13 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@/app/actions/dashboardActions', () => ({
-  updateSourceStatus: jest.fn().mockResolvedValue({ success: true }),
-  updateSourceType: jest.fn().mockResolvedValue({ success: true }),
   searchWebForSources: jest.fn().mockResolvedValue({ success: true, count: 2 }),
-  removeVaultSource: jest.fn().mockResolvedValue({ success: true }),
-  removeVaultSources: jest.fn().mockResolvedValue({ success: true, count: 1 }),
 }));
-jest.mock('@/app/actions/addVaultSource', () => ({
-  addVaultSource: jest.fn().mockResolvedValue({ success: true }),
+jest.mock('@/lib/source/requestArtistSources', () => ({
+  requestArtistSources: jest.fn().mockResolvedValue({ success: true, count: 1 }),
 }));
-import { addVaultSource } from '@/app/actions/addVaultSource';
-import { updateSourceStatus, removeVaultSource, removeVaultSources, searchWebForSources } from '@/app/actions/dashboardActions';
+import { requestArtistSources } from '@/lib/source/requestArtistSources';
+import { searchWebForSources } from '@/app/actions/dashboardActions';
 
 const pending = [{ id: 'p1', artistId: 'a1', url: 'http://e/1', title: 'Pending One', status: 'pending' }];
 const approved = [{ id: 'ap1', artistId: 'a1', url: 'http://e/2', title: 'Approved One', status: 'approved' }];
@@ -52,7 +48,7 @@ describe('VaultManager', () => {
     renderEditing(true);
     expect(screen.getByText('Pending One')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /approve/i }));
-    await waitFor(() => expect(updateSourceStatus).toHaveBeenCalledWith('p1', 'approved'));
+    await waitFor(() => expect(requestArtistSources).toHaveBeenCalledWith('a1', { method: 'PATCH', sourceId: 'p1', body: { status: 'approved' } }));
   });
 
   it('retries completion with the same ticket instead of creating another public object', async () => {
@@ -132,9 +128,8 @@ describe('VaultManager', () => {
     expect(screen.queryByPlaceholderText(/add a source by url/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: /delete/i })[1]);
-    await waitFor(() => expect(updateSourceStatus).toHaveBeenCalledWith('ap1', 'rejected'));
-    expect(removeVaultSource).not.toHaveBeenCalled();
-    expect(removeVaultSources).not.toHaveBeenCalled();
+    await waitFor(() => expect(requestArtistSources).toHaveBeenCalledWith('a1', { method: 'PATCH', sourceId: 'ap1', body: { status: 'rejected' } }));
+    expect(requestArtistSources).not.toHaveBeenCalledWith('a1', expect.objectContaining({ method: 'DELETE' }));
     await waitFor(() => expect(screen.queryByText('Approved One')).not.toBeInTheDocument());
   });
 
@@ -147,7 +142,7 @@ describe('VaultManager', () => {
     // Click the first delete button (on the pending source card)
     fireEvent.click(deleteButtons[0]);
 
-    await waitFor(() => expect(removeVaultSource).toHaveBeenCalledWith('p1'));
+    await waitFor(() => expect(requestArtistSources).toHaveBeenCalledWith('a1', { method: 'DELETE', sourceId: 'p1' }));
   });
 
   it('web search: found sources appear in Pending immediately, no refresh prompt', async () => {
@@ -164,18 +159,18 @@ describe('VaultManager', () => {
     expect(screen.queryByText(/refresh to review/i)).not.toBeInTheDocument();
   });
 
-  it('add-by-URL: typing a URL and clicking Add calls addVaultSource', async () => {
+  it('add-by-URL: typing a URL and clicking Add POSTs the source', async () => {
     renderEditing(true);
 
     const input = screen.getByPlaceholderText(/add a source by url/i);
     fireEvent.change(input, { target: { value: 'https://pitchfork.com/x' } });
     fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
 
-    await waitFor(() => expect(addVaultSource).toHaveBeenCalledWith('a1', 'https://pitchfork.com/x'));
+    await waitFor(() => expect(requestArtistSources).toHaveBeenCalledWith('a1', { method: 'POST', body: { url: 'https://pitchfork.com/x' } }));
   });
 
   it.each(['approved', 'pending'])('places a new URL in the returned %s list immediately', async status => {
-    addVaultSource.mockResolvedValueOnce({ success: true, source: {
+    requestArtistSources.mockResolvedValueOnce({ success: true, source: {
       id: 'new-source', artistId: 'a1', url: 'https://example.com/interview', title: 'New Interview', status,
     } });
     renderEditing(true);
@@ -188,7 +183,7 @@ describe('VaultManager', () => {
     expect(screen.getByText(status === 'approved' ? 'Approved sources (2)' : 'Pending review (2)')).toBeInTheDocument();
   });
 
-  it('bulk delete: selecting an approved source and deleting calls removeVaultSources', async () => {
+  it('bulk delete: selecting an approved source and deleting DELETEs the selection', async () => {
     renderEditing(true);
 
     // Select-all checkbox is the first checkbox; the per-card checkbox is the source's.
@@ -198,7 +193,7 @@ describe('VaultManager', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /delete 1 selected/i }));
 
-    await waitFor(() => expect(removeVaultSources).toHaveBeenCalledWith(['ap1']));
+    await waitFor(() => expect(requestArtistSources).toHaveBeenCalledWith('a1', { method: 'DELETE', body: { sourceIds: ['ap1'] } }));
   });
 
   it('type filter: clicking a type chip hides non-matching approved sources', () => {
