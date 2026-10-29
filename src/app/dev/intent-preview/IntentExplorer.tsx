@@ -15,6 +15,7 @@ import {
   type CanvasSpec,
 } from "@/lib/intent/canvasProtocol";
 import { createReplayResponse } from "@/lib/intent/createReplayResponse";
+import { getCanvasError } from "@/lib/intent/getCanvasError";
 import { applyCanvasUpdate } from "@/lib/intent/applyCanvasUpdate";
 import { profileUrl } from "@/lib/intent/latashaSnapshot";
 import CanvasBlock from "./CanvasBlock";
@@ -424,7 +425,7 @@ export default function IntentExplorer({
             )}
             {error && (
               <p role="alert" className={styles.error}>
-                {error.message} Your last valid canvas is unchanged.
+                {getCanvasError(error)} Your last valid canvas is unchanged.
               </p>
             )}
           </div>
