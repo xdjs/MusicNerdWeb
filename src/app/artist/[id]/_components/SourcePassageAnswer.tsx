@@ -1,10 +1,15 @@
+import { useEffect } from 'react';
 import { readEvidenceAnswer } from '@/lib/artistChat/readEvidenceAnswer';
 
 /** Render server-selected source words as React text, never Markdown or generated answer prose. */
-export default function SourcePassageAnswer({ parts, busy = false, stopped = false, interrupted = false, onRetry }: {
+export default function SourcePassageAnswer({ parts, busy = false, stopped = false, interrupted = false, onRetry, messageId, onEvidenceRender }: {
+    messageId?: string; onEvidenceRender?: (messageId: string, passageId: string) => void;
     parts: readonly unknown[]; busy?: boolean; stopped?: boolean; interrupted?: boolean; onRetry?: () => void;
 }) {
     const evidence = readEvidenceAnswer(parts);
+    useEffect(() => {
+        if (messageId && onEvidenceRender) for (const passage of evidence.passages) onEvidenceRender(messageId, passage.id);
+    }, [messageId, onEvidenceRender, evidence.passages]);
     const failed = evidence.invalid || !!evidence.status;
     return <div className="space-y-3 px-1" data-testid="source-passage-answer">
         {evidence.passages.map(passage => <figure key={passage.id} className="space-y-2">

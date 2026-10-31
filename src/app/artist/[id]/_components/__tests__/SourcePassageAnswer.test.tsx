@@ -24,3 +24,9 @@ it('shows honest fixed failure, never unvalidated mixed prose',()=>{
  render(<SourcePassageAnswer parts={[{type:'data-evidence-status',data:{code:'validation_failed'}},{type:'text',text:'No evidence exists.'}]} />);
  expect(screen.getByRole('status')).toHaveTextContent("couldn't validate");expect(screen.queryByText('No evidence exists.')).not.toBeInTheDocument();
 });
+it('reports only validated displayed passage commits',()=>{
+ const onEvidenceRender=jest.fn();const {rerender}=render(<SourcePassageAnswer messageId="message" onEvidenceRender={onEvidenceRender} parts={[passage]} />);
+ expect(onEvidenceRender).not.toHaveBeenCalled();
+ rerender(<SourcePassageAnswer messageId="message" onEvidenceRender={onEvidenceRender} parts={[source,passage]} />);
+ expect(onEvidenceRender).toHaveBeenCalledWith('message','p');
+});

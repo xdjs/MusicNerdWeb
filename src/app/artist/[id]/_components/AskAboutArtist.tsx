@@ -22,6 +22,9 @@ interface AskAboutArtistProps {
     artistName: string;
     responseMode?: "source_passages";
     replayTransport?: ChatTransport<UIMessage>;
+    diagnosticFetch?: typeof fetch;
+    diagnosticOffline?: boolean;
+    onEvidenceRender?: (messageId: string, passageId: string) => void;
 }
 
 const DEFAULT_SUGGESTIONS = (name: string) => [
@@ -152,7 +155,7 @@ function ConversationAnswer({ message }: { message: UIMessage }) {
  * signed out, the API counts it per IP. ArtistAskSheet keys this by artist, so
  * navigating to another profile starts a new chat.
  */
-export default function AskAboutArtist({ artistId, artistName, responseMode, replayTransport }: AskAboutArtistProps) {
+export default function AskAboutArtist({ artistId, artistName, responseMode, replayTransport, diagnosticFetch, diagnosticOffline, onEvidenceRender }: AskAboutArtistProps) {
     const [question, setQuestion] = useState("");
     const [stopped, setStopped] = useState(false);
     const [quotaNow, setQuotaNow] = useState(Date.now);
@@ -160,26 +163,29 @@ export default function AskAboutArtist({ artistId, artistName, responseMode, rep
     const transport = useMemo(() => replayTransport ?? new DefaultChatTransport({
         api: musicNerdApiUrl(`/api/artist/${encodeURIComponent(artistId)}/chat`),
         credentials: "omit",
+        ...(diagnosticFetch ? {fetch: diagnosticFetch} : {}),
         headers: async (): Promise<Record<string, string>> => {
+            if (diagnosticOffline) return {};
             const token = await getAccessToken().catch(() => null);
             return token ? { Authorization: `Bearer ${token}` } : {};
         },
         // Evidence mode is explicit; ordinary artist chat omits it.
         prepareSendMessagesRequest: ({ messages }) => ({ body: { messages, ...(responseMode ? { responseMode } : {}) } }),
-    }), [artistId, responseMode, replayTransport]);
+    }), [artistId, responseMode, replayTransport, diagnosticFetch, diagnosticOffline]);
     const { messages, sendMessage, status, stop, error, regenerate } = useChat({
         transport,
         onFinish: ({ message, isAbort, isError }) => {
             // A stopped stream is not an answer; a failed one is onError's.
-            if (replayTransport || isAbort || isError) return;
+            if (replayTransport || diagnosticOffline || isAbort || isError) return;
             trackEvent('ask_question', { outcome: searchedWeb(message) ? 'open_web' : 'answered', sources: getChatSources(message).length });
         },
         onError: failure => {
-            if (replayTransport) return;
+            if (replayTransport || diagnosticOffline) return;
             // A quota notice is not an answer either.
             if (!getChatQuota(failure)) trackEvent('ask_question', { outcome: 'error', sources: 0 });
         },
     });
+
     const evidenceMode = responseMode === "source_passages";
     const primaryText = evidenceMode ? "text-foreground" : "text-white/90";
     const secondaryText = evidenceMode ? "text-muted-foreground" : "text-white/70";
@@ -241,7 +247,7 @@ export default function AskAboutArtist({ artistId, artistName, responseMode, rep
                                 ? <QuestionQuotaNotice quota={quota} now={quotaNow}
                                     disabled={busy || isQuotaBlocked(lastQuestion, quotaNow)} onRetry={retry} />
                                 : (responseMode === "source_passages" || readEvidenceAnswer(turn.answer?.parts ?? []).active)
-                                ? <SourcePassageAnswer parts={turn.answer?.parts ?? []} busy={last && busy} stopped={last && stopped} interrupted={last && !!error} onRetry={last ? retry : undefined} />
+                                ? <SourcePassageAnswer messageId={turn.answer?.id} onEvidenceRender={onEvidenceRender} parts={turn.answer?.parts ?? []} busy={last && busy} stopped={last && stopped} interrupted={last && !!error} onRetry={last ? retry : undefined} />
                                 : last && error
                                 ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">Failed to get an answer. Try again.</p><button type="button" disabled={busy} onClick={retry} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
                                 : turn.answer && getMessageText(turn.answer) ? <ConversationAnswer message={turn.answer} />
