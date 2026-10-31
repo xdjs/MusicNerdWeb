@@ -54,6 +54,7 @@ export default function AddArtist() {
     const [addArtistStatus, setAddArtistStatus] = useState<AddArtistResp | null>(null);
     const requestGenerationRef = useRef(0);
     const requestInFlightRef = useRef(false);
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -177,6 +178,7 @@ export default function AddArtist() {
     return (
         <>
             <Button
+                ref={triggerRef}
                 className="text-black p-3 bg-pastyblue rounded-lg border-none hover:bg-gray-200 transition-colors duration-300 w-10 h-10 sm:w-12 sm:h-12 shrink-0"
                 onClick={handleAddArtistClick}
                 aria-label="Add new artist"
@@ -189,6 +191,11 @@ export default function AddArtist() {
 
             <Dialog open={isModalOpen} onOpenChange={closeModal}>
                 <DialogContent
+                    onCloseAutoFocus={(event) => {
+                        // This login-gated button is outside Radix's DialogTrigger.
+                        event.preventDefault();
+                        if (triggerRef.current?.isConnected) triggerRef.current.focus();
+                    }}
                     aria-busy={isCreatingSeparate}
                     onEscapeKeyDown={(event) => {
                         if (isCreatingSeparate) event.preventDefault();
