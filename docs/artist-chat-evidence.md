@@ -1,0 +1,9 @@
+# Saved-source passage integration — local candidate
+
+This candidate implements MusicNerdWeb issue #1424's explicit `source_passages` API mode. Ordinary artist chat, original-PDF reading and live web behavior remain unchanged. The development/Preview-only `/dev/chat-evidence` entry lets a tester choose an existing artist ID and mode, then start a fresh conversation. Opening the page does not submit a model request. No persistent ENV flag or automatic routing is added.
+
+`data-evidence-mode` declares the response boundary. `data-evidence-passage` carries literal source text, separate citation metadata and dates; `data-evidence-status` carries a fixed failure code. The dedicated React renderer preserves source brackets, ampersands, newlines and HTML-like text as text. It does not run ordinary citation cleanup or Markdown over passages, nor display mixed model prose. Citation metadata must match a preceding source event and use a credential-free HTTP(S) URL. Each complete passage is displayed as it arrives. Stop preserves already received passages; retry is an explicit new request, never automatic.
+
+Prior passage words are bounded untrusted conversation hints, not reusable source authorization. The API rechecks current eligible sources before every new selection. Provenance enforcement does not guarantee relevance, truth, full context or a complete answer. The current excerpt cap is a resource bound, not a republication policy. Broad product routing and appropriate public-source excerpt length still need a decision.
+
+Offline coverage includes actual API handler → installed Web SDK transport/parser → actual React renderer with deterministic source/provider fixtures; separate mounted UI tests cover stop/retry and explicit mode selection. These checks do not prove live database eligibility, model selection, browser layout, owner acceptance or latency. Nothing here is published or released.

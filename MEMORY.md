@@ -561,3 +561,7 @@ Existing platform advisories are not permission to broaden database grants.
 Issue #1295, branch `pete/interview-save-for-later`, worktree `/private/tmp/musicnerd-interview-later`. Pete approved progressing to staging after checks/review. Save for later defers one question and advances; the final screen can review saved questions or finish. Done, closing and Not now hide the invitation for that page visit; a new visit/refresh restores it. Draft text is browser-local, scoped to account/artist/question. Existing offered rows retain questions, sitting/source/new-material rules remain unchanged. Skip still dismisses, Send still refreshes answers.
 
 Local review uses the real artist page at http://127.0.0.1:3024/dev/interview-preview with simulated interview actions. The review harness is available only in development/Vercel preview; production ignores its query flag. No real interview answers were submitted during verification. See docs/interview-save-for-later.md and #1295 for current verification/PR state. This is not authorization to release main.
+
+## Source-passage chat integration — local October 31 candidate
+
+Issue #1424 has an unpublished opt-in Web/API/Docs candidate on isolated `codex/1424-evidence-*` branches. Ordinary chat is unchanged. See [the local integration contract](docs/artist-chat-evidence.md) for scope and verification limits; production eligibility, live selection and release acceptance are not established by fixture tests.

@@ -183,3 +183,30 @@ describe("an answer, rendered", () => {
         expect(regenerate).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('explicit saved-source integration mode',()=>{
+ it('sends opt-in mode and displays its capability limit without changing default transport',()=>{
+  render(<AskAboutArtist artistId="a1" artistName="Pete" responseMode="source_passages" />);
+  const messages=[user('Who?')];
+  expect(transportOptions().prepareSendMessagesRequest({messages,id:'chat',trigger:'submit-message'})).toEqual({body:{messages,responseMode:'source_passages'}});
+  expect(screen.getByText(/Saved-source passages only/)).toBeVisible();
+ });
+ it('suppresses mixed prose and keeps validated source words through stop and explicit retry',()=>{
+  const citation={sourceId:'1',url:'https://example.com/a',title:'Saved source'};
+  const parts=[{type:'data-evidence-mode',data:{version:1}},{type:'source-url',...citation},{type:'data-evidence-passage',id:'p',data:{text:'[1] & <b>literal</b>',citation,publishedAt:null,activityDate:null,retrievedAt:null}},{type:'text',text:'Invented guest role'}];
+  state({status:'streaming',messages:[user('Who?'),assistant(parts)]});
+  const {rerender}=render(<AskAboutArtist artistId="a1" artistName="Pete" responseMode="source_passages" />);
+  expect(screen.getByTestId('source-passage-text').textContent).toBe('[1] & <b>literal</b>');expect(screen.queryByText('Invented guest role')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'Stop'}));expect(stop).toHaveBeenCalledTimes(1);
+  state({status:'ready',messages:[user('Who?'),assistant(parts)]});rerender(<AskAboutArtist artistId="a1" artistName="Pete" responseMode="source_passages" />);
+  expect(screen.getByRole('status')).toHaveTextContent('Stopped');fireEvent.click(screen.getByRole('button',{name:'Try again'}));expect(regenerate).toHaveBeenCalledTimes(1);
+  expect(transportOptions().prepareSendMessagesRequest({messages:[user('Who?')],id:'chat',trigger:'regenerate-message'})).toEqual({body:{messages:[user('Who?')],responseMode:'source_passages'}});
+ });
+});
+
+it('uses the offline replay transport instead of constructing a network request path',()=>{
+ const replayTransport={sendMessages:jest.fn(),reconnectToStream:jest.fn()};
+ render(<AskAboutArtist artistId="fixture" artistName="replay" responseMode="source_passages" replayTransport={replayTransport} />);
+ expect((chat.mock.calls.at(-1)?.[0] as { transport?: unknown })?.transport).toBe(replayTransport);
+ expect(getAccessToken).not.toHaveBeenCalled();
+});

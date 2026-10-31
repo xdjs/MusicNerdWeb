@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport, type UIMessage, type ChatTransport } from "ai";
 import { getAccessToken } from "@privy-io/react-auth";
+import SourcePassageAnswer from "./SourcePassageAnswer";
+import { readEvidenceAnswer } from "@/lib/artistChat/readEvidenceAnswer";
 import QuestionQuotaNotice from './QuestionQuotaNotice';
 import { trackEvent } from '@/lib/analytics/trackEvent';
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
@@ -18,6 +20,8 @@ import { removeUnresolvedCitations } from "@/lib/artistChat/removeUnresolvedCita
 interface AskAboutArtistProps {
     artistId: string;
     artistName: string;
+    responseMode?: "source_passages";
+    replayTransport?: ChatTransport<UIMessage>;
 }
 
 const DEFAULT_SUGGESTIONS = (name: string) => [
@@ -148,33 +152,37 @@ function ConversationAnswer({ message }: { message: UIMessage }) {
  * signed out, the API counts it per IP. ArtistAskSheet keys this by artist, so
  * navigating to another profile starts a new chat.
  */
-export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistProps) {
+export default function AskAboutArtist({ artistId, artistName, responseMode, replayTransport }: AskAboutArtistProps) {
     const [question, setQuestion] = useState("");
     const [stopped, setStopped] = useState(false);
     const [quotaNow, setQuotaNow] = useState(Date.now);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const transport = useMemo(() => new DefaultChatTransport({
+    const transport = useMemo(() => replayTransport ?? new DefaultChatTransport({
         api: musicNerdApiUrl(`/api/artist/${encodeURIComponent(artistId)}/chat`),
         credentials: "omit",
         headers: async (): Promise<Record<string, string>> => {
             const token = await getAccessToken().catch(() => null);
             return token ? { Authorization: `Bearer ${token}` } : {};
         },
-        // The endpoint takes `{ messages }` and nothing else.
-        prepareSendMessagesRequest: ({ messages }) => ({ body: { messages } }),
-    }), [artistId]);
+        // Evidence mode is explicit; ordinary artist chat omits it.
+        prepareSendMessagesRequest: ({ messages }) => ({ body: { messages, ...(responseMode ? { responseMode } : {}) } }),
+    }), [artistId, responseMode, replayTransport]);
     const { messages, sendMessage, status, stop, error, regenerate } = useChat({
         transport,
         onFinish: ({ message, isAbort, isError }) => {
             // A stopped stream is not an answer; a failed one is onError's.
-            if (isAbort || isError) return;
+            if (replayTransport || isAbort || isError) return;
             trackEvent('ask_question', { outcome: searchedWeb(message) ? 'open_web' : 'answered', sources: getChatSources(message).length });
         },
         onError: failure => {
+            if (replayTransport) return;
             // A quota notice is not an answer either.
             if (!getChatQuota(failure)) trackEvent('ask_question', { outcome: 'error', sources: 0 });
         },
     });
+    const evidenceMode = responseMode === "source_passages";
+    const primaryText = evidenceMode ? "text-foreground" : "text-white/90";
+    const secondaryText = evidenceMode ? "text-muted-foreground" : "text-white/70";
     const busy = status === "submitted" || status === "streaming";
     const quota = getChatQuota(error);
     const turns = messages.flatMap((message, index) => message.role === "user"
@@ -219,18 +227,21 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const retry = () => { setStopped(false); void regenerate(); };
 
     return (
-        <div className="flex min-h-0 flex-col">
+        <div className={`flex min-h-0 flex-col ${evidenceMode ? "text-foreground" : ""}`}>
+            {responseMode === "source_passages" && <p className="px-4 pt-3 text-xs text-muted-foreground">Saved-source passages only. PDF reading, live web research and creative answers remain in ordinary chat.</p>}
             <div ref={scrollRef} role="log" aria-label="Questions and answers" aria-live="polite" aria-busy={busy}
                 className="relative min-h-0 overflow-y-auto overscroll-contain px-4 py-4 scrollbar-glass">
-                {turns.length === 0 && <p className="mb-3 text-sm leading-relaxed text-white/75">What would you like to know about {artistName}?</p>}
+                {turns.length === 0 && <p className={`mb-3 text-sm leading-relaxed ${evidenceMode ? "text-muted-foreground" : "text-white/75"}`}>What would you like to know about {artistName}?</p>}
                 {turns.map((turn, index) => {
                     const last = index === turns.length - 1;
                     return (
                         <div key={turn.question.id} data-conversation-turn className="mb-5 space-y-4 last:mb-0">
-                            <p className="ml-auto w-fit max-w-[90%] [overflow-wrap:anywhere] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{getMessageText(turn.question)}</p>
+                            <p className={`ml-auto w-fit max-w-[90%] [overflow-wrap:anywhere] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed ${primaryText}`}>{getMessageText(turn.question)}</p>
                             {last && quota
                                 ? <QuestionQuotaNotice quota={quota} now={quotaNow}
                                     disabled={busy || isQuotaBlocked(lastQuestion, quotaNow)} onRetry={retry} />
+                                : (responseMode === "source_passages" || readEvidenceAnswer(turn.answer?.parts ?? []).active)
+                                ? <SourcePassageAnswer parts={turn.answer?.parts ?? []} busy={last && busy} stopped={last && stopped} interrupted={last && !!error} onRetry={last ? retry : undefined} />
                                 : last && error
                                 ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">Failed to get an answer. Try again.</p><button type="button" disabled={busy} onClick={retry} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
                                 : turn.answer && getMessageText(turn.answer) ? <ConversationAnswer message={turn.answer} />
@@ -242,24 +253,24 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                         </div>
                     );
                 })}
-                {busy && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => { setStopped(true); void stop(); }}>Stop</button>}
+                {busy && <button type="button" className={`min-h-11 text-sm underline underline-offset-4 ${secondaryText}`} onClick={() => { setStopped(true); void stop(); }}>Stop</button>}
                 {!busy && (
                     <div className="mt-3 flex flex-wrap gap-2">
                         {DEFAULT_SUGGESTIONS(artistName).filter(s => !asked.has(s.toLowerCase())).slice(0, 2).map(suggestion => (
                             <button key={suggestion} type="button" disabled={isQuotaBlocked(suggestion, quotaNow)} onClick={() => ask(suggestion)}
-                                className="min-h-11 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-medium text-white/70 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-40">
+                                className={`min-h-11 rounded-xl border px-3 py-2 text-left text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-40 ${evidenceMode ? "border-border bg-muted/30 text-foreground hover:bg-muted" : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/20 hover:bg-white/10 hover:text-white"}`}>
                                 {suggestion}
                             </button>
                         ))}
                     </div>
                 )}
             </div>
-            <form onSubmit={event => { event.preventDefault(); ask(question); }} className="shrink-0 border-t border-white/10 p-3">
-                <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.04] pl-3 pr-1 focus-within:border-pastypink/50 focus-within:ring-1 focus-within:ring-pastypink/20">
+            <form onSubmit={event => { event.preventDefault(); ask(question); }} className={`shrink-0 border-t p-3 ${evidenceMode ? "border-border" : "border-white/10"}`}>
+                <div className={`flex items-center gap-2 rounded-2xl border pl-3 pr-1 focus-within:border-pastypink/50 focus-within:ring-1 focus-within:ring-pastypink/20 ${evidenceMode ? "border-input bg-muted/30" : "border-white/15 bg-white/[0.04]"}`}>
                     <input type="text" value={question} onChange={event => setQuestion(event.target.value)}
                         aria-label={`Ask anything about ${artistName}`}
                         placeholder={`Ask anything about ${artistName}...`} maxLength={500}
-                        className="min-h-12 min-w-0 flex-1 border-0 bg-transparent py-3 text-base text-white/90 outline-none placeholder:text-white/45" />
+                        className={`min-h-12 min-w-0 flex-1 border-0 bg-transparent py-3 text-base outline-none ${evidenceMode ? "text-foreground placeholder:text-muted-foreground" : "text-white/90 placeholder:text-white/45"}`} />
                     <button type="submit" disabled={!question.trim() || busy || isQuotaBlocked(question, quotaNow)} aria-label="Submit question"
                         className="button-pink flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-highlightpink text-black transition-colors hover:bg-highlightpink/80 active:bg-highlightpink/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlightpink focus-visible:ring-offset-2 disabled:opacity-30">
                         <ArrowUp size={20} aria-hidden="true" />
