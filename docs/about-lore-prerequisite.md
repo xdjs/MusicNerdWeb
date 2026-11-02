@@ -1,6 +1,6 @@
 # About regeneration and Lore preparation
 
-The explicit authenticated Regenerate About request prepares the stored Lore document before generating About when the document is missing or a normal Lore refresh is pending. A current document with no pending refresh is reused. Read-only profile requests do not generate anything.
+The explicit authenticated Regenerate About request prepares the stored Lore document before generating About when the document is missing or a normal Lore refresh is pending. A current document with no pending refresh is reused unless an approved, readable vault source is missing from its source manifest (for example, extraction finished after the previous refresh). Read-only profile requests do not generate anything.
 
 Preparation uses the existing `lore_refresh` job slot and lease, not onboarding or social research. Pending ordinary refresh jobs are reused. Other purposes and jobs owned by another running worker are never stolen: the request waits briefly for completion, then reports that preparation is still in progress and preserves About. Sources changed during a rebuild remain queued and must settle before About is regenerated.
 
