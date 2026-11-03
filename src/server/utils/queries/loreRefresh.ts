@@ -18,7 +18,7 @@ export async function queueLoreRefresh(artistId: string, expectedClaimId: string
         const recent = await tx.execute(sql`
             select id from artist_research_jobs
             where artist_id = ${artistId}::uuid and kind = 'lore_refresh'
-              and (status in ('pending', 'running') or created_at > now() - interval '30 minutes')
+              and (status in ('pending', 'running') or (coalesce(state->>'aboutOnly','false') <> 'true' and created_at > now() - interval '30 minutes'))
             limit 1`);
         if (recent.length > 0) return false;
     }

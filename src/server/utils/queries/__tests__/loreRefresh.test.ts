@@ -34,6 +34,7 @@ describe('Lore queue claim generation', () => {
         const read = new PgDialect().sqlToQuery(tx.execute.mock.calls[1][0]);
         expect(read.sql).toContain("status in ('pending', 'running')");
         expect(read.sql).toContain("interval '30 minutes'");
+        expect(read.sql).toContain("coalesce(state->>'aboutOnly','false') <> 'true'");
     });
     it('enqueues a manual refresh when no active/recent Lore exists', async () => {
         const { queueLoreRefresh, tx } = await setup({ id: 'claim-1' });
