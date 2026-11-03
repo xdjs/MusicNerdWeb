@@ -1,6 +1,5 @@
 import type {
     MusicPlatformArtist,
-    MusicPlatformArtistIdentity,
     MusicPlatformProvider,
 } from './types';
 import axios from 'axios';
@@ -94,17 +93,6 @@ const fetchDeezerTopTrack = cachedOrDirect(
 
 export class DeezerProvider implements MusicPlatformProvider {
     readonly platform = 'deezer' as const;
-
-    async getArtistIdentity(id: string): Promise<MusicPlatformArtistIdentity | null> {
-        const artist = await fetchDeezerArtist(id);
-        if (!artist) return null;
-
-        return {
-            platform: 'deezer',
-            platformId: String(artist.id),
-            name: artist.name,
-        };
-    }
 
     async getArtist(id: string): Promise<MusicPlatformArtist | null> {
         const [artist, topTrackName] = await Promise.all([

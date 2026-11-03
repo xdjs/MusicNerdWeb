@@ -72,11 +72,6 @@ jest.mock('@/server/db/drizzle', () => ({
   },
 }));
 
-// Mock getServerAuthSession
-jest.mock('@/server/auth', () => ({
-  getServerAuthSession: jest.fn(),
-}));
-
 // Polyfill Response.json for test environment
 if (!('json' in Response)) {
   Response.json = (data, init) =>
@@ -88,15 +83,11 @@ if (!('json' in Response)) {
 
 describe('Privy User Query Functions', () => {
   let getUserByPrivyId;
-  let createUserFromPrivy;
-  let updateUserPrivyId;
   let db;
 
   beforeAll(async () => {
     const mod = await import('@/server/utils/queries/userQueries');
     getUserByPrivyId = mod.getUserByPrivyId;
-    createUserFromPrivy = mod.createUserFromPrivy;
-    updateUserPrivyId = mod.updateUserPrivyId;
 
     const dbMod = await import('@/server/db/drizzle');
     db = dbMod.db;
@@ -143,109 +134,6 @@ describe('Privy User Query Functions', () => {
       db.query.users.findFirst.mockRejectedValue(new Error('Connection refused'));
 
       await expect(getUserByPrivyId('did:privy:123')).rejects.toThrow('Error finding user');
-    });
-  });
-
-  describe('createUserFromPrivy', () => {
-    it('inserts user with privyUserId and email, all flags false', async () => {
-      const newUser = {
-        id: 'new-uuid',
-        privyUserId: 'did:privy:new',
-        email: 'new@test.com',
-        isWhiteListed: false,
-        isAdmin: false,
-        isSuperAdmin: false,
-        isHidden: false,
-      };
-
-      const mockReturningFn = jest.fn().mockResolvedValue([newUser]);
-      const mockValuesFn = jest.fn().mockReturnValue({ returning: mockReturningFn });
-      db.insert.mockReturnValue({ values: mockValuesFn });
-
-      const result = await createUserFromPrivy({
-        privyUserId: 'did:privy:new',
-        email: 'new@test.com',
-      });
-
-      expect(db.insert).toHaveBeenCalled();
-      expect(mockValuesFn).toHaveBeenCalledWith({
-        privyUserId: 'did:privy:new',
-        email: 'new@test.com',
-        username: null,
-        isWhiteListed: false,
-        isAdmin: false,
-        isSuperAdmin: false,
-        isHidden: false,
-      });
-      expect(result).toEqual(newUser);
-    });
-
-    it('creates user without email when not provided', async () => {
-      const newUser = {
-        id: 'new-uuid',
-        privyUserId: 'did:privy:noemail',
-        isWhiteListed: false,
-        isAdmin: false,
-        isSuperAdmin: false,
-        isHidden: false,
-      };
-
-      const mockReturningFn = jest.fn().mockResolvedValue([newUser]);
-      const mockValuesFn = jest.fn().mockReturnValue({ returning: mockReturningFn });
-      db.insert.mockReturnValue({ values: mockValuesFn });
-
-      const result = await createUserFromPrivy({
-        privyUserId: 'did:privy:noemail',
-      });
-
-      expect(mockValuesFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          privyUserId: 'did:privy:noemail',
-          email: undefined,
-        })
-      );
-    });
-
-    it('throws on database error', async () => {
-      const mockReturningFn = jest.fn().mockRejectedValue(new Error('Unique constraint violation'));
-      const mockValuesFn = jest.fn().mockReturnValue({ returning: mockReturningFn });
-      db.insert.mockReturnValue({ values: mockValuesFn });
-
-      await expect(
-        createUserFromPrivy({ privyUserId: 'did:privy:dup' })
-      ).rejects.toThrow('Error creating user from Privy');
-    });
-  });
-
-  describe('updateUserPrivyId', () => {
-    it('updates user with privyUserId and returns updated user', async () => {
-      const updatedUser = { id: 'uuid', privyUserId: 'did:privy:linked' };
-
-      const mockReturningFn = jest.fn().mockResolvedValue([updatedUser]);
-      const mockWhereFn = jest.fn().mockReturnValue({ returning: mockReturningFn });
-      const mockSetFn = jest.fn().mockReturnValue({ where: mockWhereFn });
-      db.update.mockReturnValue({ set: mockSetFn });
-
-      const result = await updateUserPrivyId('uuid', 'did:privy:linked');
-
-      expect(db.update).toHaveBeenCalled();
-      expect(mockSetFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          privyUserId: 'did:privy:linked',
-        })
-      );
-      expect(result).toEqual(updatedUser);
-    });
-
-    it('throws on database error', async () => {
-      const mockReturningFn = jest.fn().mockRejectedValue(new Error('DB error'));
-      const mockWhereFn = jest.fn().mockReturnValue({ returning: mockReturningFn });
-      const mockSetFn = jest.fn().mockReturnValue({ where: mockWhereFn });
-      db.update.mockReturnValue({ set: mockSetFn });
-
-      await expect(updateUserPrivyId('uuid', 'did:privy:x')).rejects.toThrow(
-        'Error updating user Privy ID'
-      );
     });
   });
 });

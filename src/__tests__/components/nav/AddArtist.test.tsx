@@ -9,8 +9,8 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), use
 const mockTrackEvent = jest.fn();
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
 
-let mockSessionData: any = null;
-let mockSessionStatus = 'unauthenticated';
+let mockAccount: any = null;
+let mockAccountStatus = 'unauthenticated';
 
 // Capture the submit callback so tests can trigger it directly
 let capturedSubmitFn: ((values: Record<string, string>) => Promise<void>) | null = null;
@@ -51,12 +51,12 @@ jest.mock('@hookform/resolvers/zod', () => ({
     zodResolver: () => jest.fn(),
 }));
 
-jest.mock('next-auth/react', () => ({
-    useSession: () => ({ data: mockSessionData, status: mockSessionStatus }),
+jest.mock('@/hooks/useMusicNerdUser', () => ({
+    useMusicNerdUser: () => ({ user: mockAccount?.user ?? null, status: mockAccountStatus }),
 }));
 
-jest.mock('@/app/actions/addArtist', () => ({
-    addArtist: (...args: unknown[]) => mockAddArtist(...args),
+jest.mock('@/lib/artist/requestAddArtist', () => ({
+    requestAddArtist: (...args: unknown[]) => mockAddArtist(...args),
 }));
 
 jest.mock('next/link', () => {
@@ -128,15 +128,15 @@ describe('AddArtist', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockPathname = '/';
-        mockSessionData = null;
-        mockSessionStatus = 'unauthenticated';
+        mockAccount = null;
+        mockAccountStatus = 'unauthenticated';
         capturedSubmitFn = null;
         capturedDialogOnOpenChange = null;
     });
 
     it('offers the missing-artist contact without submitting an artist', () => {
-        mockSessionData = { user: { id: 'reviewer' } };
-        mockSessionStatus = 'authenticated';
+        mockAccount = { user: { id: 'reviewer' } };
+        mockAccountStatus = 'authenticated';
         render(<AddArtist />);
         fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
         fireEvent.click(screen.getByText('Can’t find your artist?'));
@@ -171,8 +171,8 @@ describe('AddArtist', () => {
             [{ status: 'exists', artistId: 'old-id', artistName: 'Radiohead' }, 'exists'],
             [{ status: 'error', message: 'Spotify error' }, 'error'],
         ])('tracks how the add resolved (%o)', async (resp, step) => {
-            mockSessionData = { user: { id: 'user-uuid' } };
-            mockSessionStatus = 'authenticated';
+            mockAccount = { user: { id: 'user-uuid' } };
+            mockAccountStatus = 'authenticated';
             mockAddArtist.mockResolvedValue(resp);
             render(<AddArtist />);
             fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
@@ -182,8 +182,8 @@ describe('AddArtist', () => {
         });
 
         it('tracks a thrown add as an error', async () => {
-            mockSessionData = { user: { id: 'user-uuid' } };
-            mockSessionStatus = 'authenticated';
+            mockAccount = { user: { id: 'user-uuid' } };
+            mockAccountStatus = 'authenticated';
             mockAddArtist.mockRejectedValue(new Error('network'));
             jest.spyOn(console, 'error').mockImplementation(() => {});
             render(<AddArtist />);
@@ -196,8 +196,8 @@ describe('AddArtist', () => {
         const results = () => mockTrackEvent.mock.calls.filter(([, props]) => props.step !== 'start');
 
         it('tracks the result once even when the dialog closes before the add resolves', async () => {
-            mockSessionData = { user: { id: 'user-uuid' } };
-            mockSessionStatus = 'authenticated';
+            mockAccount = { user: { id: 'user-uuid' } };
+            mockAccountStatus = 'authenticated';
             let resolveAdd!: (value: unknown) => void;
             mockAddArtist.mockReturnValue(new Promise(resolve => { resolveAdd = resolve; }));
             render(<AddArtist />);
@@ -212,8 +212,8 @@ describe('AddArtist', () => {
         });
 
         it('tracks a rejected add as exactly one error', async () => {
-            mockSessionData = { user: { id: 'user-uuid' } };
-            mockSessionStatus = 'authenticated';
+            mockAccount = { user: { id: 'user-uuid' } };
+            mockAccountStatus = 'authenticated';
             mockAddArtist.mockRejectedValue(new Error('network'));
             jest.spyOn(console, 'error').mockImplementation(() => {});
             render(<AddArtist />);
@@ -224,8 +224,8 @@ describe('AddArtist', () => {
         });
 
         it('tracks a rejected create-separate request as exactly one error', async () => {
-            mockSessionData = { user: { id: 'user-uuid' } };
-            mockSessionStatus = 'authenticated';
+            mockAccount = { user: { id: 'user-uuid' } };
+            mockAccountStatus = 'authenticated';
             mockAddArtist
                 .mockResolvedValueOnce({
                     status: 'possible_duplicate',
@@ -270,8 +270,8 @@ describe('AddArtist', () => {
 
     describe('Authenticated behavior', () => {
         beforeEach(() => {
-            mockSessionData = { user: { id: 'user-uuid', email: 'test@test.com' } };
-            mockSessionStatus = 'authenticated';
+            mockAccount = { user: { id: 'user-uuid', email: 'test@test.com' } };
+            mockAccountStatus = 'authenticated';
         });
 
         it('opens modal when authenticated user clicks the button', () => {

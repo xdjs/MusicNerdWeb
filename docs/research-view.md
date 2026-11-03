@@ -85,9 +85,8 @@ is confirmed. The approved design is linked from the issue.
 approved claimant only. An unreadable state (a 503, a network error, or no answer within 5 s)
 means **no takeover**, never "not started": the page renders as usual (fail closed).
 
-The page doesn't drive the build. Approving a claim (`approveClaimAction`) starts it on
-MusicNerdAPI with `POST /api/onboarding/{artistId}/build` (`startClaimBuild`, server to server with
-the research key), which runs it as a durable workflow under the approved claim: profiles, sources,
+The page doesn't drive the build. Approving a claim (MusicNerdAPI's
+`POST /api/admin/claims/{id}/approve`, from the admin claims table) starts it there, which runs it as a durable workflow under the approved claim: profiles, sources,
 then the Lore and About, each a retried step. It finishes whether or not anyone is on the page
 ([#1538](https://github.com/xdjs/MusicNerdWeb/issues/1538)).
 

@@ -1,6 +1,5 @@
 // Re-export everything from the modularised implementation located in ./ (current directory)
 export * from "./artistQueries";
-export * from "./getUgcStats";
 export * from "./leaderboardTypes";
 export * from "./userQueries";
 export * from "./discord";

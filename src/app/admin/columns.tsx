@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table";
-import { User } from "@/server/db/DbTypes";
+import type { AdminUser } from "@/lib/admin/adminReadTypes";
 import { ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,7 +38,7 @@ const formatDate = (value: string | Date | null | undefined): string => {
   return `${datePart} ${timePart}`;
 };
 
-export const whitelistedColumns: ColumnDef<User>[] = [
+export const whitelistedColumns: ColumnDef<AdminUser>[] = [
   {
     id: "select",
     header: () => <span className="sr-only">Selection</span>,

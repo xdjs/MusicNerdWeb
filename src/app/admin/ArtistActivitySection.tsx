@@ -1,13 +1,13 @@
 import MusicNerdSelect from '@/components/ui/MusicNerdSelect';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import type { getArtistActivity } from '@/server/utils/activity/getArtistActivity';
+import type { ArtistActivityPage } from '@/lib/admin/adminReadTypes';
 import { researchAttribution } from '@/lib/activity/researchAttribution';
 import { activityLabels, triggerLabels } from '@/lib/activity/activityLabels';
 import styles from '@/components/community/Community.module.css';
 import surface from '@/app/profile/ProfileConcept.module.css';
 
-export default function ArtistActivitySection({ data }: { data: Awaited<ReturnType<typeof getArtistActivity>> }) {
+export default function ArtistActivitySection({ data }: { data: ArtistActivityPage }) {
   const pageHref = (page: number) => `/admin?section=activity&activityPage=${page}&activityQuery=${encodeURIComponent(data.query)}&activityAction=${encodeURIComponent(data.action)}&activityId=${data.eventId}`;
   return <div className="min-w-0 space-y-5">
     <p className="text-sm text-muted-foreground">Activity identifies the recorded account and why work began. Claim approval can start research automatically. Older activity may have no recorded initiator.</p>

@@ -9,7 +9,6 @@ jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, statusBa
 jest.mock("../ClaimButton", () => ({ __esModule: true, default: () => <button>claim</button> }));
 jest.mock("@/app/_components/EditModeToggle", () => ({ __esModule: true, default: function MockEditToggle() { const {canEdit} = React.useContext(require("@/app/_components/EditModeContext").EditModeContext); return canEdit ? <button>edit</button> : null; } }));
 jest.mock("../ProfileSectionNav", () => ({ __esModule: true, default: () => <nav /> }));
-jest.mock("../LatestSection", () => ({ __esModule: true, default: () => <section data-testid="latest" /> }));
 jest.mock("../RevealSection", () => ({ __esModule: true, default: ({ children, id }) => <section id={id}>{children}</section> }));
 jest.mock("../AddArtistData", () => ({ __esModule: true, default: ({ directEdit, autoApprove }) => <button data-testid="add" data-direct={String(directEdit)} data-auto={String(autoApprove)} /> }));
 jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: ({ isMonetized, hasSupplementalLinks, supplementalLinks = [] }) => <div data-testid={isMonetized ? "support-grid" : "links-grid"} data-supplemental={String(hasSupplementalLinks)} data-icons={supplementalLinks.map(link => link.label).join(",")} /> }));
@@ -38,6 +37,7 @@ const base = {
     isPendingByUser: false,
     canEdit: true,
     autoApprove: false,
+    latest: <section data-testid="latest" />,
 };
 
 describe("ArtistProfileContent", () => {

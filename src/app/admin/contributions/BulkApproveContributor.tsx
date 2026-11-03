@@ -1,15 +1,15 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefreshAdmin } from '@/hooks/useRefreshAdmin';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { getContributorApprovalItems } from '@/app/actions/getContributorApprovalItems';
-import { approveContributorSubmissions } from '@/app/actions/approveContributorSubmissions';
+import { listPendingSubmissions } from '@/lib/admin/listPendingSubmissions';
+import { approvePendingSubmissions } from '@/lib/admin/approvePendingSubmissions';
 import { CONTRIBUTOR_APPROVAL_BATCH, type ContributorApprovalItem } from '@/lib/contributions/contributorApprovalTypes';
 
 export default function BulkApproveContributor({ contributorId, contributorName }: { contributorId: string; contributorName: string }) {
-  const router = useRouter();
+  const refreshAdmin = useRefreshAdmin();
   const inFlight = useRef(false);
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<'loading' | 'review' | 'approving' | 'done'>('loading');
@@ -23,14 +23,9 @@ export default function BulkApproveContributor({ contributorId, contributorName 
     inFlight.current = true;
     setPhase('loading'); setFeedback(null); setItems([]); setProgress(0); setOpen(true);
     try {
-      const result = await getContributorApprovalItems(contributorId);
-      if (!result.success) {
-        setFeedback({ error: true, message: result.error ?? 'Could not load pending submissions.' });
-        setPhase('done');
-      } else {
-        setItems(result.items ?? []); setHasMore(!!result.hasMore); setPhase('review');
-      }
-    } catch { setFeedback({ error: true, message: 'Could not load pending submissions. Please try again.' }); setPhase('done'); }
+      const result = await listPendingSubmissions(contributorId);
+      setItems(result.items); setHasMore(result.hasMore); setPhase('review');
+    } catch (e) { setFeedback({ error: true, message: e instanceof Error ? e.message : 'Could not load pending submissions. Please try again.' }); setPhase('done'); }
     finally { inFlight.current = false; }
   }
 
@@ -43,10 +38,9 @@ export default function BulkApproveContributor({ contributorId, contributorName 
     try {
       for (let start = 0; start < items.length; start += CONTRIBUTOR_APPROVAL_BATCH) {
         const batch = items.slice(start, start + CONTRIBUTOR_APPROVAL_BATCH).map(({ id, type }) => ({ id, type }));
-        const result = await approveContributorSubmissions(contributorId, batch);
+        const result = await approvePendingSubmissions(contributorId, batch);
         approved += result.approved; skipped += result.skipped; failed += result.failed;
         if (result.warning) warnings.add(result.warning);
-        if (result.error) { error = result.error; break; }
         setProgress(Math.min(start + batch.length, items.length));
       }
     } catch { error = 'The last batch could not be confirmed. Refresh the history before retrying.'; }
@@ -57,7 +51,7 @@ export default function BulkApproveContributor({ contributorId, contributorName 
         failed ? 'Failed items remain pending for individual review.' : '',
         ...warnings, error,
       ].filter(Boolean).join(' ') });
-      setPhase('done'); inFlight.current = false; router.refresh();
+      setPhase('done'); inFlight.current = false; void refreshAdmin();
     }
   }
 

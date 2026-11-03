@@ -9,7 +9,7 @@ notes preserve their original context; they do not override this guide or author
 
 Music Nerd is an artist directory that deepens listeners' relationships with artists through
 links, source-backed profiles, social research, and artists' own interview answers.
-Next.js 15 App Router, TypeScript, Drizzle/Postgres (Supabase), Privy + NextAuth, Tailwind/Radix.
+Next.js 15 App Router, TypeScript, Drizzle/Postgres (Supabase), Privy, Tailwind/Radix.
 
 Read `MEMORY.md` for the engineering handoff and the task's relevant entry in
 [decisions](docs/rnd/decisions.md). Verify worktree, branch, remote heads and PR state rather than

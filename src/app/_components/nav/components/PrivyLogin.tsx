@@ -1,16 +1,12 @@
 'use client';
 
-import { usePrivy, useLogin, useLogout, useIdentityToken, getIdentityToken } from '@privy-io/react-auth';
-import { getSession, signIn, signOut, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { resumeCorrectionSession } from '@/lib/bio/resumeCorrectionSession';
+import { usePrivy, useLogin, useLogout } from '@privy-io/react-auth';
 import { requestAdminApi } from '@/lib/admin/requestAdminApi';
-import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
+import { useEffect, useState, useCallback, forwardRef } from 'react';
 import { trackEvent } from '@/lib/analytics/trackEvent';
 import { requestContributions } from '@/lib/contributions/requestContributions';
 import { requestUserApi } from '@/lib/user/requestUserApi';
-import { markLoginCompleted } from '@/lib/analytics/markLoginCompleted';
-import { takeCompletedLogin } from '@/lib/analytics/takeCompletedLogin';
+import { takeLoginTrigger } from '@/lib/analytics/takeLoginTrigger';
 import { rememberLoginTrigger } from '@/lib/analytics/rememberLoginTrigger';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/app/_components/ThemeProvider';
 import AccountMenuAvatar from './AccountMenuAvatar';
 import { LegacyAccountModal } from './LegacyAccountModal';
-import { TOKEN_PREFIXES } from '@/server/utils/privyConstants';
+import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 
 interface PrivyLoginProps {
   buttonStyles?: string;
@@ -39,16 +35,10 @@ const accountMenuClass = "profile-account-panel w-72 max-w-[calc(100vw-2rem)] ma
 const isDev = process.env.NODE_ENV === 'development';
 const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
 
-// Retry configuration from environment variables
-const maxRetries = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_MAX_RETRIES || '5', 10);
-const retryDelay = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_RETRY_DELAY_MS || '500', 10);
-
 const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
   ({ buttonStyles = '' }, ref) => {
-    const { ready, authenticated, user: privyUser, getAccessToken } = usePrivy();
-    const { identityToken } = useIdentityToken();
-    const { data: session, status } = useSession();
-    const router = useRouter();
+    const { authenticated } = usePrivy();
+    const { user: account, status } = useMusicNerdUser();
     const { toast } = useToast();
     const { theme, setTheme } = useTheme();
     const [showLegacyModal, setShowLegacyModal] = useState(false);
@@ -56,16 +46,12 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [ugcCount, setUgcCount] = useState<number>(0);
     const [hasNewUGC, setHasNewUGC] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
-    const [pendingNextAuthLogin, setPendingNextAuthLogin] = useState(false);
     const [hasDashboardClaim, setHasDashboardClaim] = useState(false);
     const [claimedArtistId, setClaimedArtistId] = useState<string | null>(null);
-    const reloadingRef = useRef(false);
-    // Privy tells us once, in onComplete; the `login` event is sent after the reload.
-    const isNewUserRef = useRef(false);
-
     // Check for approved claim via API (replaces unreliable localStorage check)
+    const accountId = account?.id;
     useEffect(() => {
-      if (!session) {
+      if (!accountId) {
         setHasDashboardClaim(false);
         setClaimedArtistId(null);
         return;
@@ -82,177 +68,20 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
           setClaimedArtistId(null);
         });
       return () => controller.abort();
-    }, [session]);
+    }, [accountId]);
 
+    // Privy is the session: the account and every API call follow its token.
     const { login } = useLogin({
-      onComplete: async (params) => {
-        const { user, isNewUser, wasAlreadyAuthenticated } = params;
-        isNewUserRef.current = Boolean(isNewUser);
+      onComplete: ({ user, isNewUser, wasAlreadyAuthenticated }) => {
         if (isDev) {
-          console.log('[PrivyLogin] onComplete called:', {
-            userId: user?.id,
-            isNewUser,
-            wasAlreadyAuthenticated,
-            currentAuthenticated: authenticated,
-            currentReady: ready,
-          });
+          console.log('[PrivyLogin] onComplete called:', { userId: user?.id, isNewUser, wasAlreadyAuthenticated });
         }
-        // If Privy says already authenticated, only re-trigger NextAuth
-        // if NextAuth is out of sync (split state from a previous failed update).
-        if (wasAlreadyAuthenticated) {
-          if (status === 'unauthenticated') {
-            if (isDev) {
-              console.log('[PrivyLogin] wasAlreadyAuthenticated but NextAuth unauthenticated — re-triggering login');
-            }
-            setIsLoggingIn(true);
-            setPendingNextAuthLogin(true);
-          }
-          return;
-        }
-        // Set flag to trigger NextAuth login once Privy state is ready
-        setIsLoggingIn(true);
-        setPendingNextAuthLogin(true);
+        if (!wasAlreadyAuthenticated) trackEvent('login', { trigger: takeLoginTrigger(), new: Boolean(isNewUser) });
       },
       onError: (error) => {
         console.error('[PrivyLogin] Privy login error:', error);
-        setIsLoggingIn(false);
-        setPendingNextAuthLogin(false);
       },
     });
-
-    // The page reloads after signIn, so the `login` event is sent from the next mount.
-    useEffect(() => {
-      const completed = takeCompletedLogin();
-      if (completed) trackEvent('login', completed);
-    }, []);
-
-    // Handle NextAuth login after Privy authentication is complete
-    useEffect(() => {
-      const completeLogin = async () => {
-        if (isDev) {
-          console.log('[PrivyLogin] completeLogin check:', {
-            pendingNextAuthLogin,
-            authenticated,
-            ready,
-            hasPrivyUser: !!privyUser,
-            privyUserId: privyUser?.id,
-          });
-        }
-
-        if (!pendingNextAuthLogin || !authenticated || !ready) {
-          return;
-        }
-
-        try {
-          // Retry logic for getAccessToken - it may return null initially due to timing
-          let token: string | null = null;
-
-          for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            const authToken = await getAccessToken();
-            if (isDev) {
-              console.log('[PrivyLogin] getAccessToken result:', {
-                attempt,
-                hasToken: !!authToken,
-                tokenLength: typeof authToken === 'string' ? authToken.length : 'not a string',
-              });
-            }
-
-            // Handle case where getAccessToken might return an object with token property
-            token = typeof authToken === 'string' ? authToken : (authToken as any)?.token || (authToken as any)?.accessToken || null;
-
-            if (token) {
-              break;
-            }
-
-            // Fallback: try identity token (available even when access token isn't)
-            try {
-              const idToken = await getIdentityToken();
-              if (idToken) {
-                token = `${TOKEN_PREFIXES.ID_TOKEN}${idToken}`;
-                if (isDev) {
-                  console.log('[PrivyLogin] Identity token obtained on attempt', attempt);
-                }
-                break;
-              }
-            } catch (idTokenError) {
-              if (isDev) {
-                console.log('[PrivyLogin] getIdentityToken failed:', idTokenError);
-              }
-            }
-
-            if (attempt < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, retryDelay));
-            }
-          }
-
-          if (!token) {
-            // Final fallback: use Privy user ID directly (for test users that don't get tokens)
-            // This path is intentionally blocked in production — verifyPrivyToken returns null
-            // for privyid: prefixed tokens in production environments.
-            if (process.env.NODE_ENV !== 'production' && privyUser?.id) {
-              if (isDev) {
-                console.log('[PrivyLogin] Using direct Privy ID fallback:', privyUser.id);
-              }
-              token = `${TOKEN_PREFIXES.PRIVY_ID}${privyUser.id}`;
-            } else {
-              console.error('[PrivyLogin] Failed to get auth token after all retries');
-              toast({
-                title: 'Login Error',
-                description: process.env.NODE_ENV === 'production'
-                  ? 'Authentication temporarily unavailable, please refresh the page.'
-                  : 'Failed to get authentication token. Please try again.',
-                variant: 'destructive',
-              });
-              return;
-            }
-          }
-
-          // Sign in with NextAuth using the Privy provider
-          const result = await signIn('privy', {
-            authToken: token,
-            redirect: false,
-          });
-
-          if (result?.error) {
-            console.error('[PrivyLogin] NextAuth sign in failed:', result.error);
-            toast({
-              title: 'Login Error',
-              description: 'Failed to complete login. Please try again.',
-              variant: 'destructive',
-            });
-          } else {
-            if (await resumeCorrectionSession(window.location.pathname, () => getSession({ broadcast: false }))) {
-              markLoginCompleted(isNewUserRef.current);
-              const completed = takeCompletedLogin();
-              if (completed) trackEvent('login', completed);
-              router.refresh();
-              return;
-            }
-            // SessionProvider with refetchInterval=0 doesn't auto-update after
-            // signIn sets the cookie. Neither update() nor getSession() reliably
-            // propagate to all useSession() consumers. Reload the page to ensure
-            // all components (nav, profile, leaderboard) read the new session.
-            reloadingRef.current = true;
-            markLoginCompleted(isNewUserRef.current);
-            window.location.reload();
-          }
-        } catch (error) {
-          console.error('[PrivyLogin] Login error:', error);
-          toast({
-            title: 'Login Error',
-            description: 'An unexpected error occurred. Please try again.',
-            variant: 'destructive',
-          });
-        } finally {
-          if (!reloadingRef.current) {
-            setIsLoggingIn(false);
-            setPendingNextAuthLogin(false);
-          }
-        }
-      };
-
-      completeLogin();
-    }, [pendingNextAuthLogin, authenticated, ready, getAccessToken, toast, privyUser]);
 
     const { logout: privyLogout } = useLogout({
       onSuccess: () => {
@@ -262,8 +91,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       },
     });
 
-    // Handle login click — if Privy is already authenticated but NextAuth isn't,
-    // we have a stale/split session. Log out of Privy first, then start fresh.
+    // Handle login click — if Privy is signed in but the account can't be read,
+    // the Privy session is stale. Log out of Privy first, then start fresh.
     const handleLogin = useCallback(async () => {
       if (authenticated && status === 'unauthenticated') {
         if (isDev) {
@@ -295,8 +124,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     // available explicitly from the account menu without a second automatic dialog.
 
     // Fetch pending UGC count for admins
+    const isAdmin = !!account?.isAdmin;
     const fetchPendingUGC = useCallback(async () => {
-      if (session?.user?.isAdmin) {
+      if (isAdmin) {
         try {
           const res = await requestAdminApi('/api/pendingUGCCount');
           if (res.ok) {
@@ -309,11 +139,11 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       } else {
         setHasPendingUGC(false);
       }
-    }, [session]);
+    }, [isAdmin]);
 
     // Fetch UGC count for current user
     const fetchUGCCount = useCallback(async () => {
-      if (!session) return;
+      if (!accountId) return;
 
       try {
         const res = await requestContributions('/api/ugcCount');
@@ -322,7 +152,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
           setUgcCount(data.count);
 
           if (typeof window !== 'undefined') {
-            const storageKey = `ugcCount_${session.user.id}`;
+            const storageKey = `ugcCount_${accountId}`;
             const stored = Number(localStorage.getItem(storageKey) || '0');
             setHasNewUGC(data.count > stored);
           }
@@ -330,11 +160,11 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       } catch (e) {
         console.error('[PrivyLogin] Error fetching UGC count', e);
       }
-    }, [session]);
+    }, [accountId]);
 
     useEffect(() => {
       fetchUGCCount();
-    }, [fetchUGCCount, session]);
+    }, [fetchUGCCount]);
 
     useEffect(() => {
       window.addEventListener('ugcCountUpdated', fetchUGCCount);
@@ -355,8 +185,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const handleLogout = async () => {
       try {
         sessionStorage.removeItem(LEGACY_MODAL_SHOWN_KEY);
-        await signOut({ redirect: false });
         await privyLogout();
+        // Start the signed-out page clean, without the previous account's reads.
         window.location.reload();
       } catch (error) {
         console.error('[PrivyLogin] Logout error:', error);
@@ -376,7 +206,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     );
 
     // Loading state
-    if (!ready || isLoggingIn) {
+    if (status === 'loading' || isLoggingIn) {
       return (
         <Button
           className="button-pink bg-highlightpink animate-pulse w-12 h-12 px-0"
@@ -390,7 +220,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     }
 
     // Not authenticated - show login dropdown
-    if (status !== 'authenticated' || !session) {
+    if (status !== 'authenticated' || !account) {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -442,7 +272,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               className="relative bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 w-12 h-12 rounded-full p-0 flex items-center justify-center"
             >
               <X aria-hidden="true" className="profile-account-close-icon hidden" size={20} />
-              {session?.user?.id && <AccountMenuAvatar key={session.user.id} userId={session.user.id} />}
+              <AccountMenuAvatar key={account.id} userId={account.id} />
               {(hasPendingUGC || hasNewUGC) && (
                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
               )}
@@ -461,8 +291,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 prefetch
                 onClick={() => {
                   try {
-                    if (session && typeof window !== 'undefined') {
-                      const storageKey = `ugcCount_${session.user.id}`;
+                    if (typeof window !== 'undefined') {
+                      const storageKey = `ugcCount_${account.id}`;
                       localStorage.setItem(storageKey, String(ugcCount));
                       setHasNewUGC(false);
                       window.dispatchEvent(new Event('ugcCountUpdated'));
@@ -483,7 +313,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 </Link>
               </DropdownMenuItem>
             )}
-            {session?.user?.isAdmin && (
+            {account.isAdmin && (
               <DropdownMenuItem asChild className={accountMenuItemClass}>
                 <Link href="/admin" prefetch>
                   <ShieldCheck aria-hidden="true" /><span>Admin Panel</span>
@@ -499,7 +329,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
             <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>
-            {session?.user?.needsLegacyLink && (
+            {account.needsLegacyLink && (
               <DropdownMenuItem className={accountMenuItemClass} onSelect={() => setShowLegacyModal(true)}>
                 <Wallet aria-hidden="true" />Link Wallet
               </DropdownMenuItem>

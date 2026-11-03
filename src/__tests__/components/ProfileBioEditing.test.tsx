@@ -10,8 +10,17 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
 jest.mock('@privy-io/react-auth', () => ({ ...jest.requireActual('@privy-io/react-auth'), getAccessToken: jest.fn(async () => 'private-token') }));
 jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
 jest.mock('@/app/artist/[id]/_components/VaultManager', () => function Manager() { return null; });
-jest.mock('@/app/actions/dashboardActions', () => ({ getArtistBioVersions: jest.fn(), unpinBioAction: jest.fn(), saveCurrentBio: jest.fn() }));
-import { getArtistBioVersions, unpinBioAction, saveCurrentBio } from '@/app/actions/dashboardActions';
+const getArtistBioVersions = jest.fn();
+const unpinBio = jest.fn();
+const pinBioVersion = jest.fn();
+const deleteBioVersion = jest.fn();
+jest.mock('@/lib/musicNerdApi/requestMusicNerdApi', () => ({
+  requestMusicNerdApi: (path: string, init?: { method?: string; body?: { versionId?: string } }) => {
+    if (path.endsWith('/versions')) return getArtistBioVersions(path);
+    if (path.endsWith('/pin')) return init?.method === 'PUT' ? pinBioVersion(init.body?.versionId, path) : unpinBio(path);
+    return deleteBioVersion(path);
+  },
+}));
 const original = 'The artist’s original biography.';
 const edited = 'The artist’s revised biography, saved in their own words.';
 function view() {
@@ -23,7 +32,7 @@ function view() {
 beforeEach(() => { jest.clearAllMocks(); });
 test('one Save updates the biography and exposes its preserved version in Lore', async () => {
     const versions = [{ id: 'old', artistId: 'a1', bioText: original, isPinned: false, createdAt: '2026-09-10T00:00:00Z' }];
-    (getArtistBioVersions as jest.Mock).mockImplementation(async () => ({ success: true, versions }));
+    getArtistBioVersions.mockImplementation(async () => ({ success: true, versions }));
     const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(async (_url, init) => {
         if (init?.method === 'PUT') {
             expect(JSON.parse(init.body as string)).toEqual({ bio: edited });
@@ -44,14 +53,13 @@ test('one Save updates the biography and exposes its preserved version in Lore',
     expect(within(savedBios).getByText(edited)).toBeInTheDocument();
     expect(within(savedBios).getByText(original)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Saved bios' }).closest('[role="tabpanel"][data-state="active"]')).toBeInTheDocument();
-    expect(saveCurrentBio).not.toHaveBeenCalled();
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
     fetchMock.mockRestore();
 });
 test('unpin unlocks the existing bio without fetching or generating another bio', async () => {
     let pinned = true;
-    (getArtistBioVersions as jest.Mock).mockImplementation(async () => ({ success: true, versions: [{ id: 'v1', artistId: 'a1', bioText: original, isPinned: pinned, createdAt: '2026-09-11T00:00:00Z' }] }));
-    (unpinBioAction as jest.Mock).mockImplementation(async () => { pinned = false; return { success: true }; });
+    getArtistBioVersions.mockImplementation(async () => ({ success: true, versions: [{ id: 'v1', artistId: 'a1', bioText: original, isPinned: pinned, createdAt: '2026-09-11T00:00:00Z' }] }));
+    unpinBio.mockImplementation(async () => { pinned = false; return { success: true }; });
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ bio: original }) } as Response);
     render(view());
     fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
@@ -59,7 +67,7 @@ test('unpin unlocks the existing bio without fetching or generating another bio'
     expect(screen.getByRole('button', { name: 'Regenerate' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Unpin to edit' }));
     await waitFor(() => expect(screen.getByRole('textbox')).not.toBeDisabled());
-    expect(unpinBioAction).toHaveBeenCalledWith('a1');
+    expect(unpinBio).toHaveBeenCalledWith('/api/artistBio/a1/pin');
     expect(screen.getByRole('textbox')).toHaveValue(original);
     expect(screen.queryByText('Loading summary...')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();

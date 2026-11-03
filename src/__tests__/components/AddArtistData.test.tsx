@@ -2,15 +2,15 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AddArtistData from '@/app/artist/[id]/_components/AddArtistData';
-import { useSession } from 'next-auth/react';
+import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 import { LINK_NOT_SUPPORTED } from '@/lib/linkSubmissionMessages';
-import { addArtistDataAction } from '@/app/actions/serverActions';
+import { requestArtistLinkSuggestion } from '@/lib/artistLinks/requestArtistLinkSuggestion';
 import { requestArtistLinkEdit } from '@/lib/artistLinks/requestArtistLinkEdit';
 jest.mock('@/lib/artistLinks/requestArtistLinkEdit', () => ({ requestArtistLinkEdit: jest.fn() }));
+jest.mock('@/lib/artistLinks/requestArtistLinkSuggestion', () => ({ requestArtistLinkSuggestion: jest.fn() }));
 
 const mockTrackEvent = jest.fn();
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
-jest.mock('next-auth/react', () => ({ useSession: jest.fn() }));
 jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
 
 const baseProps = {
@@ -24,11 +24,11 @@ const baseProps = {
 describe('AddArtistData "+" trigger', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (addArtistDataAction as jest.Mock).mockReset();
+    (requestArtistLinkSuggestion as jest.Mock).mockReset();
   });
 
   it('does nothing while the session is still loading', () => {
-    (useSession as jest.Mock).mockReturnValue({ data: null, status: 'loading' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: null, status: 'loading' });
     const getByIdSpy = jest.spyOn(document, 'getElementById');
 
     render(<AddArtistData {...baseProps} />);
@@ -41,7 +41,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('prompts login (clicks #login-btn) and does not open the modal when logged out', () => {
-    (useSession as jest.Mock).mockReturnValue({ data: null, status: 'unauthenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: null, status: 'unauthenticated' });
     const loginClick = jest.fn();
     const getByIdSpy = jest
       .spyOn(document, 'getElementById')
@@ -59,11 +59,11 @@ describe('AddArtistData "+" trigger', () => {
 
   it('auth-gates a handed-off URL, then resumes and consumes it after login', async () => {
     const spotifyUrl = 'https://open.spotify.com/artist/2TNJWBi73MnkSRkZRPBqSW?si=test';
-    let authState = { data: null, status: 'loading' } as {
-      data: { user: { id: string } } | null;
+    let authState = { user: null, status: 'loading' } as {
+      user: { id: string } | null;
       status: 'authenticated' | 'loading' | 'unauthenticated';
     };
-    (useSession as jest.Mock).mockImplementation(() => authState);
+    (useMusicNerdUser as jest.Mock).mockImplementation(() => authState);
 
     const loginButton = document.createElement('button');
     loginButton.id = 'login-btn';
@@ -84,25 +84,25 @@ describe('AddArtistData "+" trigger', () => {
       expect(loginClick).not.toHaveBeenCalled();
       expect(screen.queryByRole('heading', { name: /Suggest a link for Test Artist/i })).not.toBeInTheDocument();
 
-      authState = { data: null, status: 'unauthenticated' };
+      authState = { user: null, status: 'unauthenticated' };
       rerender(<AddArtistData {...baseProps} isOpenOnLoad prefillUrl={spotifyUrl} />);
 
       expect(loginClick).toHaveBeenCalledTimes(1);
       expect(screen.queryByRole('heading', { name: /Suggest a link for Test Artist/i })).not.toBeInTheDocument();
       expect(window.location.search).toContain('addLink=');
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
 
-      // The real Privy flow reloads after login. A session update on the same
+      // The real Privy flow reloads after login. An account update on the same
       // mount is enough to verify the pending handoff resumes as well.
       authState = {
-        data: { user: { id: 'u1' } },
+        user: { id: 'u1' },
         status: 'authenticated',
       };
       rerender(<AddArtistData {...baseProps} isOpenOnLoad prefillUrl={spotifyUrl} />);
 
       expect(screen.getByRole('heading', { name: /Suggest a link for Test Artist/i })).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/Paste a profile link/i)).toHaveValue(spotifyUrl);
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
       await waitFor(() => expect(window.location.search).toBe('?view=links'));
       expect(window.location.hash).toBe('#social-links');
     } finally {
@@ -112,8 +112,8 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('handles a new handed-off URL when client navigation reuses the component', async () => {
-    (useSession as jest.Mock).mockReturnValue({
-      data: { user: { id: 'u1' } },
+    (useMusicNerdUser as jest.Mock).mockReturnValue({
+      user: { id: 'u1' },
       status: 'authenticated',
     });
     const firstUrl = 'https://open.spotify.com/artist/2TNJWBi73MnkSRkZRPBqSW';
@@ -153,7 +153,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('warns in dev and does not open the modal when login button is absent', () => {
-    (useSession as jest.Mock).mockReturnValue({ data: null, status: 'unauthenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: null, status: 'unauthenticated' });
     const getByIdSpy = jest.spyOn(document, 'getElementById').mockReturnValue(null);
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -168,7 +168,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('reports a visitor submission that no platform regex accepts as invalid', async () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     const originalFetch = global.fetch;
     // /api/platformRegexes returns nothing, so no platform matches and the client rejects the URL
     global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ status: 'ok', regexes: [] }) })) as unknown as typeof fetch;
@@ -179,14 +179,14 @@ describe('AddArtistData "+" trigger', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'Submit' })).toBeEnabled());
       fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
       await waitFor(() => expect(mockTrackEvent).toHaveBeenCalledWith('add_link_submit', { platform: null, result: 'invalid' }));
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     } finally {
       global.fetch = originalFetch;
     }
   });
 
   it('opens the submit modal when logged in', () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
 
     render(<AddArtistData {...baseProps} />);
     const trigger = screen.getByRole('button', { name: 'Add a link for Test Artist' });
@@ -199,7 +199,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('opens with the handed-off URL prefilled, consumes addLink, and does not submit', async () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     const spotifyUrl = 'https://open.spotify.com/artist/2TNJWBi73MnkSRkZRPBqSW?si=test';
     const originalReplaceState = window.history.replaceState;
     const nativeReplaceState = originalReplaceState.bind(window.history);
@@ -237,7 +237,7 @@ describe('AddArtistData "+" trigger', () => {
 
       expect(screen.getByRole('heading', { name: /Suggest a link for Test Artist/i })).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/Paste a profile link/i)).toHaveValue(spotifyUrl);
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
 
       await waitFor(() => {
         expect(nextReplaceState).toHaveBeenCalledWith(
@@ -260,7 +260,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('resets a consumed prefill before a later manual open', async () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     const spotifyUrl = 'https://open.spotify.com/artist/2TNJWBi73MnkSRkZRPBqSW';
 
     render(<AddArtistData {...baseProps} isOpenOnLoad prefillUrl={spotifyUrl} />);
@@ -276,7 +276,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('keeps submission disabled while supported-link validation is loading', () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     const originalFetch = global.fetch;
     global.fetch = jest.fn(() => new Promise(() => {})) as unknown as typeof fetch;
 
@@ -288,19 +288,19 @@ describe('AddArtistData "+" trigger', () => {
       expect(submitButton).toBeDisabled();
       expect(submitButton).toHaveAttribute('aria-busy', 'true');
       fireEvent.click(submitButton);
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     } finally {
       global.fetch = originalFetch;
     }
   });
 
   it('lets an unchanged server-validated prefill reach the server if regex loading fails', async () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     const spotifyUrl = 'https://open.spotify.com/artist/2TNJWBi73MnkSRkZRPBqSW';
     const originalFetch = global.fetch;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     global.fetch = jest.fn().mockRejectedValue(new Error('offline')) as unknown as typeof fetch;
-    (addArtistDataAction as jest.Mock).mockResolvedValue({ status: 'error', message: 'Server rejected link' });
+    (requestArtistLinkSuggestion as jest.Mock).mockResolvedValue({ status: 'error', message: 'Server rejected link' });
 
     try {
       render(<AddArtistData {...baseProps} isOpenOnLoad prefillUrl={spotifyUrl} />);
@@ -310,7 +310,7 @@ describe('AddArtistData "+" trigger', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(addArtistDataAction).toHaveBeenCalledWith(spotifyUrl, baseProps.artist);
+        expect(requestArtistLinkSuggestion).toHaveBeenCalledWith(baseProps.artist.id, spotifyUrl);
       });
     } finally {
       global.fetch = originalFetch;
@@ -319,7 +319,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('does not trust a modified prefill when regex loading fails', async () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     const spotifyUrl = 'https://open.spotify.com/artist/2TNJWBi73MnkSRkZRPBqSW';
     const originalFetch = global.fetch;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -338,7 +338,7 @@ describe('AddArtistData "+" trigger', () => {
       await waitFor(() => {
         expect(screen.getByText(LINK_NOT_SUPPORTED)).toBeInTheDocument();
       });
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     } finally {
       global.fetch = originalFetch;
       errorSpy.mockRestore();
@@ -346,7 +346,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('uses "Save Link" submit label for a claim owner using direct edit', () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
 
     render(<AddArtistData {...baseProps} directEdit />);
     fireEvent.click(screen.getByRole('button'));
@@ -357,7 +357,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('uses immediate-addition copy for an auto-approved contribution', () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
 
     render(<AddArtistData {...baseProps} autoApprove />);
     fireEvent.click(screen.getByRole('button'));
@@ -368,7 +368,7 @@ describe('AddArtistData "+" trigger', () => {
   });
 
   it('shows the friendly LINK_NOT_SUPPORTED error when a URL matches no platform', async () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     const originalFetch = global.fetch;
     // /api/platformRegexes returns no regexes → validatePlatformLinkBackend will reject any URL.
     global.fetch = jest.fn().mockResolvedValue({
@@ -396,12 +396,12 @@ describe('AddArtistData "+" trigger', () => {
 
   it('lets a Deezer-backed artist select a Spotify example and submit through the existing link action', async () => {
     const originalFetch = global.fetch;
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ status: 'ok', regexes: [{ siteName: 'spotify', regex: '^https://open\\.spotify\\.com/artist/[A-Za-z0-9]+$' }] }),
     }) as unknown as typeof fetch;
-    (addArtistDataAction as jest.Mock).mockResolvedValue({ status: 'success', message: 'Link added', siteName: 'spotify' });
+    (requestArtistLinkSuggestion as jest.Mock).mockResolvedValue({ status: 'success', message: 'Link added', siteName: 'spotify' });
     const artist = { ...baseProps.artist, deezer: '123', spotify: null };
     try {
       render(<AddArtistData {...baseProps} artist={artist} autoApprove availableLinks={[
@@ -426,14 +426,14 @@ describe('AddArtistData "+" trigger', () => {
       const submit = screen.getByRole('button', { name: 'Add Link' });
       await waitFor(() => expect(submit).toBeEnabled());
       fireEvent.click(submit);
-      await waitFor(() => expect(addArtistDataAction).toHaveBeenCalledWith(url, artist));
+      await waitFor(() => expect(requestArtistLinkSuggestion).toHaveBeenCalledWith(artist.id, url));
     } finally {
       global.fetch = originalFetch;
     }
   });
 
   it('loads platform patterns and checks a profile page on MusicNerdAPI without credentials', async () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     const originalFetch = global.fetch;
     const url = 'https://soundcloud.com/nobody-here';
     global.fetch = jest.fn()
@@ -450,14 +450,14 @@ describe('AddArtistData "+" trigger', () => {
       expect(fetch).toHaveBeenLastCalledWith('https://api-preview.test/api/validateLink', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }), credentials: 'omit',
       });
-      expect(addArtistDataAction).not.toHaveBeenCalled();
+      expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     } finally {
       global.fetch = originalFetch;
     }
   });
 
   it('shows the "Supported links" trigger inside the modal', () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
 
     render(<AddArtistData {...baseProps} />);
     fireEvent.click(screen.getByRole('button'));
@@ -473,7 +473,7 @@ describe('isLinkTarget', () => {
   // whose example is https://www.inprocess.world/0x1f8d…, so no artist could pick it.
 
   it('lists the In Process example and hides wallet and ENS rows in the picker', () => {
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     render(<AddArtistData {...baseProps} availableLinks={[
       { id: 'wallet', siteName: 'wallet', example: 'Example Wallet: 0x000000...' } as any,
       { id: 'ens', siteName: 'ens', example: 'ARTIST_NAME.eth' } as any,
@@ -495,7 +495,7 @@ describe('AddArtistData authenticated API editing', () => {
   const request = requestArtistLinkEdit as jest.Mock;
   beforeEach(() => {
     jest.clearAllMocks();
-    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: 'u1' }, status: 'authenticated' });
     global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ status: 'ok', regexes: [{ siteName: 'spotify', regex: '^https://open\\.spotify\\.com/artist/[a-zA-Z0-9]{22}$' }] }) });
   });
   async function submit() {
@@ -509,7 +509,7 @@ describe('AddArtistData authenticated API editing', () => {
     request.mockResolvedValue({ ok: true, json: async () => ({ status: 'ok', success: true, siteName: 'spotify', changed }) });
     await submit();
     await waitFor(() => expect(screen.getByText('Link saved successfully.')).toBeInTheDocument());
-    expect(addArtistDataAction).not.toHaveBeenCalled();
+    expect(requestArtistLinkSuggestion).not.toHaveBeenCalled();
     if (changed) expect(mockTrackEvent).toHaveBeenCalledWith('profile_edit', { action: 'link_add', target: 'spotify' });
     else expect(mockTrackEvent).not.toHaveBeenCalledWith('profile_edit', expect.anything());
   });

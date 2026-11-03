@@ -15,7 +15,6 @@ const isTestEnv = process.env.NODE_ENV === 'test';
 export const SPOTIFY_WEB_CLIENT_ID = validateEnv(process.env.NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID, 'NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID', isTestEnv);
 export const SPOTIFY_WEB_CLIENT_SECRET = validateEnv(process.env.NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET, 'NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET', isTestEnv);
 export const SUPABASE_DB_CONNECTION = process.env.SUPABASE_DB_CONNECTION ?? "";
-export const NEXTAUTH_URL = process.env.NEXTAUTH_URL ?? "";
 export const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL ?? "";
 
 // Supabase Storage
@@ -27,15 +26,9 @@ export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?
 export const TAVILY_API_KEY = process.env.TAVILY_API_KEY ?? "";
 export const WEB_SEARCH_PROVIDER = process.env.WEB_SEARCH_PROVIDER ?? "tavily";
 
-// Resend (transactional email — approval notifications). Empty = sends are skipped.
-export const RESEND_API_KEY = process.env.RESEND_API_KEY ?? "";
-
 // Privy Configuration
 export const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
 export const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET ?? "";
 
 // Apify (Instagram post ingestion — see socialIngest.ts). Empty = ingestion no-ops.
 export const APIFY_API_TOKEN = process.env.APIFY_API_TOKEN ?? "";
-
-// Server-only public knowledge/research capability; never grants private artist access.
-export const MUSICNERD_RESEARCH_API_KEY = process.env.MUSICNERD_RESEARCH_API_KEY ?? "";

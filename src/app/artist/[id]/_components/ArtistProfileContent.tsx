@@ -1,5 +1,7 @@
+"use client";
+
 import type { PublicArtistAbout } from '@/lib/bio/types';
-import { Suspense, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Artist, ArtistVaultSource, UrlMap } from "@/server/db/DbTypes";
 import type { ArtistLink } from "@/server/utils/queries/artistQueries";
 import { customImageUrl } from "@/lib/artist/customImageUrl";
@@ -14,7 +16,6 @@ import ClaimButton from "./ClaimButton";
 import ArtistClaimBadge from "./ArtistClaimBadge";
 import HeroSection from "./HeroSection";
 import KnowledgeSection from "./KnowledgeSection";
-import LatestSection from "./LatestSection";
 import ProfileSectionNav from "./ProfileSectionNav";
 import RevealSection from "./RevealSection";
 import ResearchPending from "./onboarding/ResearchPending";
@@ -24,12 +25,15 @@ import VaultSection from "./VaultSection";
 
 /** The artist page's content, hero through the Ask sheet. While a fresh claim's
  *  onboarding runs, research paints it in place: Links, Lore and About show a
- *  loading state until their step is confirmed (docs/research-view.md). */
+ *  loading state until their step is confirmed (docs/research-view.md).
+ *  Latest is server-rendered and arrives as a slot. */
 export default function ArtistProfileContent({
-    interviewAction, artist, publicAbout, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
+    interviewAction, latest, artist, publicAbout, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
     blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true, researching = false,
 }: {
     interviewAction?: ReactNode;
+    /** The Latest section, server-rendered. */
+    latest: ReactNode;
     artist: Artist;
     publicAbout?: PublicArtistAbout | null;
     imageUrl: string;
@@ -80,9 +84,7 @@ export default function ArtistProfileContent({
 
                 <ProfileSectionNav key={`sections:${artist.id}`} />
 
-                <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
-                    <LatestSection canEdit={canEdit} artist={artist} imageUrl={imageUrl} sources={approvedSources.map(({ url, title }) => ({ url, title }))} listenLinks={listenLinks} />
-                </Suspense>
+                {latest}
 
                 {/* Listening, social and support links share one destination. */}
                 <RevealSection editable id="mn-links" className="glass p-4 sm:p-5 space-y-3 transition-shadow has-[[data-research-new]]:ring-2 has-[[data-research-new]]:ring-highlightpink/70">
@@ -99,7 +101,7 @@ export default function ArtistProfileContent({
                         />
                     </div>
                     <ResearchPending step="profiles" skeleton="links" label="finding your profiles…" arrivedLabel="Your links are ready">
-                        <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "links", approvedSources)} isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "links", approvedSources).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                        <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "links", approvedSources)} isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "links", approvedSources).length > 0} artist={artist} artistLinks={artistLinks} availableLinks={urlMapList} />
                     </ResearchPending>
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
                         <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
@@ -112,7 +114,7 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support", approvedSources)} isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support", approvedSources).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support", approvedSources)} isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support", approvedSources).length > 0} artist={artist} artistLinks={artistLinks} availableLinks={urlMapList} />
                 </RevealSection>
                 <div id="mn-lore">
                     <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />

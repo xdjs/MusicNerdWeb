@@ -10,8 +10,8 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-jest.mock('next-auth/react', () => ({
-    useSession: () => ({ data: null }),
+jest.mock('@/hooks/useMusicNerdUser', () => ({
+    useMusicNerdUser: () => ({ user: null, status: 'unauthenticated' }),
 }));
 
 jest.mock('@privy-io/react-auth', () => ({
@@ -19,8 +19,8 @@ jest.mock('@privy-io/react-auth', () => ({
 }));
 
 const mockAddArtist = jest.fn();
-jest.mock('@/app/actions/addArtist', () => ({
-    addArtist: (...args: unknown[]) => mockAddArtist(...args),
+jest.mock('@/lib/artist/requestAddArtist', () => ({
+    requestAddArtist: (...args: unknown[]) => mockAddArtist(...args),
 }));
 
 jest.mock('use-debounce', () => ({

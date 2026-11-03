@@ -27,13 +27,12 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | --- | --- |
 | `SUPABASE_DB_CONNECTION` | Dev Postgres connection as `mnweb`; verify project and role before use |
 | `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID`, `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET` | Existing catalog credentials; the public secret name is known debt, not a pattern to copy |
-| `NEXTAUTH_URL`, `NEXTAUTH_SECRET` | Session configuration; local URL is HTTPS when using `npm run dev` |
 | `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET` | Real Privy login |
 | `AI_GATEWAY_API_KEY` | Every model call (Ask, About, research, interview, onboarding, fun facts) through Vercel AI Gateway; see [llm.md](llm.md). Locally, the OIDC token from `vercel env pull` also works |
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
 | `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Optional profile-discovery web search |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage and its health checks; service key stays server-side |
-| `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL` | Optional email and UGC notifications |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage; service key stays server-side |
+| `DISCORD_WEBHOOK_URL` | Optional UGC notifications |
 
 Model ids live in `src/server/lib/ai/models.ts`; per-call temperature, thinking budget and timeout
 are declared in their consumers and listed in [llm.md](llm.md). Other rate-limit settings are
@@ -69,8 +68,8 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   The combined search route then applies its existing external-result deduplication.
   This compatibility read changes no stored names, provider identities or artist records;
   the existing indexes and fuzzy fallback remain in use. Regression: issue #1256.
-- **Auth:** `src/server/auth.ts` uses a Privy CredentialsProvider and NextAuth JWT sessions.
-  `src/server/utils/privy.ts` verifies tokens. Privy login UI lives under
+- **Auth:** Privy only. Clients send the Privy access token to MusicNerdAPI, which resolves the
+  account; `src/server/utils/privy.ts` verifies it for the one remaining server action. Privy login UI lives under
   `src/app/_components/nav/components/`. Legacy wallets are linked by MusicNerdAPI's `POST /api/auth/link-wallet`
   (`src/lib/account/requestLinkWallet.ts`), which runs `mergeAccounts`;
   inspect account-owned data whenever changing that path.
@@ -94,8 +93,8 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   the browser pumps (`useResearchPump`, `LatestRefreshControl`) post to MusicNerdAPI's
   `/api/research/advance`, "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`, and the
   build view's "try again" (`useRestartClaimBuild`) posts MusicNerdAPI's `/api/onboarding/{artistId}/build`,
-  both with the Privy access token. Claim approval starts that build server to server (`startClaimBuild`,
-  research key); the page never sends onboarding chat turns ([research-view.md](research-view.md)). The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
+  both with the Privy access token. Claim approval (MusicNerdAPI's `/api/admin/claims/{id}/approve`)
+  starts that build on the API; the page never sends onboarding chat turns ([research-view.md](research-view.md)). The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
   `NEXT_PUBLIC_VERCEL_ENV`: production → `api.musicnerd.net`; previews, staging and local →
   `musicnerd-api-staging.vercel.app` (MusicNerdAPI's `staging` environment: `main` on the staging
   database). Promote a production-target build: a promoted preview build still calls staging.
@@ -205,9 +204,9 @@ acceptance requires an explicitly approved disposable fixture and remains separa
 `npm run eval` runs an LLM eval suite against real data and spends model tokens; it is not part
 of `npm run ci` and runs on demand, from the Evals workflow. See the [evals contract](evals.md).
 
-`npm run test:smoke` uses the separate smoke config without global mocks.
-`SMOKE_BASE_URL` checks deployed health. Storage integration tests may write and clean up
-fixtures when storage credentials are available; don't run them against production casually.
+`npm run test:smoke` uses the separate smoke config without global mocks. Storage integration
+tests may write and clean up fixtures when storage credentials are available; don't run them
+against production casually.
 
 ## CI and release verification
 
@@ -219,7 +218,7 @@ After both pass on main, the gated release jobs build the exact SHA in custom st
 its immutable URL, and wait for production approval. Production builds the same SHA again with
 production configuration before checks and promotion. See [releases](releases.md) for setup,
 resource isolation, concurrency, migration approval, evidence and rollback. Feature previews
-continue through Vercel Git integration. The separate post-deploy smoke is supplementary.
+continue through Vercel Git integration.
 
 Check required reviews and checks on the **current head SHA**. For failed checks, read logs
 and separate defects from service outages before retrying. After authorized release, verify

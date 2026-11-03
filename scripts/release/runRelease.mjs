@@ -81,13 +81,18 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
         !/^[a-z0-9-]+\.vercel\.app$/.test(deployment.url))
       throw new Error('Invalid immutable deployment URL or ID');
   };
-  const smoke = async deployment => {
+  // Web serves no API routes; its data comes from MusicNerdAPI, so the smoke checks that
+  // environment's MusicNerdAPI health alongside the Web candidate's homepage.
+  const apiHealthUrl = {
+    staging: 'https://musicnerd-api-staging.vercel.app/api/health',
+    production: 'https://api.musicnerd.net/api/health',
+  };
+  const smoke = async (deployment, target) => {
     // Only the verified immutable Vercel hostname receives the optional bypass credential.
     const headers = env.VERCEL_AUTOMATION_BYPASS_SECRET ?
       { 'x-vercel-protection-bypass': env.VERCEL_AUTOMATION_BYPASS_SECRET } : {};
-    const health = await json(await request(`https://${deployment.url}/api/health`, { headers }));
-    if (health.ok !== true || health.checks?.database !== true || health.checks?.storage !== true)
-      throw new Error('Deployment health check failed');
+    const health = await json(await request(apiHealthUrl[target]));
+    if (health.status !== 'ok') throw new Error('MusicNerdAPI health check failed');
     const home = await request(`https://${deployment.url}/`, { headers });
     if (!home.headers.get('content-type')?.includes('text/html') || !(await home.text()).includes('<html'))
       throw new Error('Homepage HTML check failed');
@@ -102,7 +107,7 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
     const deployment = await vercel(`/v13/deployments/${staged.id}`);
     verifyDeployment(deployment, 'staging');
     if (`https://${deployment.url}` !== staged.url) throw new Error('Staging evidence URL mismatch');
-    await smoke(deployment);
+    await smoke(deployment, 'staging');
   }
   await currentMain();
   await safeProject();
@@ -132,7 +137,7 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
   const { project } = await safeProject();
   if (environment === 'production' && project.targets?.production?.id === ready.id)
     throw new Error('Production candidate was unexpectedly promoted');
-  await smoke(ready);
+  await smoke(ready, environment);
   evidence.phase = 'validated';
   record({ ...evidence });
   await currentMain();

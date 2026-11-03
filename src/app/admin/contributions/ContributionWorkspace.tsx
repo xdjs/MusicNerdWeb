@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import type { getAdminContributions } from '@/server/utils/contributions/getAdminContributions';
+import type { ContributionsPage } from '@/lib/admin/adminReadTypes';
 import ContributionReview from './ContributionReview';
 import community from '@/components/community/Community.module.css';
 import surface from '@/app/profile/ProfileConcept.module.css';
 import styles from './Contributions.module.css';
 
-export default function ContributionWorkspace({data,accountName}:{data:Awaited<ReturnType<typeof getAdminContributions>>;accountName?:string}) {
+export default function ContributionWorkspace({data,accountName}:{data:ContributionsPage;accountName?:string}) {
  return <section className={`${surface.concept} ${community.page} ${styles.workspace} mx-auto w-full min-w-0 max-w-6xl px-5 pb-16 sm:px-10 text-foreground`}>
   <header className={styles.header}>
    <div className={styles.breadcrumbs}>

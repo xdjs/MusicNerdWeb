@@ -1,5 +1,3 @@
-import { getServerAuthSession } from "@/server/auth";
-import { redirect } from "next/navigation";
 import { deezerProvider, spotifyProvider } from "@/server/utils/musicPlatform";
 import AddArtistContent from "./_components/AddArtistContent";
 
@@ -8,11 +6,6 @@ export default async function AddArtistPage({
 }: {
     searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-    const session = await getServerAuthSession();
-    if (!session) {
-        redirect('/');
-    }
-
     const params = await searchParams;
     const deezerId = params.deezer;
     const spotifyId = params.spotify;

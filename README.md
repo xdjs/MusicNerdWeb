@@ -3,7 +3,7 @@
 Music Nerd is a community-built artist directory: discover artists, explore their links and
 source-backed profiles, and read social updates and interview answers.
 
-Built with Next.js 15, TypeScript, Drizzle/Postgres on Supabase, Privy + NextAuth,
+Built with Next.js 15, TypeScript, Drizzle/Postgres on Supabase, Privy,
 Tailwind CSS, and Radix UI. Catalog data comes from multiple music platforms; research, interviews,
 Ask and About call Gemini through Vercel AI Gateway with the AI SDK ([docs/llm.md](docs/llm.md)).
 

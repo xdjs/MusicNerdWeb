@@ -1,16 +1,12 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
-import { useSession } from "next-auth/react";
-import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
+import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
 
-// Exercise Next's real unrecognized-action predicate, not the global navigation mock.
-jest.unmock("next/navigation");
 const mockTrackEvent = jest.fn();
 jest.mock("@/lib/analytics/trackEvent", () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
-jest.mock("next-auth/react", () => ({ useSession: jest.fn() }));
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: jest.fn() }) }));
 const mockClaim = jest.fn();
-jest.mock("@/app/actions/dashboardActions", () => ({ claimArtistProfile: (...a: unknown[]) => mockClaim(...a) }));
+jest.mock("@/lib/claims/requestArtistClaim", () => ({ requestArtistClaim: (...a: unknown[]) => mockClaim(...a) }));
 
 import ClaimButton from "../ClaimButton";
 import { LOGIN_TRIGGER_KEY } from "@/lib/analytics/events";
@@ -22,7 +18,7 @@ describe("ClaimButton claim events", () => {
     afterEach(cleanup);
 
     it("reports login_required and asks for login when signed out", () => {
-        (useSession as jest.Mock).mockReturnValue({ data: null, status: "unauthenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: null, status: "unauthenticated" });
         const loginBtn = document.createElement("button");
         loginBtn.id = "login-btn";
         const onClick = jest.fn();
@@ -39,7 +35,7 @@ describe("ClaimButton claim events", () => {
     });
 
     it("reports start when the dialog opens and submitted when the claim is accepted", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockResolvedValue({ success: true, referenceCode: "MN-1234" });
 
         render(<ClaimButton {...props} />);
@@ -52,7 +48,7 @@ describe("ClaimButton claim events", () => {
     });
 
     it("directs the claimant to the confirmed inbox before and after submitting", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockResolvedValue({ success: true, referenceCode: "MN-TEST" });
         render(<ClaimButton {...props} />);
         fireEvent.click(screen.getByRole("button", { name: /claim/i }));
@@ -71,7 +67,7 @@ describe("ClaimButton claim events", () => {
     });
 
     it("allows a claim without a saved Instagram link and shows no missing-link warning", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockResolvedValue({ success: true, referenceCode: "MN-NOIG" });
         // No Instagram data is required by the claim dialog.
         render(<ClaimButton {...props} />);
@@ -87,40 +83,19 @@ describe("ClaimButton claim events", () => {
         expect(mockClaim).toHaveBeenCalledTimes(1);
     });
 
-    it("offers a full page reload after Next rejects an old action, without replaying the claim", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
-        mockClaim.mockRejectedValue(new UnrecognizedActionError('Server Action "old-id" was not found on the server.'));
-        render(<ClaimButton {...props} />);
-        fireEvent.click(screen.getByRole("button", { name: /claim/i }));
-        fireEvent.click(screen.getByRole("button", { name: "Submit Claim" }));
-        const reload = await screen.findByRole("link", { name: "Reload profile" });
-        expect(reload).toHaveAttribute("href", "/artist/a1");
-        expect(screen.getByRole("alert")).toHaveTextContent("This page is out of date. Reload this profile, then submit your claim again.");
-        expect(screen.queryByRole("button", { name: "Submit Claim" })).not.toBeInTheDocument();
-        expect(screen.queryByText(/Your claim has been submitted/)).not.toBeInTheDocument();
-        expect(mockClaim).toHaveBeenCalledTimes(1);
-        fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
-        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-        fireEvent.click(screen.getByRole("button", { name: /claim/i }));
-        expect(screen.getByRole("link", { name: "Reload profile" })).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Submit Claim" })).not.toBeInTheDocument();
-        expect(mockClaim).toHaveBeenCalledTimes(1);
-    });
-
-    it("does not classify an uncertain network failure as an outdated page or replay the claim", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+    it("does not replay the claim after an uncertain network failure", async () => {
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockRejectedValue(new Error("Failed to fetch"));
         render(<ClaimButton {...props} />);
         fireEvent.click(screen.getByRole("button", { name: /claim/i }));
         fireEvent.click(screen.getByRole("button", { name: "Submit Claim" }));
         await waitFor(() => expect(mockTrackEvent).toHaveBeenCalledWith("claim", { step: "error" }));
-        expect(screen.queryByRole("link", { name: "Reload profile" })).not.toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Submit Claim" })).toBeEnabled();
         expect(mockClaim).toHaveBeenCalledTimes(1);
     });
 
     it("reports already_claimed and error outcomes", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockResolvedValueOnce({ success: false, alreadyClaimed: true });
         const { unmount } = render(<ClaimButton {...props} />);
         fireEvent.click(screen.getByRole("button", { name: /claim/i }));
@@ -141,10 +116,10 @@ describe('claim status visibility', () => {
     beforeEach(() => { mockTrackEvent.mockReset(); mockClaim.mockReset(); });
     it.each([
         ['anonymous', null, false],
-        ['another account', {user: {id: 'other'}}, false],
-        ['claim owner', {user: {id: 'owner'}}, true],
-    ])('offers no claim action to %s on an approved profile', (_viewer, session, isClaimedByUser) => {
-        (useSession as jest.Mock).mockReturnValue({data: session});
+        ['another account', {id: 'other'}, false],
+        ['claim owner', {id: 'owner'}, true],
+    ])('offers no claim action to %s on an approved profile', (_viewer, user, isClaimedByUser) => {
+        (useMusicNerdUser as jest.Mock).mockReturnValue({user});
         render(<ClaimButton {...props} isClaimed isClaimedByUser={isClaimedByUser as boolean} compactOnMobile />);
         expect(screen.queryByRole('button', {name: 'Claimed artist profile'})).not.toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Claim profile'})).not.toBeInTheDocument();
@@ -153,12 +128,12 @@ describe('claim status visibility', () => {
         expect(mockTrackEvent).not.toHaveBeenCalled();
     });
     it('keeps another account’s pending claim private', () => {
-        (useSession as jest.Mock).mockReturnValue({data: null});
+        (useMusicNerdUser as jest.Mock).mockReturnValue({user: null});
         const {container} = render(<ClaimButton {...props} isPending />);
         expect(container).toBeEmptyDOMElement();
     });
     it('shows pending verification only to its requester', () => {
-        (useSession as jest.Mock).mockReturnValue({data: {user: {id: 'owner'}}});
+        (useMusicNerdUser as jest.Mock).mockReturnValue({user: {id: 'owner'}});
         render(<ClaimButton {...props} isPending isPendingByUser />);
         expect(screen.getByLabelText('Pending verification')).toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Claimed artist profile'})).not.toBeInTheDocument();

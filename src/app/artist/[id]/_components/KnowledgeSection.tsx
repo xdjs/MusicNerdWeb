@@ -8,7 +8,7 @@ import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import { downloadKnowledgeDoc } from "@/lib/source/downloadKnowledgeDoc";
 import RevealSection from "./RevealSection";
 import { useResearchPump } from "./onboarding/useResearchPump";
-import { getKnowledgeDoc, correctDocClaim, undoDocCorrection } from "@/app/actions/dashboardActions";
+import { requestMusicNerdApi } from "@/lib/musicNerdApi/requestMusicNerdApi";
 import { parseDocClaims, countClaims, claimKey, type DocSection } from "@/lib/source/docClaims";
 
 type DocSource = { id: number; kind: string; label?: string; url?: string; publishedAt?: string | null };
@@ -231,11 +231,11 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
     const [hasDoc, setHasDoc] = useState(false);
 
     const load = useCallback(async () => {
-        const res = await getKnowledgeDoc(artistId);
-        if (!res.success) { setError(res.error ?? "Could not load this."); setLoading(false); return; }
+        const res = await requestMusicNerdApi<{ content: string | null; sources: DocSource[]; corrections: Correction[] }>(`/api/artist/${artistId}/knowledge-doc`);
+        if (!res.success) { setError(res.error); setLoading(false); return; }
         setHasDoc(!!res.content);
         setSections(parseDocClaims(res.content ?? ""));
-        setSources((res.sources as DocSource[]) ?? []);
+        setSources(res.sources ?? []);
         setCorrections(res.corrections ?? []);
         setLoading(false);
     }, [artistId]);
@@ -258,10 +258,13 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
         const key = claimKey(claim);
         const optimistic: Correction = { id: `pending-${key}`, claim: key, kind, correction: fix ?? null };
         setCorrections(prev => [...prev.filter(c => c.claim !== key), optimistic]);
-        const res = await correctDocClaim(artistId, claim, kind, fix);
+        const res = await requestMusicNerdApi(`/api/artist/${artistId}/knowledge-doc/corrections`, {
+            method: "POST",
+            body: { claim, kind, correction: fix ?? null },
+        });
         if (!res.success) {
             setCorrections(prev => prev.filter(c => c.id !== optimistic.id));
-            setError(res.error ?? "That didn't save.");
+            setError(res.error);
         } else {
             await load();
         }
@@ -271,8 +274,8 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
     const handleUndo = async (id: string) => {
         setBusy(true);
         setError(null);
-        const res = await undoDocCorrection(artistId, id);
-        if (!res.success) setError(res.error ?? "That didn't undo.");
+        const res = await requestMusicNerdApi(`/api/artist/${artistId}/knowledge-doc/corrections/${id}`, { method: "DELETE" });
+        if (!res.success) setError(res.error);
         await load();
         setBusy(false);
     };

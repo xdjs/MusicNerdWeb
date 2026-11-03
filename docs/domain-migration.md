@@ -43,8 +43,7 @@ This cleanup covers Web, TV and Grapevine; it does not rewrite stored artist dat
 2. Add the new apex and www to Vercel. Remove the existing Squarespace temporary
    `.net` → `.xyz` forwarding rule, then use Vercel's project-specific A/CNAME
    recommendations. Preserve MX, mail verification and email-security records.
-3. Configure production `NEXTAUTH_URL=https://musicnerd.net`; verify the production
-   Privy app accepts the new origin. Environment changes require a new build.
+3. Verify the production Privy app accepts the new origin. Environment changes require a new build.
    Verify any service-origin allowlists and configured Grapevine URL as applicable.
 4. Merge and release the reviewed URL changes through the existing staging and
    protected production jobs. Verify actual sign-in and logout on `.net`; cookies

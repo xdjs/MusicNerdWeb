@@ -4,10 +4,10 @@ import { useRef, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
-import type { getAdminContributions } from '@/server/utils/contributions/getAdminContributions';
+import type { ContributionsPage } from '@/lib/admin/adminReadTypes';
 import styles from './Contributions.module.css';
 
-type FilterData = Pick<Awaited<ReturnType<typeof getAdminContributions>>, 'userId'|'query'|'type'|'origin'|'status'|'counts'>;
+type FilterData = Pick<ContributionsPage, 'userId'|'query'|'type'|'origin'|'status'|'counts'>;
 
 export default function ContributionFilters({ data }: { data: FilterData }) {
  const router = useRouter();

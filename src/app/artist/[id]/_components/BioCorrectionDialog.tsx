@@ -4,15 +4,15 @@ import dialogScroll from './onboarding/ApiInterviewDialog.module.css';
 import MusicNerdSelect from '@/components/ui/MusicNerdSelect';
 import { useEffect, useRef, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { useSession } from 'next-auth/react';
+import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { requestBioCorrection } from '@/lib/bio/requestBioCorrection';
 
 export default function BioCorrectionDialog({ artistId, artistName, bio, portrait = false }: { artistId: string; artistName: string; bio: string; portrait?: boolean }) {
   const { authenticated, ready, login } = usePrivy();
-  const { status: sessionStatus } = useSession();
-  const signedIn = authenticated && sessionStatus === 'authenticated';
+  const { status: userStatus } = useMusicNerdUser();
+  const signedIn = authenticated && userStatus === 'authenticated';
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('incorrect');
   const [details, setDetails] = useState('');
