@@ -1,3 +1,5 @@
+import { retainEditedBioProvenance } from '../bio/retainEditedBioProvenance';
+import { saveBioHistory } from '../bio/saveBioHistory';
 import { SUPABASE_URL } from '@/env';
 import { classifyRevokedSource } from './classifyRevokedSource';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
@@ -239,15 +241,16 @@ export async function revokeApprovedClaim(claimId: string, adminId: string) {
                 .returning();
             if (deletedDocs.length > 0 || unpinned.length > 0) {
                 // Preserve even a hand-edited bio that never reached version history.
-                await tx.execute(sql`insert into artist_bio_versions (artist_id, bio_text, is_pinned)
-                    select id, bio, false from artists a
+                await tx.execute(sql`insert into artist_bio_versions (artist_id, bio_text, bio_provenance, is_pinned)
+                    select id, bio, bio_provenance, false from artists a
                     where id = ${deleted.artistId}::uuid and bio is not null
                     and btrim(bio, E' \\t\\n\\r') <> '' and btrim(bio, E' \\t\\n\\r') <> ${ABOUT_EMPTY_STATE}
                     and not exists (select 1 from artist_bio_versions v
-                        where v.artist_id = a.id and v.bio_text = a.bio)`);
+                        where v.artist_id = a.id and v.bio_text = a.bio
+                          and v.bio_provenance is not distinct from a.bio_provenance)`);
                 await tx
                     .update(artists)
-                    .set({ bio: null })
+                    .set({ bio: null, bioProvenance: null })
                     .where(eq(artists.id, deleted.artistId));
             }
 
@@ -451,7 +454,13 @@ export async function saveBioVersion(artistId: string, bioText: string, auth: Ar
                 where: eq(artistBioVersions.artistId, artistId),
                 orderBy: (v, { asc }) => [asc(v.createdAt)],
             });
-            const saved = existing.find(version => version.bioText === bioText);
+            const current = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
+            const matching = existing.filter(version => version.bioText === bioText);
+            // A save of known historical text must not relabel it as new manual prose.
+            const bioProvenance = current?.bio === bioText ? current.bioProvenance ?? null
+                : matching.find(version => version.bioProvenance != null)?.bioProvenance
+                    ?? retainEditedBioProvenance(current?.bio ?? null, bioText, current?.bioProvenance);
+            const saved = matching.find(version => JSON.stringify(version.bioProvenance ?? null) === JSON.stringify(bioProvenance));
             if (saved) return saved;
             if (existing.length >= MAX_BIO_VERSIONS) {
                 throw new Error("Bio version limit reached — delete an unwanted version first");
@@ -459,7 +468,7 @@ export async function saveBioVersion(artistId: string, bioText: string, auth: Ar
 
             const [version] = await tx
                 .insert(artistBioVersions)
-                .values({ artistId, bioText, isPinned: false })
+                .values({ artistId, bioText, bioProvenance, isPinned: false })
                 .returning();
             return version;
         });
@@ -481,12 +490,7 @@ export async function pinBioVersion(versionId: string, artistId: string, auth: A
             });
             if (!selected) return undefined;
             const current = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
-            if (current?.bio && isRealBio(current.bio) && current.bio !== selected.bioText) {
-                const saved = await tx.query.artistBioVersions.findFirst({
-                    where: and(eq(artistBioVersions.artistId, artistId), eq(artistBioVersions.bioText, current.bio)),
-                });
-                if (!saved) await tx.insert(artistBioVersions).values({ artistId, bioText: current.bio, isPinned: false });
-            }
+            if (current?.bio) await saveBioHistory(tx, artistId, [{ text: current.bio, provenance: current.bioProvenance }]);
             await tx
                 .update(artistBioVersions)
                 .set({ isPinned: false })
@@ -501,7 +505,7 @@ export async function pinBioVersion(versionId: string, artistId: string, auth: A
             if (pinned) {
                 await tx
                     .update(artists)
-                    .set({ bio: pinned.bioText })
+                    .set({ bio: pinned.bioText, bioProvenance: pinned.bioProvenance ?? null })
                     .where(eq(artists.id, artistId));
             }
 

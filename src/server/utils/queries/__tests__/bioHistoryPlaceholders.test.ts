@@ -32,6 +32,7 @@ describe('bio history placeholder exclusions', () => {
         const saved = { id: 'existing', bioText: 'Current bio' };
         const tx = { execute: jest.fn().mockResolvedValue([]), insert: jest.fn(), query: {
             artistClaims: claims(),
+            artists: { findFirst: jest.fn().mockResolvedValue({bio:"Current bio",bioProvenance:null}) },
             artistBioVersions: { findMany: jest.fn().mockResolvedValue([saved, ...Array.from({ length: 49 }, (_, i) => ({ id: String(i), bioText: `Version ${i}` }))]) },
         } };
         db.transaction = jest.fn(fn => fn(tx));
@@ -39,4 +40,18 @@ describe('bio history placeholder exclusions', () => {
         expect(await saveBioVersion('a1', 'Current bio', auth)).toBe(saved);
         expect(tx.insert).not.toHaveBeenCalled();
     });
+});
+it.each([null, {version:1,kind:'generated',bioHash:'hash',claimId:'claim',sources:[]}])('pin restores the selected provenance exactly (%j)', async provenance => {
+    jest.resetModules();
+    const { db } = await import('@/server/db/drizzle');
+    const selected={id:'v1',bioText:'Selected',bioProvenance:provenance};
+    const values=jest.fn().mockResolvedValue(undefined);
+    const set=jest.fn(()=>({where:jest.fn(()=>({returning:jest.fn().mockResolvedValue([selected])}))}));
+    const currentProvenance={version:1,kind:'unknown',bioHash:'current'};
+    const tx={execute:jest.fn().mockResolvedValue([]),query:{artistClaims:claims(),artists:{findFirst:jest.fn().mockResolvedValue({bio:'Current',bioProvenance:currentProvenance})},artistBioVersions:{findFirst:jest.fn().mockResolvedValueOnce(selected).mockResolvedValue(undefined)}},insert:jest.fn(()=>({values})),update:jest.fn(()=>({set}))};
+    db.transaction=jest.fn(fn=>fn(tx));
+    const {pinBioVersion}=await import('../dashboardQueries');
+    await pinBioVersion('v1','a1',auth);
+    expect(values).toHaveBeenCalledWith({artistId:'a1',bioText:'Current',bioProvenance:currentProvenance,isPinned:false});
+    expect(set).toHaveBeenCalledWith({bio:'Selected',bioProvenance:provenance});
 });

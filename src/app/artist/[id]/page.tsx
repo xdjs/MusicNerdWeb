@@ -4,7 +4,7 @@ import { getPublicArtistAbout } from '@/server/utils/bio/getPublicArtistAbout';
 import DirectoryDiscoveryObserver from "./_components/DirectoryDiscoveryObserver";
 import { publicLinkRevision } from "@/server/utils/directoryDiscovery/publicLinkRevision";
 import { projectUnclaimedProfile } from '@/lib/artist/projectUnclaimedProfile';
-import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { getPublicSavedBio } from '@/server/utils/bio/getPublicSavedBio';
 import { getHiddenLinkSourceIds } from "@/server/utils/artistLinkReview/getHiddenLinkSourceIds";
 import { getConflictingMusicSourceIds } from "@/server/utils/musicLinks/getConflictingMusicSourceIds";
 import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
@@ -29,7 +29,6 @@ import ProfileTour from "./_components/onboarding/ProfileTour";
 import ApiInterview from "./_components/onboarding/ApiInterview";
 import { fetchOnboardingState } from "@/server/utils/onboarding/fetchOnboardingState";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
-import { isRealBio } from "@/lib/bio/bioConstants";
 import { getProfileLinks } from "@/lib/artist/artistProfileLinks";
 import { getSourceLinks } from "@/lib/musicLinks/getSourceLinks";
 import ProfileTourPreview from "./_components/onboarding/ProfileTourPreview";
@@ -68,9 +67,9 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
     // search result shows, what a shared link previews as, and what an
     // assistant quotes, and it says nothing about the artist. The About is
     // right there and is the best 160 characters we have.
-    const publicClaim = await getLoreClaimGeneration(id);
-    const directoryAbout = publicClaim ? null : await getPublicArtistAbout(id);
-    const publicBio = publicClaim && isRealBio(artist.bio) ? artist.bio : directoryAbout?.bio;
+    const savedPublicBio = await getPublicSavedBio(id);
+    const directoryAbout = savedPublicBio ? null : await getPublicArtistAbout(id);
+    const publicBio = savedPublicBio ?? directoryAbout?.bio;
     const description = publicBio
         ? summarize(publicBio)
         : `Discover ${artistName}'s social links and streaming profiles on Music Nerd.`;
@@ -161,8 +160,14 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const isClaimedByUser = isClaimed && !!session && existingClaim.userId === session.user.id;
     const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
     const canEdit = isClaimedByUser || isAdmin;
-    const directoryAbout = isClaimed ? null : await getPublicArtistAbout(id);
-    const publicProfile = isClaimed ? { artist, sources: projectPublicLoreSources(approvedSources, true) } : projectUnclaimedProfile(artist, approvedSources, directoryAbout);
+    const savedPublicBio = await getPublicSavedBio(id);
+    const directoryAbout = savedPublicBio || isClaimed ? null : await getPublicArtistAbout(id);
+    // Evidence manifests are server-only, including on authorized client surfaces.
+    const clientArtist = { ...artist, bioProvenance: null };
+    const publicArtist = { ...clientArtist, bio: savedPublicBio ?? directoryAbout?.bio ?? null };
+    const unclaimedProfile = projectUnclaimedProfile(clientArtist, approvedSources, directoryAbout);
+    const publicProfile = isClaimed ? { artist: publicArtist, sources: projectPublicLoreSources(approvedSources, true) }
+        : { ...unclaimedProfile, artist: { ...unclaimedProfile.artist, bio: savedPublicBio ?? unclaimedProfile.artist.bio, bioProvenance: null } };
 
     // Private review data must not delay visitors who cannot use it (#1261).
     const pendingSourcesRaw = canEdit ? await getVaultSourcesByArtistId(id, "pending") : [];
@@ -192,7 +197,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             interviewAction={!tourPreview && isClaimedByUser && onboardingState?.complete
                 ? <ApiInterview key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 : null}
-            artist={canEdit ? artist : publicProfile.artist}
+            artist={canEdit ? clientArtist : publicProfile.artist}
             claimStatusKnown={existingClaim !== undefined}
             imageUrl={imageUrl}
             platformImage={platformImage}
@@ -255,7 +260,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             </div>
             <OutboundClickTracker />
             </EditModeProvider>
-            <SeoArtistLinks artist={artist} />
+            <SeoArtistLinks artist={clientArtist} />
             <ArtistJsonLd
                 artist={publicProfile.artist}
                 imageUrl={imageUrl}

@@ -18,6 +18,7 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => {
 });
 
 const mockArtist: Artist = {
+    bioProvenance: null,
     id: 'test-artist-id',
     name: 'Test Artist',
     legacyId: null,

@@ -1,4 +1,9 @@
 // @ts-nocheck
+jest.mock('@/server/utils/bio/getPublicSavedBio', () => ({ getPublicSavedBio: jest.fn(async () => {
+ const getArtist = jest.requireMock('@/server/utils/queries/artistQueries').getArtistById;
+ const row = await getArtist.mock.results.at(-1)?.value;
+ return row?.bio?.trim() || null;
+}) }));
 jest.mock('@/server/utils/queries/getTrustedLoreSourceIds', () => ({ getTrustedLoreSourceIds: jest.fn().mockResolvedValue(new Set()) }));
 jest.mock('@/server/utils/artistLinkReview/getHiddenLinkSourceIds',()=>({getHiddenLinkSourceIds:jest.fn().mockResolvedValue([])}));
 jest.mock('@/server/utils/bio/getPublicArtistAbout', () => ({ getPublicArtistAbout: jest.fn().mockResolvedValue(null) }));

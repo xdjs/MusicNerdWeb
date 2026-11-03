@@ -311,7 +311,7 @@ export async function undoDocCorrection(artistId: string, correctionId: string):
 
 // ------ Bio Versions ------
 
-export async function getArtistBioVersions(targetArtistId?: string): Promise<{ success: boolean; versions?: Awaited<ReturnType<typeof getBioVersionsByArtistId>>; error?: string }> {
+export async function getArtistBioVersions(targetArtistId?: string): Promise<{ success: boolean; versions?: Omit<Awaited<ReturnType<typeof getBioVersionsByArtistId>>[number], "bioProvenance">[]; error?: string }> {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return { success: false, error: "Not authenticated" };
 
@@ -320,7 +320,7 @@ export async function getArtistBioVersions(targetArtistId?: string): Promise<{ s
         if ("error" in resolved) return { success: false, error: resolved.error };
 
         const versions = await getBioVersionsByArtistId(resolved.artistId);
-        return { success: true, versions };
+        return { success: true, versions: versions.map(({ id, artistId, bioText, isPinned, createdAt }) => ({ id, artistId, bioText, isPinned, createdAt })) };
     } catch (error) {
         console.error("[getArtistBioVersions] Error:", error);
         return { success: false, error: "Failed to load bio versions" };

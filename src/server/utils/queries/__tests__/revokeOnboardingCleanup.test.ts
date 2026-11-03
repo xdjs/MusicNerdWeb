@@ -77,8 +77,11 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         const preservation = new PgDialect().sqlToQuery(tx.execute.mock.calls[3][0]);
         expect(preservation.params).toContain(ABOUT_EMPTY_STATE);
         expect(preservation.sql).toContain('btrim(bio');
+        expect(preservation.sql).toContain('(artist_id, bio_text, bio_provenance, is_pinned)');
+        expect(preservation.sql).toContain('select id, bio, bio_provenance, false');
+        expect(preservation.sql).toContain('v.bio_provenance is not distinct from a.bio_provenance');
         // Verify bio was cleared exactly to null (not "" or other value)
-        expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null } });
+        expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null, bioProvenance: null } });
     });
 
     it('does NOT clear the bio when no doc row existed (owner never published)', async () => {
@@ -97,7 +100,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         ]);
         // No artists table update
         expect(updatedTables).toEqual([schema.artistBioVersions]);
-        expect(setCalls).not.toContainEqual({ table: schema.artists, values: { bio: null } });
+        expect(setCalls).not.toContainEqual({ table: schema.artists, values: { bio: null, bioProvenance: null } });
         expect(tx.execute).toHaveBeenCalledTimes(3); // only the row lock
     });
 
@@ -108,7 +111,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         const { revokeApprovedClaim } = require('@/server/utils/queries/dashboardQueries');
         await revokeApprovedClaim('claim-1', 'admin');
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
-        expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null } });
+        expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null, bioProvenance: null } });
         expect(deletedTables).not.toContain(schema.artistBioVersions);
         expect(tx.execute).toHaveBeenCalledTimes(4);
     });

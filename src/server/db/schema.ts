@@ -165,6 +165,7 @@ export const artists = pgTable("artists", {
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	supercollector: text(),
 	bio: text(),
+	bioProvenance: jsonb("bio_provenance"),
 	customImage: text("custom_image"),
 	headerImagePosition: jsonb("header_image_position").$type<{ imageUrl: string; y: number }>(),
 	linkOrder: jsonb("link_order").$type<import("@/lib/artist/artistProfileLinks").ArtistLinkOrder>(),
@@ -480,6 +481,7 @@ export const artistBioVersions = pgTable("artist_bio_versions", {
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	artistId: uuid("artist_id").notNull(),
 	bioText: text("bio_text").notNull(),
+	bioProvenance: jsonb("bio_provenance"),
 	isPinned: boolean("is_pinned").default(false).notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [

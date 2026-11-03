@@ -1,4 +1,9 @@
 // @ts-nocheck
+jest.mock('@/server/utils/bio/getPublicSavedBio', () => ({ getPublicSavedBio: jest.fn(async () => {
+ const getArtist = jest.requireMock('@/server/utils/queries/artistQueries').getArtistById;
+ const row = await getArtist.mock.results.at(-1)?.value;
+ return row?.bio?.trim() || null;
+}) }));
 jest.mock('@/server/utils/queries/getTrustedLoreSourceIds', () => ({ getTrustedLoreSourceIds: jest.fn().mockResolvedValue(new Set()) }));
 jest.mock('@/server/utils/bio/getPublicArtistAbout', () => ({ getPublicArtistAbout: jest.fn().mockResolvedValue(null) }));
 
@@ -68,7 +73,7 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtis
         />
     );
 });
-jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, statusBadge, hasPortrait, initialPosition, imageUrl }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{statusBadge}{children}</div>; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, statusBadge, hasPortrait, initialPosition, imageUrl, bio }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section">{bio}</div>{statusBadge}{children}</div>; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
 jest.mock('@/app/artist/[id]/_components/onboarding/ProfileTour', () => ({
@@ -697,11 +702,33 @@ describe('Museum page composition', () => {
 });
 
 it('does not expose an unclaimed About in public metadata', async () => {
-  const { getLoreClaimGeneration } = await import('@/server/utils/queries/lorePersistence');
+  const { getPublicSavedBio } = await import('@/server/utils/bio/getPublicSavedBio');
   const { getArtistById } = await import('@/server/utils/queries/artistQueries');
   const { generateMetadata } = await import('@/app/artist/[id]/page');
-  getLoreClaimGeneration.mockResolvedValueOnce(null);
+  getPublicSavedBio.mockResolvedValueOnce(null);
   getArtistById.mockResolvedValueOnce({ id: 'artist-uuid', name: 'Artist', bio: 'Private prepared About' });
   const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
   expect(JSON.stringify(metadata)).not.toContain('Private prepared About');
+});
+
+describe('generated About evidence projection', () => {
+  beforeEach(() => { jest.clearAllMocks(); setupMocks(); (getVaultSourcesByArtistId as jest.Mock).mockReset().mockResolvedValue([]); });
+  it('shows safe unclaimed generated prose without serializing evidence metadata', async () => {
+    const { getPublicSavedBio } = await import('@/server/utils/bio/getPublicSavedBio');
+    const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+    (getClaimByArtistId as jest.Mock).mockResolvedValue(null);
+    (getArtistById as jest.Mock).mockResolvedValue({ ...mockArtist, bio:'PRIVATE OLD TEXT', bioProvenance:{ secret:'PRIVATE MANIFEST' } });
+    getPublicSavedBio.mockResolvedValueOnce('Current eligible biography.');
+    const view = await renderArtistPage();
+    expect(view.container.innerHTML).toContain('Current eligible biography.');
+    expect(view.container.innerHTML).not.toContain('PRIVATE OLD TEXT');
+    expect(view.container.innerHTML).not.toContain('PRIVATE MANIFEST');
+  });
+  it('hides claimed generated prose in metadata when evidence is no longer public', async () => {
+    const { getPublicSavedBio } = await import('@/server/utils/bio/getPublicSavedBio');
+    (getArtistById as jest.Mock).mockResolvedValue({ ...mockArtist, bio:'PRIVATE GENERATED TEXT' });
+    getPublicSavedBio.mockResolvedValueOnce(null);
+    const metadata = await generateMetadata({params:Promise.resolve({id:'artist-uuid'})});
+    expect(JSON.stringify(metadata)).not.toContain('PRIVATE GENERATED TEXT');
+  });
 });

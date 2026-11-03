@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto';
+import { retainEditedBioProvenance } from '../bio/retainEditedBioProvenance';
+import { saveBioHistory } from '../bio/saveBioHistory';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from '@/server/db/drizzle';
 import { artists, artistBioVersions, artistDocs, artistOnboardingSteps, artistClaims } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
-import { isRealBio } from '@/lib/bio/bioConstants';
 import { BioConflictError } from '@/lib/bio/bioConflict';
 import { authorizeLockedArtistWrite, OwnershipChangedError } from './ownershipWrites';
 
@@ -55,15 +57,17 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
                 set: { content, sources, updatedAt: sql`(now() AT TIME ZONE 'utc'::text)` },
             });
         }
-        if (artist.bio === bio) return bio;
-        // Preserve both sides of every edit. History is deleted only explicitly.
-        for (const text of [artist.bio, bio].filter((v): v is string => isRealBio(v))) {
-            const saved = await tx.query.artistBioVersions.findFirst({
-                where: and(eq(artistBioVersions.artistId, artistId), eq(artistBioVersions.bioText, text)),
-            });
-            if (!saved) await tx.insert(artistBioVersions).values({ artistId, bioText: text, isPinned: false });
-        }
-        await tx.update(artists).set({ bio }).where(eq(artists.id, artistId));
+        // This legacy writer has no server-validated generation manifest. Do not
+        // label echoed document sources as trustworthy evidence.
+        const bioProvenance = options.generated
+            ? { version: 1, kind: 'unknown', bioHash: createHash('sha256').update(bio).digest('hex') }
+            : retainEditedBioProvenance(artist.bio, bio, artist.bioProvenance);
+        if (artist.bio === bio && JSON.stringify(artist.bioProvenance ?? null) === JSON.stringify(bioProvenance)) return bio;
+        await saveBioHistory(tx, artistId, [
+            { text: artist.bio, provenance: artist.bioProvenance },
+            { text: bio, provenance: bioProvenance },
+        ]);
+        await tx.update(artists).set({ bio, bioProvenance }).where(eq(artists.id, artistId));
         const automatic = options.generated && !options.ownership.userId && !options.document;
         await recordArtistActivity(artistId, options.generated ? 'about_generated' : 'about_edited', {
             userId: options.ownership.userId,
