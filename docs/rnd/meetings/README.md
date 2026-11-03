@@ -13,6 +13,7 @@ date simply because the calendar cadence suggests it should have.
 
 | Date / record | Session | Evidence |
 | --- | --- | --- |
+| [2026-11-03](2026-11-03.md) | Morning standup: Swang x Alone Together x Music Nerd | User-supplied transcript and notes; filtered Google Doc linked in record |
 | [2026-09-10](2026-09-10.md) | R&D | Gemini notes and transcript; source needs team access |
 | [2026-09-09-kickoff](2026-09-09-kickoff.md) | Kickoff (Pete, Sweetman) | Granola notes and transcript; source needs Sweetman's access |
 | [2026-09-09](2026-09-09.md) | Standup | Gemini notes; source linked in file |
