@@ -14,9 +14,7 @@ jest.mock("@/server/utils/queries/userQueries", () => ({
     getUserById: jest.fn(),
 }));
 jest.mock("@/server/utils/queries/dashboardQueries", () => ({
-    createClaim: jest.fn(),
     getVaultSourceById: jest.fn(),
-    getClaimByArtistId: jest.fn(),
     getApprovedClaimByUserId: jest.fn(),
     getApprovedClaimForArtistByUserId: jest.fn(),
     getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
@@ -27,7 +25,6 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
     insertVaultSource: jest.fn(),
     deleteVaultSource: jest.fn(),
     deleteVaultSources: jest.fn(),
-    deleteClaim: jest.fn(),
     updateVaultSourceContent: jest.fn().mockResolvedValue(undefined),
     getBioVersionsByArtistId: jest.fn(),
     saveBioVersion: jest.fn(),
@@ -268,66 +265,6 @@ describe("addVaultSource", () => {
         expect(insertVaultSource).not.toHaveBeenCalled();
     });
 });
-
-// Migration 0007 / partial unique index on artist_claims: a rejected claim no longer
-// blocks a new claim (rejected claims persist for audit; only pending|approved are
-// considered "active" by getClaimByArtistId).
-describe("dashboardActions.claimArtistProfile", () => {
-    beforeEach(() => {
-        jest.resetModules();
-    });
-
-    async function setup() {
-        const { getServerAuthSession } = await import("@/server/auth");
-        const { getClaimByArtistId, createClaim } = await import("@/server/utils/queries/dashboardQueries");
-        const { claimArtistProfile } = await import("../dashboardActions");
-
-        (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: "user-1", email: "user@test.com" } });
-
-        return {
-            claimArtistProfile,
-            getClaimByArtistId: getClaimByArtistId as jest.Mock,
-            createClaim: createClaim as jest.Mock,
-        };
-    }
-
-    it("permits a new claim when no active claim exists (rejected-only or empty)", async () => {
-        const { claimArtistProfile, getClaimByArtistId, createClaim } = await setup();
-        // getClaimByArtistId is scoped to ACTIVE claims post-0007, so a row in
-        // 'rejected' state surfaces as undefined here — identical to "no claim."
-        getClaimByArtistId.mockResolvedValue(undefined);
-        createClaim.mockResolvedValue({ id: "claim-new", referenceCode: "MN-NEW" });
-
-        const result = await claimArtistProfile("artist-1");
-
-        expect(result.success).toBe(true);
-        expect(result.alreadyClaimed).toBeUndefined();
-        expect(createClaim).toHaveBeenCalledTimes(1);
-    });
-
-    it("blocks a new claim when an active (pending) claim exists", async () => {
-        const { claimArtistProfile, getClaimByArtistId, createClaim } = await setup();
-        getClaimByArtistId.mockResolvedValue({ id: "claim-existing", status: "pending" });
-
-        const result = await claimArtistProfile("artist-1");
-
-        expect(result.success).toBe(false);
-        expect(result.alreadyClaimed).toBe(true);
-        expect(createClaim).not.toHaveBeenCalled();
-    });
-
-    it("blocks a new claim when an active (approved) claim exists", async () => {
-        const { claimArtistProfile, getClaimByArtistId, createClaim } = await setup();
-        getClaimByArtistId.mockResolvedValue({ id: "claim-existing", status: "approved" });
-
-        const result = await claimArtistProfile("artist-1");
-
-        expect(result.success).toBe(false);
-        expect(result.alreadyClaimed).toBe(true);
-        expect(createClaim).not.toHaveBeenCalled();
-    });
-});
-
 
 describe("dashboardActions — the knowledge doc follows the sources", () => {
     beforeEach(() => { jest.resetModules(); });

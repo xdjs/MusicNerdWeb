@@ -6,8 +6,6 @@ import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 import {
-    createClaim,
-    getClaimByArtistId,
     getApprovedClaimByUserId,
     getVaultSourcesByArtistId,
     getVaultSourceById,
@@ -28,8 +26,6 @@ import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { getDocCorrections, upsertDocCorrection, deleteDocCorrection } from "@/server/utils/queries/docCorrectionQueries";
 import { claimKey } from "@/lib/source/docClaims";
 import { getArtistDoc } from "@/server/utils/queries/onboardingQueries";
-import { generateReferenceCode } from "@/lib/referenceCode";
-import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { canEditArtist } from "@/server/utils/artistEditAuth";
 import { MAX_BIO_LENGTH } from "@/lib/bio/bioConstants";
 
@@ -41,34 +37,6 @@ async function scheduleDocRefresh(artistId: string | undefined, expectedClaimId:
         // The source mutation is already committed. Never report it as failed:
         // Look again can retry the derived-document refresh independently.
         console.error('[vault] Source saved but Lore enqueue failed', error);
-    }
-}
-
-export async function claimArtistProfile(artistId: string): Promise<{ success: boolean; error?: string; alreadyClaimed?: boolean; referenceCode?: string }> {
-    const session = await getServerAuthSession() ?? await getDevSession();
-    if (!session) return { success: false, error: "Not authenticated" };
-
-    try {
-        // getClaimByArtistId is scoped to ACTIVE claims (pending|approved) since
-        // migration 0007 — rejected claims persist for audit but never block
-        // re-claim. No need to delete-then-insert anymore.
-        const existing = await getClaimByArtistId(artistId);
-        if (existing) {
-            return { success: false, alreadyClaimed: true, error: "This artist profile has already been claimed" };
-        }
-
-        const referenceCode = generateReferenceCode();
-        await createClaim(session.user.id, artistId, referenceCode);
-
-        // Notify admins via Discord
-        sendDiscordMessage(
-            `New claim request: ${referenceCode} | Artist ID: ${artistId} | User: ${session.user.email ?? session.user.id}`
-        ).catch(e => console.error("[claimArtistProfile] Discord notify failed:", e));
-
-        return { success: true, referenceCode };
-    } catch (error) {
-        console.error("[claimArtistProfile] Error:", error);
-        return { success: false, error: "Failed to claim artist profile" };
     }
 }
 

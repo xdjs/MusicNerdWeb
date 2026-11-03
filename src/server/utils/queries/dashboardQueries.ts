@@ -1,24 +1,13 @@
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from "@/server/db/drizzle";
 import { eq, and, sql } from "drizzle-orm";
-import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialRefreshes, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
+import { artistClaims, artistVaultSources, artistBioVersions, artists } from "@/server/db/schema";
 import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
 import { getActiveArtistOperation } from '../artistOperationContext';
-import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bio/bioConstants';
+import { isRealBio } from '@/lib/bio/bioConstants';
 import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 
 export { getClaimByArtistId } from './getClaimByArtistId';
-
-export async function getClaimById(claimId: string) {
-    try {
-        return await db.query.artistClaims.findFirst({
-            where: eq(artistClaims.id, claimId),
-        });
-    } catch (e) {
-        console.error("[getClaimById] Error:", e);
-        return undefined;
-    }
-}
 
 export async function getApprovedClaimByUserId(userId: string) {
     try {
@@ -32,37 +21,6 @@ export async function getApprovedClaimByUserId(userId: string) {
     } catch (e) {
         console.error("[getApprovedClaimByUserId] Error:", e);
         return undefined;
-    }
-}
-
-export async function createClaim(userId: string, artistId: string, referenceCode: string) {
-    try {
-        const [claim] = await db
-            .insert(artistClaims)
-            .values({
-                userId,
-                artistId,
-                status: "pending",
-                referenceCode,
-            })
-            .returning();
-        return claim;
-    } catch (e) {
-        console.error("[createClaim] Error:", e);
-        throw e;
-    }
-}
-
-export async function getPendingClaims() {
-    try {
-        return await db.query.artistClaims.findMany({
-            where: eq(artistClaims.status, "pending"),
-            with: { user: true, artist: true },
-            orderBy: (claims, { desc }) => [desc(claims.createdAt)],
-        });
-    } catch (e) {
-        console.error("[getPendingClaims] Error:", e);
-        return [];
     }
 }
 
@@ -82,153 +40,6 @@ export async function getAllClaims() {
     } catch (e) {
         console.error("[getAllClaims] Error:", e);
         return [];
-    }
-}
-
-export async function approveClaim(claimId: string) {
-    try {
-        const [updated] = await db
-            .update(artistClaims)
-            .set({
-                status: "approved",
-                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
-            })
-            .where(eq(artistClaims.id, claimId))
-            .returning();
-        return updated;
-    } catch (e) {
-        console.error("[approveClaim] Error:", e);
-        throw e;
-    }
-}
-
-export async function rejectClaim(claimId: string) {
-    try {
-        const [updated] = await db
-            .update(artistClaims)
-            .set({
-                status: "rejected",
-                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
-            })
-            .where(eq(artistClaims.id, claimId))
-            .returning();
-        return updated;
-    } catch (e) {
-        console.error("[rejectClaim] Error:", e);
-        throw e;
-    }
-}
-
-export async function deleteClaim(claimId: string) {
-    try {
-        const [deleted] = await db
-            .delete(artistClaims)
-            .where(eq(artistClaims.id, claimId))
-            .returning();
-        return deleted;
-    } catch (e) {
-        console.error("[deleteClaim] Error:", e);
-        throw e;
-    }
-}
-
-/**
- * Revoke an approved claim atomically, wiping all vault sources for the artist
- * inside the same transaction. Storage objects live outside the DB and must be
- * purged separately by the caller.
- *
- * The DELETE itself is guarded on status='approved' so the atomic check happens
- * at the row-lock level, not in a separate SELECT. Under Postgres READ COMMITTED
- * (the default), each statement in a transaction sees the latest committed snapshot
- * independently, so a SELECT-then-DELETE pattern is racy — another transaction
- * could reject the claim between the two statements and the DELETE would still
- * proceed. Putting the status filter on the DELETE makes this race-free.
- *
- * Vault sources are deleted by artist_id, not claim_id, because
- * artist_vault_sources has no claim_id FK and the UNIQUE(artist_id) constraint
- * on artist_claims guarantees one active claim per artist. If a claim_id FK is
- * ever added to artist_vault_sources (e.g. to support multi-claimant history),
- * tighten the WHERE clause here.
- */
-export async function revokeApprovedClaim(claimId: string) {
-    try {
-        return await db.transaction(async (tx) => {
-            // Atomic: only delete the row if it is still approved right now.
-            // Returns 0 rows (→ undefined) if another transaction changed the status.
-            const [deleted] = await tx
-                .delete(artistClaims)
-                .where(and(
-                    eq(artistClaims.id, claimId),
-                    eq(artistClaims.status, "approved"),
-                ))
-                .returning();
-            if (!deleted) return undefined;
-            await tx.execute(sql`select id from artists where id = ${deleted.artistId}::uuid for update`);
-            // Removing the job identity invalidates even an already-running model
-            // call. Its final guarded write cannot recreate the deleted Lore.
-            await tx.delete(artistResearchJobs).where(eq(artistResearchJobs.artistId, deleted.artistId));
-            await tx.delete(artistSocialCredits).where(eq(artistSocialCredits.artistId, deleted.artistId));
-            await tx.delete(artistDocCorrections).where(eq(artistDocCorrections.artistId, deleted.artistId));
-
-            // Only after we've confirmed we owned the approved claim do we
-            // wipe the vault. Same transaction, so both DELETEs commit together.
-            await tx
-                .delete(artistVaultSources)
-                .where(eq(artistVaultSources.artistId, deleted.artistId));
-
-            // Scraped social data (posts + profile) is the revoked owner's too — a
-            // re-claimer must not inherit the previous owner's Instagram history or
-            // the grounded questions derived from it. Same tx, same invariant.
-            await tx
-                .delete(artistSocialPosts)
-                .where(eq(artistSocialPosts.artistId, deleted.artistId));
-            // Coverage cannot survive deletion of the posts it describes. Clear
-            // every account and scope while holding the same revocation lock.
-            await tx
-                .delete(artistSocialRefreshes)
-                .where(eq(artistSocialRefreshes.artistId, deleted.artistId));
-            await tx
-                .delete(artistSocialProfiles)
-                .where(eq(artistSocialProfiles.artistId, deleted.artistId));
-
-            // Onboarding content is the revoked owner's — it must not survive for
-            // (or silently skip onboarding of) the next claimant. Same tx as the
-            // vault wipe, same invariant (see spec §5).
-            await tx
-                .delete(artistInterviewAnswers)
-                .where(eq(artistInterviewAnswers.artistId, deleted.artistId));
-            await tx
-                .delete(artistOnboardingSteps)
-                .where(eq(artistOnboardingSteps.artistId, deleted.artistId));
-            const deletedDocs = await tx
-                .delete(artistDocs)
-                .where(eq(artistDocs.artistId, deleted.artistId))
-                .returning();
-            // Admin revocation is the explicit moderation exception to pinning.
-            // Keep saved history, but never leave the next claimant a locked bio.
-            const unpinned = await tx.update(artistBioVersions)
-                .set({ isPinned: false })
-                .where(and(eq(artistBioVersions.artistId, deleted.artistId), eq(artistBioVersions.isPinned, true)))
-                .returning();
-            if (deletedDocs.length > 0 || unpinned.length > 0) {
-                // Preserve even a hand-edited bio that never reached version history.
-                await tx.execute(sql`insert into artist_bio_versions (artist_id, bio_text, is_pinned)
-                    select id, bio, false from artists a
-                    where id = ${deleted.artistId}::uuid and bio is not null
-                    and btrim(bio, E' \\t\\n\\r') <> '' and btrim(bio, E' \\t\\n\\r') <> ${ABOUT_EMPTY_STATE}
-                    and not exists (select 1 from artist_bio_versions v
-                        where v.artist_id = a.id and v.bio_text = a.bio)`);
-                await tx
-                    .update(artists)
-                    .set({ bio: null })
-                    .where(eq(artists.id, deleted.artistId));
-            }
-
-            return deleted;
-        });
-    } catch (e) {
-        console.error("[revokeApprovedClaim] Error:", e);
-        throw e;
     }
 }
 
