@@ -1,5 +1,5 @@
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
-import { getArtistDocStrict } from "@/server/utils/queries/onboardingQueries";
+import { getPublicArtistDoc } from "@/server/utils/artistDoc/getPublicArtistDoc";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { renderKnowledgeMarkdown, type DocSource } from "@/server/utils/knowledgeDocMarkdown";
 
@@ -18,26 +18,24 @@ export async function GET(
 ): Promise<Response> {
     const { id } = await params;
     if (!UUID.test(id)) {
-        return new Response("Not found\n", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+        return new Response("Not found\n", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "private, no-store" } });
     }
     try {
-        // STRICT, so a failed read throws into the catch below and answers
-        // 503. getArtistDoc swallows and returns undefined, which would take
-        // the "no document yet" branch and hand a crawler a cacheable 404 for
-        // an artist we have plenty about.
+        // The public reader checks source eligibility and revisions in the same
+        // snapshot as the claim. A storage failure remains a retryable 503.
         if (!(await getLoreClaimGeneration(id))) return new Response("Not found\n", { status: 404, headers: { "Cache-Control": "private, no-store" } });
-        const [artist, doc] = await Promise.all([getArtistById(id), getArtistDocStrict(id)]);
+        const [artist, doc] = await Promise.all([getArtistById(id), getPublicArtistDoc(id)]);
 
         // 404, NOT AN EMPTY FILE. An artist with no document yet is not the
         // same as an artist we know nothing about, and a crawler that caches a
         // blank page will not come back for the real one.
         if (!artist) {
-            return new Response("Not found\n", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+            return new Response("Not found\n", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "private, no-store" } });
         }
         if (!doc?.content) {
             return new Response(
                 `# ${artist.name ?? "Unknown Artist"}\n\nNo knowledge document has been compiled for this artist yet.\n`,
-                { status: 404, headers: { "Content-Type": "text/markdown; charset=utf-8" } },
+                { status: 404, headers: { "Content-Type": "text/markdown; charset=utf-8", "Cache-Control": "private, no-store" } },
             );
         }
 
@@ -55,10 +53,7 @@ export async function GET(
         return new Response(body, {
             headers: {
                 "Content-Type": "text/markdown; charset=utf-8",
-                // A document changes when a source is approved or the artist
-                // answers something — minutes at the fastest, never per-request.
-                // Serving a slightly stale copy instantly beats rebuilding it
-                // for every crawler that asks.
+                // Privacy and claim changes must be checked on every read.
                 "Cache-Control": "private, no-store",
                 "X-Robots-Tag": "index, follow",
             },
@@ -67,7 +62,7 @@ export async function GET(
         console.error("[artist/llms.txt] Error:", e);
         return new Response("Temporarily unavailable\n", {
             status: 503,
-            headers: { "Content-Type": "text/plain; charset=utf-8" },
+            headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "private, no-store" },
         });
     }
 }
