@@ -5,6 +5,7 @@ import { getTableColumns, getTableName } from 'drizzle-orm';
 import * as schema from '@/server/db/schema';
 import { db } from '@/server/db/drizzle';
 import { revokeApprovedClaim } from '../dashboardQueries';
+import { getTrustedLoreSourceIds } from '../getTrustedLoreSourceIds';
 jest.mock('@/server/db/drizzle', () => ({ db: {} }));
 jest.mock('@/env', () => ({ SUPABASE_URL: 'https://example.supabase.co' }));
 const { PGlite } = process.getBuiltinModule('module').createRequire(__filename)('@electric-sql/pglite');
@@ -33,6 +34,7 @@ beforeAll(async () => {
     }
     await client.exec('CREATE TABLE retained_versions(source_id uuid REFERENCES artist_vault_sources(id) ON DELETE CASCADE, body text)');
     db.transaction = callback => database.transaction(callback);
+    db.execute = async query => (await database.execute(query)).rows;
 }, 30000);
 afterAll(() => client.close());
 beforeEach(async () => {
@@ -82,4 +84,21 @@ it.each([
     await client.query('UPDATE artists SET custom_image=$1', [image]);
     await revokeApprovedClaim(claim, 'admin');
     expect((await client.query('SELECT custom_image FROM artists')).rows[0].custom_image).toBe(expected);
+});
+
+it('preserves public eligibility for trusted inherited Lore after revocation, with privacy/moderation overrides',async()=>{
+ await client.exec("update artist_vault_sources set publication='inherit'");
+ expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set([source]));
+ await revokeApprovedClaim(claim,'admin');
+ expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set([source]));
+ await client.exec("update artist_vault_sources set publication='private'");
+ expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set());
+ await client.exec("update artist_vault_sources set publication='inherit',status='rejected'");
+ expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set());
+});
+it('does not infer public trust from mismatched or missing original evidence',async()=>{
+ await client.exec("update artist_vault_sources set publication='inherit';update artist_activity_events set source_id=null");
+ expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set());
+ await expect(revokeApprovedClaim(claim,'admin')).rejects.toThrow('REVOCATION_SOURCE_REVIEW_REQUIRED');
+ expect((await client.query('select * from artist_claims')).rows).toHaveLength(1);
 });

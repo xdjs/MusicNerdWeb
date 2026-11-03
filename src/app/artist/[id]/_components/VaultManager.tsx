@@ -8,6 +8,7 @@ import { ChevronDown, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import SourceCard from "./SourceCard";
+import SourcePublicationControl from "./SourcePublicationControl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -29,11 +30,12 @@ interface VaultManagerProps {
   artistId: string;
   /** Reuse moderation without the Lore upload/search form in Links. */
   reviewOnly?: boolean;
+  canPublishSources?: boolean;
   pendingSources: ArtistVaultSource[];
   approvedSources: ArtistVaultSource[];
 }
 
-export default function VaultManager({ artistId, pendingSources, approvedSources, reviewOnly = false }: VaultManagerProps) {
+export default function VaultManager({ artistId, pendingSources, approvedSources, reviewOnly = false, canPublishSources = false }: VaultManagerProps) {
   const { isEditing } = useContext(EditModeContext);
   const { toast } = useToast();
   const router = useRouter();
@@ -278,11 +280,11 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
         pendingCompletions.current.delete(retryKey);
         // A retried ticket may return the already-saved source, which Web's route never counted.
         if (signedType) trackEvent('profile_edit', { action: 'vault_upload', target: signedType });
-        setApproved(prev => [data.source, ...prev.filter(s => s.id !== data.source.id)]);
+        if (!data.receiptOnly) setApproved(prev => [data.source, ...prev.filter(s => s.id !== data.source.id)]);
         toast({ title: "File uploaded", description: data.warning });
         router.refresh();
       } else {
-        if (res.status === 400 || res.status === 403) pendingCompletions.current.delete(retryKey);
+        if (res.status === 400 || res.status === 403 || res.status === 410) pendingCompletions.current.delete(retryKey);
         toast({ title: `Couldn't upload ${file.name}`, description: data.error || "Upload failed", variant: "destructive" });
       }
     } catch (error) {
@@ -447,9 +449,11 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
           }
 
           {visibleApproved.map(s => (
-            <SourceCard key={s.id} source={{ ...s, contributorName: contributorNames.has(s.id) ? contributorNames.get(s.id) : s.contributorName }} showActions={false}
+            <div key={s.id} className="space-y-2"><SourceCard source={{ ...s, contributorName: contributorNames.has(s.id) ? contributorNames.get(s.id) : s.contributorName }} showActions={false}
               onDelete={handleDelete} onTypeChange={handleTypeChange}
               selected={!reviewOnly && selectedIds.has(s.id)} onSelect={reviewOnly ? undefined : toggleSelect} />
+              {canPublishSources && s.status === "approved" && <SourcePublicationControl key={`${s.id}:${s.updatedAt}:${s.publication}`} source={s} />}
+            </div>
           ))}
         </div>
       )}

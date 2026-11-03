@@ -398,6 +398,7 @@ export const artistActivityEvents = pgTable("artist_activity_events", {
 ]).enableRLS();
 
 export const artistVaultSources = pgTable("artist_vault_sources", {
+    publication: text().default('inherit').notNull(),
     origin: text().default('unknown').notNull(),
     activityId: uuid("activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
@@ -426,6 +427,7 @@ export const artistVaultSources = pgTable("artist_vault_sources", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
+    check("artist_vault_sources_publication_check", sql`${table.publication} in ('inherit', 'public', 'private')`),
 	index("idx_artist_vault_sources_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 		columns: [table.artistId],

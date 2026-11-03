@@ -421,6 +421,13 @@
       "when": 1793209283097,
       "tag": "0059_catalog_counterpart_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793664000000,
+      "tag": "0060_source_publication",
+      "breakpoints": true
     }
   ]
 }

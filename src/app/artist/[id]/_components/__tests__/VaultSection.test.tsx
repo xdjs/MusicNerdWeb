@@ -8,9 +8,11 @@ const researchNone = { profiles: null, vault: null, interview: null, publish: nu
 const research = (over = {}) => ({ steps: researchNone, currentStep: null, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over });
 
 
+jest.mock("../SuggestedLinkReview", () => function MockSuggested() { return null; });
+jest.mock("../ResearchDiscoveryReview", () => function MockDiscovery() { return null; });
 jest.mock("../RevealSection", () => function MockReveal({children}: {children: React.ReactNode}) { return <section>{children}</section>; });
 jest.mock("../PressAndFeatures", () => function MockPressAndFeatures() { return <div>Public Lore</div>; });
-jest.mock("../VaultManager", () => function MockVaultManager() { return <div>Editor Lore controls</div>; });
+jest.mock("../VaultManager", () => function MockVaultManager({ canPublishSources }: { canPublishSources?: boolean }) { return <div data-testid="lore-manager" data-publication={String(!!canPublishSources)}>Editor Lore controls</div>; });
 jest.mock("../BioVersionHistory", () => function MockBioVersionHistory() { return <div>Saved bios</div>; });
 jest.mock("../SuggestLoreSource", () => function MockSuggestLoreSource({ autoApprove }: { autoApprove: boolean }) { return <div data-testid="suggestion" data-auto={String(autoApprove)}>Visitor suggestion form</div>; });
 
@@ -108,4 +110,12 @@ it("keeps Questions adjacent to Lore and preserves an unfinished answer across t
   fireEvent.click(screen.getByRole("button",{name:"Expand Lore"}));
   fireEvent.mouseDown(screen.getByRole("tab",{name:"Questions"}),{button:0,ctrlKey:false});
   expect(screen.getByLabelText("Draft response")).toHaveValue("Still writing");
+});
+
+it('does not equate artist editing or trusted contribution with publication permission', () => {
+ const view = (canPublishSources = false) => <EditModeContext.Provider value={{isEditing:true,canEdit:true,toggle:jest.fn()}}><VaultSection {...props} autoApprove canPublishSources={canPublishSources} /></EditModeContext.Provider>;
+ const {rerender} = render(view());
+ expect(screen.getByTestId('lore-manager')).toHaveAttribute('data-publication','false');
+ rerender(view(true));
+ expect(screen.getByTestId('lore-manager')).toHaveAttribute('data-publication','true');
 });

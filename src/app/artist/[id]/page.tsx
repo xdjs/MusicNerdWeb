@@ -1,3 +1,5 @@
+import { getTrustedLoreSourceIds } from '@/server/utils/queries/getTrustedLoreSourceIds';
+import { projectPublicLoreSources } from '@/lib/sources/projectPublicLoreSources';
 import { getPublicArtistAbout } from '@/server/utils/bio/getPublicArtistAbout';
 import DirectoryDiscoveryObserver from "./_components/DirectoryDiscoveryObserver";
 import { publicLinkRevision } from "@/server/utils/directoryDiscovery/publicLinkRevision";
@@ -134,13 +136,16 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     if (!artist) {
         return notFound();
     }
-    const [platformImage, urlMapList, existingClaim, approvedSources, artistLinks] = await Promise.all([
+    const [platformImage, urlMapList, existingClaim, approvedSourcesRaw, artistLinks, trustedSourceIds] = await Promise.all([
         musicPlatformData.getArtistPortrait(artist),
         getAllLinks(),
         getClaimByArtistId(id),
         getVaultSourcesByArtistId(id, "approved"),
         getArtistLinks(artist),
+        getTrustedLoreSourceIds(id),
     ]);
+
+    const approvedSources = approvedSourcesRaw.map(source => trustedSourceIds.has(source.id) ? {...source, trustedAtSubmission: true} : source);
 
     const [conflictingMusicSourceIds, hiddenLinkSourceIds] = await Promise.all([getConflictingMusicSourceIds(id, approvedSources), getHiddenLinkSourceIds(id)]);
     const blockedMusicSourceIds = [...conflictingMusicSourceIds, ...hiddenLinkSourceIds];
@@ -157,7 +162,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
     const canEdit = isClaimedByUser || isAdmin;
     const directoryAbout = isClaimed ? null : await getPublicArtistAbout(id);
-    const publicProfile = isClaimed ? { artist, sources: approvedSources } : projectUnclaimedProfile(artist, approvedSources, directoryAbout);
+    const publicProfile = isClaimed ? { artist, sources: projectPublicLoreSources(approvedSources, true) } : projectUnclaimedProfile(artist, approvedSources, directoryAbout);
 
     // Private review data must not delay visitors who cannot use it (#1261).
     const pendingSourcesRaw = canEdit ? await getVaultSourcesByArtistId(id, "pending") : [];
@@ -203,6 +208,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             isPendingByUser={isPendingByUser}
             canEdit={canEdit}
             autoApprove={isAdmin || !!dbUser?.isWhiteListed}
+            canPublishSources={isAdmin}
             researching={!tourPreview && onboardingState?.complete === false}
         />
     );

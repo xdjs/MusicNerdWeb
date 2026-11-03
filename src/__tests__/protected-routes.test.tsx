@@ -1,5 +1,6 @@
-jest.mock('@/server/utils/artistLinkReview/getHiddenLinkSourceIds',()=>({getHiddenLinkSourceIds:jest.fn().mockResolvedValue([])}));
 // @ts-nocheck
+jest.mock('@/server/utils/queries/getTrustedLoreSourceIds', () => ({ getTrustedLoreSourceIds: jest.fn().mockResolvedValue(new Set()) }));
+jest.mock('@/server/utils/artistLinkReview/getHiddenLinkSourceIds',()=>({getHiddenLinkSourceIds:jest.fn().mockResolvedValue([])}));
 jest.mock('@/server/utils/bio/getPublicArtistAbout', () => ({ getPublicArtistAbout: jest.fn().mockResolvedValue(null) }));
 
 import React from 'react';
