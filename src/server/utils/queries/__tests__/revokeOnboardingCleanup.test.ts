@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
 import { db } from '@/server/db/drizzle';
+jest.mock('@/env', () => ({ SUPABASE_URL: 'https://example.supabase.co' }));
 
 // Track which schema table each tx.delete()/tx.update() call targeted,
 // and capture the values written by set() to verify exact bio-null writes.
@@ -12,6 +13,11 @@ function makeTx(docRowsDeleted, pinnedRows = []) {
     const updatedTables = [];
     const setCalls = [];
     const tx = {
+        query: { artistClaims: { findFirst: jest.fn().mockResolvedValue({ id: 'claim-1', artistId: 'artist-1', userId: 'owner', status: 'approved' }) } },
+        select: jest.fn(() => ({ from: table => ({ where: () => table === schema.artistVaultSources
+            ? { for: () => Promise.resolve([{ id: 'research-1', artistId: 'artist-1', origin: 'research', activityId: null, filePath: null }]) }
+            : Promise.resolve([]) }) })),
+        insert: jest.fn(() => ({ values: jest.fn().mockResolvedValue(undefined) })),
         execute: jest.fn().mockResolvedValue([]),
         delete: jest.fn((table) => {
             deletedTables.push(table);
@@ -46,7 +52,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         db.transaction = jest.fn(async (cb) => cb(tx));
 
         const { revokeApprovedClaim } = require('@/server/utils/queries/dashboardQueries');
-        const result = await revokeApprovedClaim('claim-1');
+        const result = await revokeApprovedClaim('claim-1', 'admin');
 
         expect(result).toMatchObject({ artistId: 'artist-1' });
         // Strict delete order: vault, then scraped social data, then onboarding
@@ -65,10 +71,10 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         // A doc was deleted → the (doc-derived or hand-edited) bio is the revoked owner's content
         expect(updatedTables).toEqual([schema.artistBioVersions, schema.artists]);
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
-        expect(tx.execute).toHaveBeenCalledTimes(2); // row lock + preserve current bio
+        expect(tx.execute).toHaveBeenCalledTimes(4); // row lock + preserve current bio
         const { PgDialect } = require('drizzle-orm/pg-core');
         const { ABOUT_EMPTY_STATE } = require('@/lib/bio/bioConstants');
-        const preservation = new PgDialect().sqlToQuery(tx.execute.mock.calls[1][0]);
+        const preservation = new PgDialect().sqlToQuery(tx.execute.mock.calls[3][0]);
         expect(preservation.params).toContain(ABOUT_EMPTY_STATE);
         expect(preservation.sql).toContain('btrim(bio');
         // Verify bio was cleared exactly to null (not "" or other value)
@@ -81,7 +87,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         db.transaction = jest.fn(async (cb) => cb(tx));
 
         const { revokeApprovedClaim } = require('@/server/utils/queries/dashboardQueries');
-        await revokeApprovedClaim('claim-1');
+        await revokeApprovedClaim('claim-1', 'admin');
 
         // Still delete claims, vault, and social data, but no onboarding content to clear
         expect(deletedTables).toEqual([
@@ -92,7 +98,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         // No artists table update
         expect(updatedTables).toEqual([schema.artistBioVersions]);
         expect(setCalls).not.toContainEqual({ table: schema.artists, values: { bio: null } });
-        expect(tx.execute).toHaveBeenCalledTimes(1); // only the row lock
+        expect(tx.execute).toHaveBeenCalledTimes(3); // only the row lock
     });
 
     it('clears a pinned bio even without a doc, releases its lock, and never deletes history', async () => {
@@ -100,10 +106,10 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         const { tx, deletedTables, setCalls } = makeTx([], [{ id: 'pinned-version' }]);
         db.transaction = jest.fn(async cb => cb(tx));
         const { revokeApprovedClaim } = require('@/server/utils/queries/dashboardQueries');
-        await revokeApprovedClaim('claim-1');
+        await revokeApprovedClaim('claim-1', 'admin');
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
         expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null } });
         expect(deletedTables).not.toContain(schema.artistBioVersions);
-        expect(tx.execute).toHaveBeenCalledTimes(2);
+        expect(tx.execute).toHaveBeenCalledTimes(4);
     });
 });
