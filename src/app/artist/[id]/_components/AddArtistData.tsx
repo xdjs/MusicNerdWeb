@@ -27,7 +27,8 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { addArtistDataAction as addArtistData, type AddArtistDataResp } from "@/app/actions/serverActions";
+import type { AddArtistDataResp } from "@/lib/artistLinks/types";
+import { requestArtistLinkSuggestion } from "@/lib/artistLinks/requestArtistLinkSuggestion";
 import { useMemo, useContext } from "react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { useRouter } from "next/navigation";
@@ -282,7 +283,7 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
             setIsLoading(false);
             return;
         }
-        const resp = await addArtistData(formattedUrl, artist);
+        const resp = await requestArtistLinkSuggestion(artist.id, formattedUrl);
         // Owners edit through the authenticated API path above; only changed saves report profile_edit.
         trackEvent("add_link_submit", { platform: resp.siteName ?? null, result: resp.status === "success" ? "success" : "error" });
         if (resp.status === "success") {
