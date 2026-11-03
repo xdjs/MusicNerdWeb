@@ -61,7 +61,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         expect(deletedTables).toEqual([
             schema.artistClaims, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistDocCorrections, schema.artistVaultSources,
             schema.artistSocialPosts, schema.artistSocialRefreshes, schema.artistSocialProfiles,
-            schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs,
+            schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs, schema.artistBioProvenance,
         ]);
         const refreshDelete = tx.delete.mock.results[deletedTables.indexOf(schema.artistSocialRefreshes)].value;
         const { PgDialect: RefreshDialect } = require('drizzle-orm/pg-core');
@@ -76,12 +76,13 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         const { ABOUT_EMPTY_STATE } = require('@/lib/bio/bioConstants');
         const preservation = new PgDialect().sqlToQuery(tx.execute.mock.calls[3][0]);
         expect(preservation.params).toContain(ABOUT_EMPTY_STATE);
-        expect(preservation.sql).toContain('btrim(bio');
-        expect(preservation.sql).toContain('(artist_id, bio_text, bio_provenance, is_pinned)');
-        expect(preservation.sql).toContain('select id, bio, bio_provenance, false');
-        expect(preservation.sql).toContain('v.bio_provenance is not distinct from a.bio_provenance');
+        expect(preservation.sql).toContain('btrim(a.bio');
+        expect(preservation.sql).toContain('insert into mn_private.artist_bio_version_provenance(version_id,provenance)');
+        expect(preservation.sql).toContain('select c.id,c.bio,false');
+        expect(preservation.sql).toContain('p.provenance is not distinct from c.provenance');
+        expect(deletedTables).toContain(schema.artistBioProvenance);
         // Verify bio was cleared exactly to null (not "" or other value)
-        expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null, bioProvenance: null } });
+        expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null } });
     });
 
     it('does NOT clear the bio when no doc row existed (owner never published)', async () => {
@@ -100,7 +101,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         ]);
         // No artists table update
         expect(updatedTables).toEqual([schema.artistBioVersions]);
-        expect(setCalls).not.toContainEqual({ table: schema.artists, values: { bio: null, bioProvenance: null } });
+        expect(setCalls).not.toContainEqual({ table: schema.artists, values: { bio: null } });
         expect(tx.execute).toHaveBeenCalledTimes(3); // only the row lock
     });
 
@@ -111,7 +112,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         const { revokeApprovedClaim } = require('@/server/utils/queries/dashboardQueries');
         await revokeApprovedClaim('claim-1', 'admin');
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
-        expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null, bioProvenance: null } });
+        expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null } });
         expect(deletedTables).not.toContain(schema.artistBioVersions);
         expect(tx.execute).toHaveBeenCalledTimes(4);
     });

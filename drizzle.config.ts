@@ -8,6 +8,7 @@ export default defineConfig({
   schema: "./src/server/db/schema.ts",
   out: "./drizzle",
   dialect: 'postgresql',
+  schemaFilter: ['public', 'musicnerd_private', 'mn_private'],
   dbCredentials: {
     url: process.env.SUPABASE_DB_CONNECTION!,
   }

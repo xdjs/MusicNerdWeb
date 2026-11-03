@@ -1037,12 +1037,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "bio_provenance": {
-          "name": "bio_provenance",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -2983,12 +2977,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "(now() AT TIME ZONE 'utc'::text)"
-        },
-        "bio_provenance": {
-          "name": "bio_provenance",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -8075,6 +8063,118 @@
         }
       },
       "isRLSEnabled": true
+    },
+    "mn_private.artist_bio_provenance": {
+      "name": "artist_bio_provenance",
+      "schema": "mn_private",
+      "columns": {
+        "artist_id": {
+          "name": "artist_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provenance": {
+          "name": "provenance",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "artist_bio_provenance_artist_id_artists_id_fk": {
+          "name": "artist_bio_provenance_artist_id_artists_id_fk",
+          "tableFrom": "artist_bio_provenance",
+          "tableTo": "artists",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "mnweb_artist_bio_provenance": {
+          "name": "mnweb_artist_bio_provenance",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
+      "checkConstraints": {
+        "artist_bio_provenance_object": {
+          "name": "artist_bio_provenance_object",
+          "value": "jsonb_typeof(\"mn_private\".\"artist_bio_provenance\".\"provenance\")='object'"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "mn_private.artist_bio_version_provenance": {
+      "name": "artist_bio_version_provenance",
+      "schema": "mn_private",
+      "columns": {
+        "version_id": {
+          "name": "version_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provenance": {
+          "name": "provenance",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "artist_bio_version_provenance_version_id_artist_bio_versions_id_fk": {
+          "name": "artist_bio_version_provenance_version_id_artist_bio_versions_id_fk",
+          "tableFrom": "artist_bio_version_provenance",
+          "tableTo": "artist_bio_versions",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "mnweb_artist_bio_version_provenance": {
+          "name": "mnweb_artist_bio_version_provenance",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
+      "checkConstraints": {
+        "artist_bio_version_provenance_object": {
+          "name": "artist_bio_version_provenance_object",
+          "value": "jsonb_typeof(\"mn_private\".\"artist_bio_version_provenance\".\"provenance\")='object'"
+        }
+      },
+      "isRLSEnabled": true
     }
   },
   "enums": {
@@ -8125,7 +8225,9 @@
       ]
     }
   },
-  "schemas": {},
+  "schemas": {
+    "mn_private": "mn_private"
+  },
   "sequences": {},
   "roles": {},
   "policies": {},

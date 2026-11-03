@@ -61,7 +61,6 @@ export const createMockDB = () => {
 
 // Helper to create a mock artist
 export const createMockArtist = (id: string, name: string, spotify: string): Artist => ({
-    bioProvenance: null,
     id,
     name,
     spotify,

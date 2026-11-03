@@ -165,7 +165,6 @@ export const artists = pgTable("artists", {
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	supercollector: text(),
 	bio: text(),
-	bioProvenance: jsonb("bio_provenance"),
 	customImage: text("custom_image"),
 	headerImagePosition: jsonb("header_image_position").$type<{ imageUrl: string; y: number }>(),
 	linkOrder: jsonb("link_order").$type<import("@/lib/artist/artistProfileLinks").ArtistLinkOrder>(),
@@ -481,7 +480,6 @@ export const artistBioVersions = pgTable("artist_bio_versions", {
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	artistId: uuid("artist_id").notNull(),
 	bioText: text("bio_text").notNull(),
-	bioProvenance: jsonb("bio_provenance"),
 	isPinned: boolean("is_pinned").default(false).notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
@@ -1349,3 +1347,15 @@ export const catalogLinkDisconnects = pgSchema("musicnerd_private").table("catal
   check("catalog_link_disconnects_authorization_mode_check", sql`${table.authorizationMode} IN ('owner', 'contributor')`),
   check("catalog_disconnect_mapping_snapshot", sql`${table.mappingSnapshot} IS NULL OR (jsonb_typeof(${table.mappingSnapshot}) = 'object' AND ${table.mappingSnapshot}->>'artist_id' = ${table.artistId}::text AND ${table.mappingSnapshot}->>'platform' = ${table.platform} AND ${table.mappingSnapshot}->>'platform_id' = ${table.oldValue} AND ${table.mappingSnapshot}->>'id' IS NOT NULL)`),
 ]).enableRLS();
+
+// Evidence is never part of the public artist/history row shape.
+export const mnPrivate = pgSchema("mn_private");
+export const artistBioProvenance = mnPrivate.table("artist_bio_provenance", {
+    artistId: uuid("artist_id").primaryKey().references(() => artists.id, { onDelete: "cascade" }),
+    provenance: jsonb("provenance").notNull(),
+}, table => [check("artist_bio_provenance_object", sql`jsonb_typeof(${table.provenance})='object'`), pgPolicy("mnweb_artist_bio_provenance", { for: "all", to: ["mnweb"], using: sql`true`, withCheck: sql`true` })]).enableRLS();
+
+export const artistBioVersionProvenance = mnPrivate.table("artist_bio_version_provenance", {
+    versionId: uuid("version_id").primaryKey().references(() => artistBioVersions.id, { onDelete: "cascade" }),
+    provenance: jsonb("provenance").notNull(),
+}, table => [check("artist_bio_version_provenance_object", sql`jsonb_typeof(${table.provenance})='object'`), pgPolicy("mnweb_artist_bio_version_provenance", { for: "all", to: ["mnweb"], using: sql`true`, withCheck: sql`true` })]).enableRLS();

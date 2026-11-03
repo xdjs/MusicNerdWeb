@@ -11,8 +11,9 @@ it("rechecks immutable trust, claim scope, privacy and moderation without rewrit
  const bio="Generated biography.";
  const provenance={version:1,kind:"generated",bioHash:createHash("sha256").update(bio).digest("hex"),claimId:null,sources:[{id:1,kind:"vault",url:source.url,revision:vaultSourceRevision(source)}]};
  try {
-  await pg.exec(`create table artists(id uuid,bio text,bio_provenance jsonb);create table artist_claims(id uuid,artist_id uuid,status text);create table artist_activity_events(id uuid,artist_id uuid,source_id uuid,actor_kind text,actor_user_id uuid,trigger text,action text);create table artist_vault_sources(id uuid,artist_id uuid,activity_id uuid,origin text,publication text,status text,url text,extracted_text text,title text,snippet text,published_at text,file_path text);`);
-  await pg.query("insert into artists values($1,$2,$3)",[artist,bio,JSON.stringify(provenance)]);
+  await pg.exec(`create table artists(id uuid,bio text);create schema mn_private;create table mn_private.artist_bio_provenance(artist_id uuid,provenance jsonb);create table artist_claims(id uuid,artist_id uuid,status text);create table artist_activity_events(id uuid,artist_id uuid,source_id uuid,actor_kind text,actor_user_id uuid,trigger text,action text);create table artist_vault_sources(id uuid,artist_id uuid,activity_id uuid,origin text,publication text,status text,url text,extracted_text text,title text,snippet text,published_at text,file_path text);`);
+  await pg.query("insert into artists values($1,$2)",[artist,bio]);
+  await pg.query("insert into mn_private.artist_bio_provenance values($1,$2)",[artist,JSON.stringify(provenance)]);
   await pg.query("insert into artist_vault_sources(id,artist_id,activity_id,origin,publication,status,url,extracted_text) values($1,$2,$3,'submission','inherit','approved',$4,$5)",[sourceId,artist,event,source.url,source.extractedText]);
   const read=()=>getPublicSavedBio(artist,{ execute: async (query: Parameters<typeof db.execute>[0]) => (await db.execute(query)).rows } as never);
   expect(await read()).toBeNull();
@@ -24,6 +25,6 @@ it("rechecks immutable trust, claim scope, privacy and moderation without rewrit
    await pg.query("update artist_vault_sources set publication='inherit',status='approved',extracted_text=$1",[source.extractedText]);
   }
   await pg.exec("delete from artist_claims;update artist_activity_events set source_id=null");expect(await read()).toBeNull();
-  expect((await pg.query("select bio,bio_provenance from artists")).rows).toEqual([{bio,bio_provenance:provenance}]);
+  expect((await pg.query("select a.bio,p.provenance from artists a join mn_private.artist_bio_provenance p on p.artist_id=a.id")).rows).toEqual([{bio,provenance}]);
  }finally{await pg.close();}
 },30000);

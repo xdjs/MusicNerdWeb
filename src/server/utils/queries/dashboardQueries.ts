@@ -1,3 +1,5 @@
+import {preserveRevokedBio} from '../bio/preserveRevokedBio';
+import {writeBioProvenance} from '../bio/writeBioProvenance';
 import { retainEditedBioProvenance } from '../bio/retainEditedBioProvenance';
 import { saveBioHistory } from '../bio/saveBioHistory';
 import { SUPABASE_URL } from '@/env';
@@ -5,10 +7,10 @@ import { classifyRevokedSource } from './classifyRevokedSource';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from "@/server/db/drizzle";
 import { eq, and, sql, inArray } from "drizzle-orm";
-import { artistActivityEvents, mcpAuditLog, artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialRefreshes, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
+import { artistBioProvenance, artistBioVersionProvenance, artistActivityEvents, mcpAuditLog, artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialRefreshes, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
 import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
 import { getActiveArtistOperation } from '../artistOperationContext';
-import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bio/bioConstants';
+import { isRealBio } from '@/lib/bio/bioConstants';
 import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 
 export { getClaimByArtistId } from './getClaimByArtistId';
@@ -241,16 +243,11 @@ export async function revokeApprovedClaim(claimId: string, adminId: string) {
                 .returning();
             if (deletedDocs.length > 0 || unpinned.length > 0) {
                 // Preserve even a hand-edited bio that never reached version history.
-                await tx.execute(sql`insert into artist_bio_versions (artist_id, bio_text, bio_provenance, is_pinned)
-                    select id, bio, bio_provenance, false from artists a
-                    where id = ${deleted.artistId}::uuid and bio is not null
-                    and btrim(bio, E' \\t\\n\\r') <> '' and btrim(bio, E' \\t\\n\\r') <> ${ABOUT_EMPTY_STATE}
-                    and not exists (select 1 from artist_bio_versions v
-                        where v.artist_id = a.id and v.bio_text = a.bio
-                          and v.bio_provenance is not distinct from a.bio_provenance)`);
+                await preserveRevokedBio(tx,deleted.artistId);
+                await writeBioProvenance(tx,deleted.artistId,null);
                 await tx
                     .update(artists)
-                    .set({ bio: null, bioProvenance: null })
+                    .set({ bio: null })
                     .where(eq(artists.id, deleted.artistId));
             }
 
@@ -455,12 +452,15 @@ export async function saveBioVersion(artistId: string, bioText: string, auth: Ar
                 orderBy: (v, { asc }) => [asc(v.createdAt)],
             });
             const current = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
+            const currentProvenance = (await tx.query.artistBioProvenance.findFirst({where:eq(artistBioProvenance.artistId,artistId)}))?.provenance ?? null;
+            const historyProvenance = existing.length ? await tx.query.artistBioVersionProvenance.findMany({where:inArray(artistBioVersionProvenance.versionId,existing.map(v=>v.id))}) : [];
+            const provenanceOf = (id:string) => historyProvenance.find(p=>p.versionId===id)?.provenance ?? null;
             const matching = existing.filter(version => version.bioText === bioText);
             // A save of known historical text must not relabel it as new manual prose.
-            const bioProvenance = current?.bio === bioText ? current.bioProvenance ?? null
-                : matching.find(version => version.bioProvenance != null)?.bioProvenance
-                    ?? retainEditedBioProvenance(current?.bio ?? null, bioText, current?.bioProvenance);
-            const saved = matching.find(version => JSON.stringify(version.bioProvenance ?? null) === JSON.stringify(bioProvenance));
+            const bioProvenance = current?.bio === bioText ? currentProvenance
+                : matching.map(version => provenanceOf(version.id)).find(p=>p!=null)
+                    ?? retainEditedBioProvenance(current?.bio ?? null, bioText, currentProvenance);
+            const saved = matching.find(version => JSON.stringify(provenanceOf(version.id)) === JSON.stringify(bioProvenance));
             if (saved) return saved;
             if (existing.length >= MAX_BIO_VERSIONS) {
                 throw new Error("Bio version limit reached — delete an unwanted version first");
@@ -468,8 +468,9 @@ export async function saveBioVersion(artistId: string, bioText: string, auth: Ar
 
             const [version] = await tx
                 .insert(artistBioVersions)
-                .values({ artistId, bioText, bioProvenance, isPinned: false })
+                .values({ artistId, bioText, isPinned: false })
                 .returning();
+            if (version && bioProvenance != null) await tx.insert(artistBioVersionProvenance).values({versionId:version.id,provenance:bioProvenance});
             return version;
         });
     } catch (e) {
@@ -490,7 +491,9 @@ export async function pinBioVersion(versionId: string, artistId: string, auth: A
             });
             if (!selected) return undefined;
             const current = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
-            if (current?.bio) await saveBioHistory(tx, artistId, [{ text: current.bio, provenance: current.bioProvenance }]);
+            const currentProvenance = (await tx.query.artistBioProvenance.findFirst({where:eq(artistBioProvenance.artistId,artistId)}))?.provenance ?? null;
+            const selectedProvenance = (await tx.query.artistBioVersionProvenance.findFirst({where:eq(artistBioVersionProvenance.versionId,selected.id)}))?.provenance ?? null;
+            if (current?.bio) await saveBioHistory(tx, artistId, [{ text: current.bio, provenance: currentProvenance }]);
             await tx
                 .update(artistBioVersions)
                 .set({ isPinned: false })
@@ -503,9 +506,10 @@ export async function pinBioVersion(versionId: string, artistId: string, auth: A
                 .returning();
 
             if (pinned) {
+                await writeBioProvenance(tx,artistId,selectedProvenance);
                 await tx
                     .update(artists)
-                    .set({ bio: pinned.bioText, bioProvenance: pinned.bioProvenance ?? null })
+                    .set({ bio: pinned.bioText })
                     .where(eq(artists.id, artistId));
             }
 
