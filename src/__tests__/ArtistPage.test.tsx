@@ -747,6 +747,18 @@ describe('legacy About public boundary', () => {
   expect(JSON.stringify(metadata)).not.toContain('LEGACY PRIVATE ABOUT');
   expect(metadata.description).toContain('social links and streaming profiles');
  });
+ it('rechecks the public projection for a later render and metadata after a legacy allowance is consumed',async()=>{
+  setupMocks({session:null,artist:{...mockArtist,bio:'EXACT LEGACY ALLOWANCE'}});
+  const {getClaimByArtistId}=await import('@/server/utils/queries/dashboardQueries');
+  getClaimByArtistId.mockResolvedValue({id:'claim',userId:'owner',status:'approved'});
+  const {getPublicSavedBio}=await import('@/server/utils/bio/getPublicSavedBio');
+  getPublicSavedBio.mockResolvedValueOnce('EXACT LEGACY ALLOWANCE');
+  const first=await renderArtistPage();expect(first.container.innerHTML).toContain('EXACT LEGACY ALLOWANCE');first.unmount();
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  const next=await renderArtistPage();expect(next.container.innerHTML).not.toContain('EXACT LEGACY ALLOWANCE');
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  expect(JSON.stringify(await generateMetadata({params:Promise.resolve({id:'artist-uuid'})}))).not.toContain('EXACT LEGACY ALLOWANCE');
+ });
  it('preserves raw claimed legacy text for its authorized owner only',async()=>{
   setupMocks({session:{user:{id:'owner'}},artist:{...mockArtist,bio:'LEGACY OWNER EDITOR ABOUT'}});
   const {getClaimByArtistId}=await import('@/server/utils/queries/dashboardQueries');

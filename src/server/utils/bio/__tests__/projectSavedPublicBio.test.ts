@@ -92,3 +92,15 @@ it("requires evidence for generated claimed text but allows explicit same-claim 
   expect(projectSavedPublicBio({bio, provenance:{...p,kind:"authored"}, claimId:"claim", evidence:[]})).toBe(bio);
   expect(projectSavedPublicBio({bio, provenance:{...p,kind:"authored"}, claimId:"replacement", evidence:[]})).toBeNull();
 });
+
+it('permits only an exact explicitly recorded legacy publication, never unknown provenance', () => {
+ const bio='An explicitly retained legacy biography.';
+ const hash=createHash('sha256').update(bio).digest('hex');
+ const row={bio,provenance:null,claimId:'claim',evidence:[],legacyPublication:{claimId:'claim',bioHash:hash}};
+ expect(projectSavedPublicBio(row)).toBe(bio);
+ expect(projectSavedPublicBio({...row,claimId:null})).toBeNull();
+ expect(projectSavedPublicBio({...row,bio:bio+' changed'})).toBeNull();
+ expect(projectSavedPublicBio({...row,provenance:{version:1,kind:'unknown',bioHash:hash}})).toBeNull();
+ expect(projectSavedPublicBio({...row,provenance:{}})).toBeNull();
+ expect(projectSavedPublicBio({...row,legacyPublication:{claimId:'other',bioHash:hash}})).toBeNull();
+});

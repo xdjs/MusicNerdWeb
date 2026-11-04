@@ -8,9 +8,12 @@ export function projectSavedPublicBio(row: {
   bio: string | null;
   provenance: unknown;
   claimId: string | null;
+  legacyPublication?: {claimId: string; bioHash: string} | null;
   evidence: Parameters<typeof vaultSourceRevision>[0][];
 }): string | null {
   if (!isRealBio(row.bio)) return null;
+  if (row.provenance === null && row.claimId && row.legacyPublication?.claimId === row.claimId &&
+      row.legacyPublication.bioHash === createHash("sha256").update(row.bio!).digest("hex")) return row.bio;
   if (!row.provenance || typeof row.provenance !== "object") return null;
   const p = row.provenance as Record<string, unknown>;
   if (

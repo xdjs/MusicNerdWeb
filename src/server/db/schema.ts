@@ -1374,3 +1374,13 @@ export const publicUrlReceipts = mnPrivate.table("public_url_receipts", {
     pgPolicy("mnweb_public_url_receipts_select", {for: "select", to: ["mnweb"], using: sql`true`}),
     pgPolicy("mnweb_public_url_receipts_insert", {for: "insert", to: ["mnweb"], withCheck: sql`true`}),
 ]).enableRLS();
+
+// Exact reviewed legacy exception; application writes cannot create or refresh it.
+export const legacyBioPublications = mnPrivate.table("legacy_bio_publications", {
+    artistId: uuid("artist_id").primaryKey().references(() => artists.id, {onDelete: "cascade"}),
+    claimId: uuid("claim_id").notNull().references(() => artistClaims.id, {onDelete: "cascade"}),
+    bioHash: text("bio_hash").notNull(),
+}, table => [
+    check("legacy_bio_publications_hash", sql`${table.bioHash} ~ '^[a-f0-9]{64}$'`),
+    pgPolicy("mnweb_legacy_bio_publications_select", {for: "select", to: ["mnweb"], using: sql`true`}),
+]).enableRLS();
