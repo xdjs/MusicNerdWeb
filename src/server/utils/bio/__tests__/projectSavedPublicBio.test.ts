@@ -35,10 +35,8 @@ it.each([
     projectSavedPublicBio({ bio, provenance: p, claimId: null, evidence: [evidence] }),
   ).toBeNull(),
 );
-it("preserves legacy/manual claimed behavior without certifying unknown output", () => {
-  expect(projectSavedPublicBio({ bio, provenance: null, claimId: "claim", evidence: [] })).toBe(
-    bio,
-  );
+it("withholds legacy claimed text without inferring authorship", () => {
+  expect(projectSavedPublicBio({ bio, provenance: null, claimId: "claim", evidence: [] })).toBeNull();
   expect(
     projectSavedPublicBio({ bio, provenance: { kind: "unknown" }, claimId: "claim", evidence: [] }),
   ).toBeNull();
@@ -86,4 +84,11 @@ it("rejects array-coerced provenance and source kinds", () => {
     { ...provenance, kind: ["generated"], claimId: "claim", sources: [] },
     { ...provenance, claimId: "claim", sources: [{ id: 1, kind: ["vault"], url: evidence.url }] },
   ]) expect(projectSavedPublicBio({ bio, provenance: invalid, claimId: "claim", evidence: [] })).toBeNull();
+});
+
+it("requires evidence for generated claimed text but allows explicit same-claim authored text", () => {
+  const p = {...provenance, claimId: "claim", sources: []};
+  expect(projectSavedPublicBio({bio, provenance:p, claimId:"claim", evidence:[]})).toBeNull();
+  expect(projectSavedPublicBio({bio, provenance:{...p,kind:"authored"}, claimId:"claim", evidence:[]})).toBe(bio);
+  expect(projectSavedPublicBio({bio, provenance:{...p,kind:"authored"}, claimId:"replacement", evidence:[]})).toBeNull();
 });

@@ -24,6 +24,13 @@ it("rechecks immutable trust, claim scope, privacy and moderation without rewrit
    await pg.exec(`update artist_vault_sources set ${change}`);expect(await read()).toBeNull();
    await pg.query("update artist_vault_sources set publication='inherit',status='approved',extracted_text=$1",[source.extractedText]);
   }
+  // Claim approval alone cannot certify legacy or evidence-free generated prose.
+  await pg.exec("delete from mn_private.artist_bio_provenance");expect(await read()).toBeNull();
+  expect((await pg.query("select bio from artists")).rows).toEqual([{bio}]);
+  const emptyGenerated={...provenance,claimId:claim,sources:[]};
+  await pg.query("insert into mn_private.artist_bio_provenance values($1,$2)",[artist,JSON.stringify(emptyGenerated)]);expect(await read()).toBeNull();
+  await pg.query("update mn_private.artist_bio_provenance set provenance=$1",[JSON.stringify({...emptyGenerated,kind:"authored"})]);expect(await read()).toBe(bio);
+  await pg.query("update mn_private.artist_bio_provenance set provenance=$1",[JSON.stringify(provenance)]);
   await pg.exec("delete from artist_claims;update artist_activity_events set source_id=null");expect(await read()).toBeNull();
   expect((await pg.query("select a.bio,p.provenance from artists a join mn_private.artist_bio_provenance p on p.artist_id=a.id")).rows).toEqual([{bio,provenance}]);
  }finally{await pg.close();}

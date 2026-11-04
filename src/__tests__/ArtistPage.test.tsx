@@ -732,3 +732,27 @@ describe('generated About evidence projection', () => {
     expect(JSON.stringify(metadata)).not.toContain('PRIVATE GENERATED TEXT');
   });
 });
+
+describe('legacy About public boundary', () => {
+ beforeEach(() => {jest.clearAllMocks();setupMocks();getVaultSourcesByArtistId.mockReset().mockResolvedValue([]);jest.requireMock('@/server/utils/queries/userQueries').getUserById.mockReset().mockResolvedValue({id:'viewer',isAdmin:false,isWhiteListed:false});});
+ it.each([null,{user:{id:'unrelated'}}])('withholds claimed legacy text from visitors and metadata (%j)',async session=>{
+  setupMocks({session,artist:{...mockArtist,bio:'LEGACY PRIVATE ABOUT'}});
+  const {getClaimByArtistId}=await import('@/server/utils/queries/dashboardQueries');
+  getClaimByArtistId.mockResolvedValue({id:'claim',userId:'owner',status:'approved'});
+  const {getPublicSavedBio}=await import('@/server/utils/bio/getPublicSavedBio');
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  const view=await renderArtistPage();expect(view.container.innerHTML).not.toContain('LEGACY PRIVATE ABOUT');
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  const metadata=await generateMetadata({params:Promise.resolve({id:'artist-uuid'})});
+  expect(JSON.stringify(metadata)).not.toContain('LEGACY PRIVATE ABOUT');
+  expect(metadata.description).toContain('social links and streaming profiles');
+ });
+ it('preserves raw claimed legacy text for its authorized owner only',async()=>{
+  setupMocks({session:{user:{id:'owner'}},artist:{...mockArtist,bio:'LEGACY OWNER EDITOR ABOUT'}});
+  const {getClaimByArtistId}=await import('@/server/utils/queries/dashboardQueries');
+  getClaimByArtistId.mockResolvedValue({id:'claim',userId:'owner',status:'approved'});
+  const {getPublicSavedBio}=await import('@/server/utils/bio/getPublicSavedBio');
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  const view=await renderArtistPage();expect(view.container.innerHTML).toContain('LEGACY OWNER EDITOR ABOUT');
+ });
+});
