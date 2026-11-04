@@ -119,3 +119,13 @@ it('does not equate artist editing or trusted contribution with publication perm
  rerender(view(true));
  expect(screen.getByTestId('lore-manager')).toHaveAttribute('data-publication','true');
 });
+
+it('keeps existing approved Lore visible while research waits and runs', () => {
+  const approvedSources = [{ id: 'saved-source', url: 'https://example.org/lore', status: 'approved', type: 'article' }];
+  const view = (currentStep: string) => <OnboardingProgressContext.Provider value={research({ currentStep })}><VaultSection {...props} approvedSources={approvedSources as never} /></OnboardingProgressContext.Provider>;
+  const { rerender } = render(view('profiles'));
+  expect(screen.getByText('Public Lore')).toBeVisible();
+  rerender(view('vault'));
+  expect(screen.getByText('Public Lore')).toBeVisible();
+  expect(screen.queryByRole('status', { name: 'reading what’s written about you…' })).not.toBeInTheDocument();
+});

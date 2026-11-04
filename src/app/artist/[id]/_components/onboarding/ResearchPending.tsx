@@ -18,11 +18,13 @@ import type { SectionStep } from "./useFreshSections";
  * when it has been on screen. Otherwise, or with no build being watched, just
  * the section.
  */
-export default function ResearchPending({ step, skeleton, label, arrivedLabel, children }: {
+export default function ResearchPending({ step, skeleton, label, arrivedLabel, hasContent = false, children }: {
     step: SectionStep;
     skeleton: SkeletonKind;
     label: string;
     arrivedLabel: string;
+    /** Already-authorized content stays readable while setup prepares more material. */
+    hasContent?: boolean;
     children?: ReactNode;
 }) {
     const { suspendedEditMode } = useContext(EditModeContext);
@@ -49,11 +51,12 @@ export default function ResearchPending({ step, skeleton, label, arrivedLabel, c
     }, [fresh, markSeen, step]);
 
     const pending = !!research && !research.complete && research.steps[step] === null;
-    const hidden = pending && skeleton !== "links";
+    const showPlaceholder = pending && !hasContent;
+    const hidden = showPlaceholder && skeleton !== "links";
     const researching = researchingSection(research?.currentStep ?? null) === step;
     return (
         <>
-            {pending && (researching ? (
+            {showPlaceholder && (researching ? (
                 <div role="status" aria-label={label}><SkeletonShape kind={skeleton} /></div>
             ) : (
                 <div aria-hidden="true"><SkeletonShape kind={skeleton} still /></div>
@@ -61,7 +64,7 @@ export default function ResearchPending({ step, skeleton, label, arrivedLabel, c
             <div ref={box} hidden={hidden} inert={hidden} data-research-new={!pending && fresh ? "" : undefined}
                 className={!pending && fresh ? `motion-safe:animate-research-reveal ${skeleton === "about" ? "flex flex-col items-start gap-2" : ""}` : undefined}>
                 {!pending && fresh && <span role="status" className="sr-only">{arrivedLabel}</span>}
-                {!pending && fresh && skeleton === "about" && <Badge variant="highlight">New About</Badge>}
+                {!pending && fresh && skeleton === "about" && <Badge variant="highlight">About ready</Badge>}
                 <div className={!pending && fresh && skeleton === "about" ? "rounded-xl ring-2 ring-highlightpink/70 transition-shadow" : undefined}>{(!hidden || suspendedEditMode) && children}</div>
             </div>
         </>

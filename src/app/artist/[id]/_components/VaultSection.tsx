@@ -49,7 +49,7 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
       </div>
       <div id="lore-editor-content" hidden={isEditing && collapsed}>
       {/* VaultManager owns the approved list in edit mode. */}
-      <ResearchPending step="vault" skeleton="sources" label="reading what’s written about you…" arrivedLabel="Your Lore is ready">
+      <ResearchPending hasContent={approvedSources.length > 0} step="vault" skeleton="sources" label="reading what’s written about you…" arrivedLabel="Your Lore is ready">
         {!isEditing && <div id="mn-sources"><PressAndFeatures key={artistId} sources={approvedSources} /></div>}
       </ResearchPending>
       {retainEditor && <div hidden={!!suspendedEditMode} inert={!!suspendedEditMode}><EditModeContext.Provider value={suspendedEditMode ? { ...suspendedEditMode, editingBlocked: true, toggle: edit.toggle } : edit}><Tabs defaultValue="sources" className="space-y-5">
