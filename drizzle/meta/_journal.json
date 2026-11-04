@@ -435,6 +435,13 @@
       "when": 1793750400000,
       "tag": "0061_about_evidence_provenance",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793836800000,
+      "tag": "0062_public_url_receipts",
+      "breakpoints": true
     }
   ]
 }

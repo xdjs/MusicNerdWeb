@@ -59,3 +59,38 @@ it.each([null, {version:1,kind:'generated',bioHash:'hash',claimId:'claim',source
     if(provenance) expect(values).toHaveBeenCalledWith({artistId:'a1',provenance});
     else expect(tx.delete).toHaveBeenCalled();
 });
+it('explicit deduplicated history save prepares receipts before returning existing version',async()=>{
+ jest.resetModules();const {db}=await import('@/server/db/drizzle');
+ const url='https://example.com/source';const lineage={version:1,kind:'generated',bioHash:'hash',claimId:'claim-1',sources:[{url}]};
+ const saved={id:'v1',bioText:'Current bio'};
+ const execute=jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([{url_hex:Buffer.from(url).toString('hex')}]);
+ const tx={execute,insert:jest.fn(),query:{artistClaims:claims(),artists:{findFirst:jest.fn().mockResolvedValue({bio:saved.bioText})},artistBioVersions:{findMany:jest.fn().mockResolvedValue([saved])},artistBioProvenance:{findFirst:jest.fn().mockResolvedValue({provenance:lineage})},artistBioVersionProvenance:{findMany:jest.fn().mockResolvedValue([{versionId:'v1',provenance:lineage}])}}};
+ db.transaction=jest.fn(fn=>fn(tx));const {saveBioVersion}=await import('../dashboardQueries');
+ expect(await saveBioVersion('a1',saved.bioText,auth)).toBe(saved);expect(execute).toHaveBeenCalledTimes(3);expect(tx.insert).not.toHaveBeenCalled();
+});
+it('pin failure preparing selected receipts prevents current text overwrite',async()=>{
+ jest.resetModules();const {db}=await import('@/server/db/drizzle');
+ const selected={id:'v1',bioText:'Selected'};
+ const selectedLineage={version:1,kind:'generated',bioHash:'hash',claimId:'claim-1',sources:[{url:'https://example.com/source'}]};
+ const where=jest.fn(()=>({returning:jest.fn().mockResolvedValue([selected])}));const set=jest.fn(()=>({where}));
+ const tx={execute:jest.fn().mockResolvedValueOnce([]).mockRejectedValue(new Error('URL parameter private')),query:{artistClaims:claims(),artists:{findFirst:jest.fn().mockResolvedValue({bio:null})},artistBioVersions:{findFirst:jest.fn().mockResolvedValue(selected)},artistBioProvenance:{findFirst:jest.fn().mockResolvedValue(undefined)},artistBioVersionProvenance:{findFirst:jest.fn().mockResolvedValue({provenance:selectedLineage})}},update:jest.fn(()=>({set})),insert:jest.fn()};
+ db.transaction=jest.fn(fn=>fn(tx));const {pinBioVersion}=await import('../dashboardQueries');
+ await expect(pinBioVersion('v1','a1',auth)).rejects.toThrow('URL receipt could not be stored or verified');
+ expect(set).not.toHaveBeenCalledWith({bio:'Selected'});expect(tx.insert).not.toHaveBeenCalled();
+});
+it('explicit unchanged bio edit prepares current receipts before the no-op return',async()=>{
+ jest.resetModules();const {db}=await import('@/server/db/drizzle');
+ const url='https://example.com/source';const provenance={version:1,kind:'authored',bioHash:'hash',claimId:'claim-1',sources:[{url}]};
+ const execute=jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([{url_hex:Buffer.from(url).toString('hex')}]);
+ const tx={execute,insert:jest.fn(),update:jest.fn(),query:{artistClaims:claims(),artists:{findFirst:jest.fn().mockResolvedValue({bio:'Unchanged'})},artistBioVersions:{findFirst:jest.fn().mockResolvedValue(undefined)},artistBioProvenance:{findFirst:jest.fn().mockResolvedValue({provenance})}}};
+ db.transaction=jest.fn(fn=>fn(tx));const {persistArtistBio}=await import('../bioPersistence');
+ expect(await persistArtistBio('a1','Unchanged',{ownership:auth})).toBe('Unchanged');expect(execute).toHaveBeenCalledTimes(3);expect(tx.update).not.toHaveBeenCalled();
+});
+it('explicit pinned unchanged edit prepares both existing manifests without rewriting text',async()=>{
+ jest.resetModules();const {db}=await import('@/server/db/drizzle');
+ const url='https://example.com/source';const provenance={version:1,kind:'generated',bioHash:'hash',claimId:'claim-1',sources:[{url}]};
+ const execute=jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([{url_hex:Buffer.from(url).toString('hex')}]).mockResolvedValueOnce([]).mockResolvedValueOnce([{url_hex:Buffer.from(url).toString('hex')}]);
+ const tx={execute,insert:jest.fn(),update:jest.fn(),query:{artistClaims:claims(),artists:{findFirst:jest.fn().mockResolvedValue({bio:'Pinned'})},artistBioVersions:{findFirst:jest.fn().mockResolvedValue({id:'v1',bioText:'Pinned',isPinned:true})},artistBioProvenance:{findFirst:jest.fn().mockResolvedValue({provenance})},artistBioVersionProvenance:{findFirst:jest.fn().mockResolvedValue({provenance})}}};
+ db.transaction=jest.fn(fn=>fn(tx));const {persistArtistBio}=await import('../bioPersistence');
+ expect(await persistArtistBio('a1','Pinned',{ownership:auth})).toBe('Pinned');expect(execute).toHaveBeenCalledTimes(5);expect(tx.update).not.toHaveBeenCalled();
+});

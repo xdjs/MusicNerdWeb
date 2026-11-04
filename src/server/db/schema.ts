@@ -1,4 +1,4 @@
-import { pgSchema, pgTable, primaryKey, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
+import { customType, pgSchema, pgTable, primaryKey, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
 import { relations, sql } from "drizzle-orm"
 
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
@@ -1359,3 +1359,18 @@ export const artistBioVersionProvenance = mnPrivate.table("artist_bio_version_pr
     versionId: uuid("version_id").primaryKey().references(() => artistBioVersions.id, { onDelete: "cascade" }),
     provenance: jsonb("provenance").notNull(),
 }, table => [check("artist_bio_version_provenance_object", sql`jsonb_typeof(${table.provenance})='object'`), pgPolicy("mnweb_artist_bio_version_provenance", { for: "all", to: ["mnweb"], using: sql`true`, withCheck: sql`true` })]).enableRLS();
+
+// URL policy approval is exact-byte and versioned; it does not approve source content.
+const receiptBytea = customType<{data: Buffer; driverData: Buffer}>({dataType() { return 'bytea'; }});
+const receiptUrl = customType<{data: string; driverData: string}>({dataType() { return 'text COLLATE "C"'; }});
+export const publicUrlReceipts = mnPrivate.table("public_url_receipts", {
+    urlHash: receiptBytea("url_hash").notNull(),
+    url: receiptUrl("url").notNull(),
+    policyVersion: integer("policy_version").notNull(),
+}, table => [
+    primaryKey({name: "public_url_receipts_pkey", columns: [table.urlHash, table.policyVersion]}),
+    check("public_url_receipts_hash_length", sql`octet_length(${table.urlHash})=32`),
+    check("public_url_receipts_policy_positive", sql`${table.policyVersion} > 0`),
+    pgPolicy("mnweb_public_url_receipts_select", {for: "select", to: ["mnweb"], using: sql`true`}),
+    pgPolicy("mnweb_public_url_receipts_insert", {for: "insert", to: ["mnweb"], withCheck: sql`true`}),
+]).enableRLS();

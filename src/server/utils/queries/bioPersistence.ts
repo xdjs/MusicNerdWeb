@@ -1,10 +1,11 @@
+import {recordBioSourceUrlReceipts} from '../bio/recordBioSourceUrlReceipts';
 import {writeBioProvenance} from '../bio/writeBioProvenance';
 import { createHash } from 'node:crypto';
 import { retainEditedBioProvenance } from '../bio/retainEditedBioProvenance';
 import { saveBioHistory } from '../bio/saveBioHistory';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from '@/server/db/drizzle';
-import { artists, artistBioVersions, artistDocs, artistOnboardingSteps, artistClaims, artistBioProvenance } from '@/server/db/schema';
+import { artists, artistBioVersions, artistDocs, artistOnboardingSteps, artistClaims, artistBioProvenance, artistBioVersionProvenance } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { BioConflictError } from '@/lib/bio/bioConflict';
 import { authorizeLockedArtistWrite, OwnershipChangedError } from './ownershipWrites';
@@ -40,6 +41,10 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
             if (!options.generated && bio !== pinned.bioText) {
                 throw new Error('Unpin your bio before editing it. Your saved version will be kept.');
             }
+            const currentLineage = (await tx.query.artistBioProvenance.findFirst({where:eq(artistBioProvenance.artistId,artistId)}))?.provenance;
+            const pinnedLineage = (await tx.query.artistBioVersionProvenance.findFirst({where:eq(artistBioVersionProvenance.versionId,pinned.id)}))?.provenance;
+            await recordBioSourceUrlReceipts(tx, currentLineage);
+            await recordBioSourceUrlReceipts(tx, pinnedLineage);
             return artist.bio;
         }
         if (options.generated && artist.bio !== options.expectedBio) throw new BioConflictError();
@@ -64,6 +69,7 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
         const bioProvenance = options.generated
             ? { version: 1, kind: 'unknown', bioHash: createHash('sha256').update(bio).digest('hex') }
             : retainEditedBioProvenance(artist.bio, bio, previousProvenance);
+        await recordBioSourceUrlReceipts(tx, bioProvenance);
         if (artist.bio === bio && JSON.stringify(previousProvenance ?? null) === JSON.stringify(bioProvenance)) return bio;
         await saveBioHistory(tx, artistId, [
             { text: artist.bio, provenance: previousProvenance },

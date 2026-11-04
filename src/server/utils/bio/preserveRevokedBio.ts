@@ -1,8 +1,12 @@
+import {recordBioSourceUrlReceipts} from './recordBioSourceUrlReceipts';
 import {sql} from 'drizzle-orm';
 import {ABOUT_EMPTY_STATE} from '@/lib/bio/bioConstants';
 import type {ScopedWriteDb} from '@/server/utils/queries/ownershipWrites';
 /** Preserve revoked text and its private lineage atomically before clearing current content. */
 export async function preserveRevokedBio(tx: Pick<ScopedWriteDb,'execute'>, artistId:string) {
+    const result = await tx.execute(sql`select p.provenance from mn_private.artist_bio_provenance p where p.artist_id=${artistId}::uuid`);
+    const rows = Array.isArray(result) ? result : (result as unknown as {rows: {provenance: unknown}[]}).rows;
+    await recordBioSourceUrlReceipts(tx, rows?.[0]?.provenance);
     await tx.execute(sql`with current_bio as (
                     select a.id,a.bio,p.provenance from artists a left join mn_private.artist_bio_provenance p on p.artist_id=a.id
                     where a.id=${artistId}::uuid and a.bio is not null

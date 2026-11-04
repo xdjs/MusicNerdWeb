@@ -1,3 +1,4 @@
+import {recordBioSourceUrlReceipts} from '../bio/recordBioSourceUrlReceipts';
 import {preserveRevokedBio} from '../bio/preserveRevokedBio';
 import {writeBioProvenance} from '../bio/writeBioProvenance';
 import { retainEditedBioProvenance } from '../bio/retainEditedBioProvenance';
@@ -460,6 +461,7 @@ export async function saveBioVersion(artistId: string, bioText: string, auth: Ar
             const bioProvenance = current?.bio === bioText ? currentProvenance
                 : matching.map(version => provenanceOf(version.id)).find(p=>p!=null)
                     ?? retainEditedBioProvenance(current?.bio ?? null, bioText, currentProvenance);
+            await recordBioSourceUrlReceipts(tx, bioProvenance);
             const saved = matching.find(version => JSON.stringify(provenanceOf(version.id)) === JSON.stringify(bioProvenance));
             if (saved) return saved;
             if (existing.length >= MAX_BIO_VERSIONS) {
