@@ -10,6 +10,12 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-11-03 · [morning standup](meetings/2026-11-03.md)
+
+- Start with the immediate community and a small, deeply documented example to demonstrate Music Nerd’s value. — Meeting agreement; individual speakers are not reliably labeled.
+- Prioritize three onboarding scenarios: a new artist claim, a contributor adding an unknown artist, and an artist claiming a populated profile. Share research presentation where needed, adapt interviews to the contributor, and let claiming artists review existing knowledge rather than automatically repeat completed research. — Meeting agreement; future product direction, not shipped behavior.
+- Support non-whitelisted artist additions with a verification mechanism; the checklist design remains open. — Meeting agreement.
+
 ## 2026-10-22 · [artist share portrait framing](https://github.com/xdjs/MusicNerdWeb/issues/1579)
 
 - Use the approved wider, top-aligned portrait instead of the fixed close-up. Local Rae Isla and Sound of Fractures comparisons accepted; no face detection, extra dependencies or per-artist exceptions. Authorized push and squash merge; production promotion is separate. — Pete; [contract](../artist-share-preview.md#october-22--wider-portrait-framing)
