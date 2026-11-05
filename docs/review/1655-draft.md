@@ -11,3 +11,5 @@ Validation: the paired candidate passed 32 native PostgreSQL 17 tests with both 
 Production gates: reconcile migration state; validate and activate the exact 16 allowances before guarded readers receive traffic; complete the guarded raw-reader/client cutover; coordinate API/Web/background writers and a compatible rollback pair. 0063 seeds no allowances. The raw-reader projection remains a prototype, not a completed production cutover. Do not roll back to unguarded readers or discard evidence.
 
 Refs #1655. Link the paired API draft; do not auto-close before release acceptance. Main was checked read-only on 2026-11-05: 03b2d9a556644d4ec7121fca398977057ad8c90f. No push, publication, merge or production deployment performed.
+
+Local CI follow-up: added the function-only 0064 snapshot with unchanged declared schema and correct parent linkage. All 434 Web suites passed (3,768 tests; six skipped), along with types, lint, build and 116 release/migration regression tests. Dependencies were reused locally; fresh lockfile installation and hosted CI remain unverified. No application or migration SQL changed in this follow-up.
