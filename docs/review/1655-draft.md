@@ -1,15 +1,11 @@
-# Draft Web PR — local review text, not published
+# Draft Web PR — local, not published
 
-Title: Preserve trusted Lore and About through claiming, setup and public reads
+Title: Preserve contributed Lore and About through setup and public reads
 
-The coordinated candidate retains existing artist edits, pins and eligible contributed Lore during setup while filling missing material. The pending-research UI must keep retained content visible and avoid describing it as a newly generated draft. Public and historical readers use private evidence lineage; the approved legacy exception is limited to the exact 16 snapshots, without fabricated source provenance.
+Keep existing artist edits, pins and eligible trusted Lore while profile setup fills missing material. Public biography, history and Lore readers honor the source-publication policy and private evidence. The agreed legacy exception covers only the exact 16 approved claimed-bio snapshots, without inventing provenance or granting future blanket trust.
 
-Requires the matching API receipt-aware writer and reviewed migrations 0060–0063. Dev schema drift must be reconciled, not blindly replayed. The guarded projection/client cutover remains a separate reviewed artifact until actual reader mappings and permissions are approved. The new schema must exist before the corresponding readers/writers receive traffic.
+Requires the paired API receipt-aware writers and reconciled migrations 0060–0063. The candidate also contains trusted uploads and revocation-retention dependencies, which must be reviewed explicitly or extracted and retested. The guarded raw-reader projection remains a prototype; its client/grant cutover is not implemented by these migrations.
 
-Validation includes local onboarding/component and preservation regressions, migration/native PostgreSQL checks, and the separate hosted actual-API fixed-fixture test. The latter does not execute this artist-page onboarding flow. The final browser acceptance must click the real artist About control and complete pending setup on a dedicated synthetic fixture against durable storage.
+Validation: 246 earlier Web tests, types and offline build; paired API now passes all 30 native PostgreSQL tests with focused About and actual Next profile/setup browser suites. Actual manual save, pin/reload and repeated setup preserve stored biography, history, Lore and trusted/pending sources. External auth/models/discovery and hosted workflow boundaries are deterministic local adapters. Real hosted authentication was checked separately; hosted durable permissions and provider quality remain unproven.
 
-Prepare as a linked draft after reconciling current main and the trusted-source prerequisites. Keep unrelated cleanup changes out of this scope. Record "Refs #1655" until coordinated release evidence and Pete's acceptance are attached; do not imply the preview changed shared staging or production.
-
-Current local review branch: `codex/1655-web-review-20261105`, incorporating fetched main `03b2d9a556644d4ec7121fca398977057ad8c90f` at merge `71b7c46ef19bb1d095fab79ceee2bea499f41454`. Paired API branch: `codex/1655-api-review-20261105`. The integration candidate also includes trusted-upload/publication and revocation-retention prerequisites; explicitly review or extract those scopes before publication. The upstream merge changes documentation only.
-
-Local acceptance update (2026-11-05): 246 tests across 20 suites, TypeScript and an offline production build passed; see `docs/testing/local-1655-acceptance-20261105.md`. Paired API now has 28 native PostgreSQL tests and independent-process readback after immediate restart. These are separate UI/request and route/database checks, not one complete browser-to-API acceptance. No shared staging changes were made.
+Refs #1655. Prepare as a linked draft, not an automatic closing or release PR. Main was rechecked read-only on 2026-11-05 and remains 03b2d9a556644d4ec7121fca398977057ad8c90f. Tested candidate: f58408fae9703f54d7522423f904965b473afe41. See the paired API final compatibility review and full Next acceptance record. Do not direct traffic to new readers before private structures and exact legacy allowances exist; do not roll back to unguarded old readers.
