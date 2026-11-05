@@ -1,3 +1,18 @@
+-- USAGE is shared with existing publishing/moderation callers. It grants no
+-- access to the new About objects; only their ACLs are changed below.
+DO $$ BEGIN
+ IF current_user IN ('mnweb','anon','authenticated') OR NOT EXISTS (
+  SELECT 1 FROM pg_namespace WHERE nspname='mn_private'
+   AND nspowner=(SELECT oid FROM pg_roles WHERE rolname=current_user)
+ ) OR EXISTS (
+  SELECT 1 FROM pg_roles r JOIN pg_namespace n ON n.nspname='mn_private'
+  WHERE NOT r.rolsuper AND r.oid<>n.nspowner
+   AND (has_schema_privilege(r.oid,n.oid,'CREATE')
+    OR pg_has_role(r.oid,n.nspowner,'MEMBER')
+    OR (r.rolname<>'mnweb' AND pg_has_role(r.oid,'mnweb','MEMBER')))
+ ) THEN RAISE EXCEPTION 'Unsafe private schema owner, CREATE privilege or app role membership'; END IF;
+END $$;
+--> statement-breakpoint
 -- Explicit exact-snapshot exceptions only. This migration does not seed any rows.
 CREATE TABLE mn_private.legacy_bio_publications (
  artist_id uuid PRIMARY KEY CONSTRAINT legacy_bio_publications_artist_id_artists_id_fk REFERENCES public.artists(id) ON DELETE CASCADE,
@@ -65,9 +80,5 @@ DO $$ BEGIN
   LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
   WHERE n.nspname='mn_private' AND p.proname='consume_legacy_bio_publication'
   AND acl.grantee <> p.proowner
- ) OR EXISTS (
-  SELECT 1 FROM pg_namespace n,
-  LATERAL aclexplode(coalesce(n.nspacl,acldefault('n',n.nspowner))) acl
-  WHERE n.nspname='mn_private' AND acl.grantee NOT IN (n.nspowner,(SELECT oid FROM pg_roles WHERE rolname='mnweb'))
  ) THEN RAISE EXCEPTION 'Unexpected legacy publication grants'; END IF;
 END $$;

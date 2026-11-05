@@ -1,3 +1,18 @@
+-- USAGE is shared with existing publishing/moderation callers. It grants no
+-- access to the new About objects; only their ACLs are changed below.
+DO $$ BEGIN
+ IF current_user IN ('mnweb','anon','authenticated') OR NOT EXISTS (
+  SELECT 1 FROM pg_namespace WHERE nspname='mn_private'
+   AND nspowner=(SELECT oid FROM pg_roles WHERE rolname=current_user)
+ ) OR EXISTS (
+  SELECT 1 FROM pg_roles r JOIN pg_namespace n ON n.nspname='mn_private'
+  WHERE NOT r.rolsuper AND r.oid<>n.nspowner
+   AND (has_schema_privilege(r.oid,n.oid,'CREATE')
+    OR pg_has_role(r.oid,n.nspowner,'MEMBER')
+    OR (r.rolname<>'mnweb' AND pg_has_role(r.oid,'mnweb','MEMBER')))
+ ) THEN RAISE EXCEPTION 'Unsafe private schema owner, CREATE privilege or app role membership'; END IF;
+END $$;
+--> statement-breakpoint
 -- Exact URL policy receipts; no historical backfill and no public read grant.
 CREATE TABLE mn_private.public_url_receipts (
   url_hash bytea NOT NULL,
@@ -22,10 +37,6 @@ GRANT SELECT, INSERT ON TABLE mn_private.public_url_receipts TO mnweb;
 -- Role membership itself remains a deployment audit, as with migration0061.
 DO $$ BEGIN
   IF EXISTS (
-    SELECT 1 FROM pg_namespace n,
-      LATERAL aclexplode(coalesce(n.nspacl,acldefault('n',n.nspowner))) acl
-    WHERE n.nspname='mn_private' AND acl.grantee NOT IN (n.nspowner,(SELECT oid FROM pg_roles WHERE rolname='mnweb'))
-  ) OR EXISTS (
     SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace,
       LATERAL aclexplode(coalesce(c.relacl,acldefault('r',c.relowner))) acl
     WHERE n.nspname='mn_private' AND c.relname='public_url_receipts'
