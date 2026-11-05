@@ -27,13 +27,13 @@ it('keeps provenance outside public row reads and grants only mnweb sidecar CRUD
   await pg.exec('delete from artists');expect((await pg.query('select * from mn_private.artist_bio_provenance')).rows).toEqual([]);
  }finally{await pg.close();}
 },30000);
-it.each(['default-grant','schema-collision','public-column'])('refuses unsafe prior state: %s',async scenario=>{
+it.each(['default-grant','schema-owner','public-column'])('refuses unsafe prior state: %s',async scenario=>{
  const pg=new PGlite();
  try{
   await pg.exec('create role mnweb;create role anon;create role authenticated;create role unexpected;create table artists(id uuid primary key);create table artist_bio_versions(id uuid primary key);');
   if(scenario==='default-grant') await pg.exec('alter default privileges grant select on tables to unexpected');
-  if(scenario==='schema-collision') await pg.exec('create schema mn_private authorization unexpected');
+  if(scenario==='schema-owner') await pg.exec('create schema mn_private authorization unexpected');
   if(scenario==='public-column') await pg.exec('alter table artists add column bio_provenance jsonb');
-  await expect(pg.exec(readFileSync('drizzle/0061_about_evidence_provenance.sql','utf8'))).rejects.toThrow(scenario==='default-grant' ? /Unexpected provenance/ : scenario==='public-column' ? /Public provenance columns/ : /already exists/);
+  await expect(pg.exec(readFileSync('drizzle/0061_about_evidence_provenance.sql','utf8'))).rejects.toThrow(scenario==='default-grant' ? /Unexpected provenance/ : scenario==='public-column' ? /Public provenance columns/ : /Unsafe private schema owner/);
  }finally{await pg.close();}
 },30000);
