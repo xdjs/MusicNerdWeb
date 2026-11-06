@@ -9,10 +9,9 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { addUsersToWhitelistAction as addUsersToWhitelist, addUsersToAdminAction as addUsersToAdmin, addUsersToHiddenAction as addUsersToHidden } from "@/app/actions/serverActions";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { removeFromWhitelistAction as removeFromWhitelist, removeFromAdminAction as removeFromAdmin, removeFromHiddenAction as removeFromHidden } from "@/app/actions/serverActions";
+import { setAdminUserRole } from "@/lib/admin/setAdminUserRole";
 import {
     Table,
     TableBody,
@@ -22,304 +21,11 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {filterPeople,type AdminPerson} from "./filterPeople";
 import styles from "@/components/community/Community.module.css";
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import SearchBar from "./UserSearch";
+import RoleUsersDialog from "./RoleUsersDialog";
 
-
-// -----------------------------
-// Dialog helpers
-// -----------------------------
-
-export function AddWhitelistDialog() {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
-    const [users, setUsers] = useState<string[]>([]);
-    const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
-    const [query, setQuery] = useState('');
-
-    async function addToWhitelist() {
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        const resp = await addUsersToWhitelist(users);
-        if (resp.status === "success") {
-            router.refresh();
-            setIsDialogOpen(false);
-            setUsers([]);
-        }
-        setUploadStatus({ status: resp.status as "success" | "error", message: resp.message, isLoading: false });
-    }
-
-    function removeFromUsers(user: string) {
-        setUsers(users.filter((u) => u !== user));
-    }
-
-    function setUserWithFilter(user: string) {
-        setUsers([...users.filter((u) => u !== user), user]);
-    }
-
-    return (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="text-xs px-2 py-1 h-8">Add Whitelist</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Add Users to Whitelist</DialogTitle>
-                </DialogHeader>
-                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
-                <div className="space-y-4">
-                    <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
-                    <div>
-                        {users.map((user) => <Button variant="outline" onClick={() => removeFromUsers(user)} key={user}>{user} <X className="w-4 h-4 ml-1" /></Button>)} 
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="submit" onClick={() => addToWhitelist()}>Save changes {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="whyyyyy" /> : ""}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-// Dialog for adding users to admin role
-export function AddAdminDialog() {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
-    const [users, setUsers] = useState<string[]>([]);
-    const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
-    const [query, setQuery] = useState('');
-
-    async function addToAdmin() {
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        const resp = await addUsersToAdmin(users);
-        if (resp.status === "success") {
-            router.refresh();
-            setIsDialogOpen(false);
-            setUsers([]);
-        }
-        setUploadStatus({ status: resp.status as "success" | "error", message: resp.message, isLoading: false });
-    }
-
-    function removeFromUsers(user: string) {
-        setUsers(users.filter((u) => u !== user));
-    }
-
-    function setUserWithFilter(user: string) {
-        setUsers([...users.filter((u) => u !== user), user]);
-    }
-
-    return (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="text-xs px-2 py-1 h-8">Add Admin</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Add Users to Admin</DialogTitle>
-                </DialogHeader>
-                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
-                <div className="space-y-4">
-                    <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
-                    <div>
-                        {users.map((user) => <Button variant="outline" onClick={() => removeFromUsers(user)} key={user}>{user} <X className="w-4 h-4 ml-1" /></Button>)} 
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="submit" onClick={() => addToAdmin()}>Save changes {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="whyyyyy" /> : ""}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-// Dialog for adding users to hidden role
-export function AddHiddenDialog() {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
-    const [users, setUsers] = useState<string[]>([]);
-    const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
-    const [query, setQuery] = useState('');
-
-    async function addToHidden() {
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        const resp = await addUsersToHidden(users);
-        if (resp.status === "success") {
-            router.refresh();
-            setIsDialogOpen(false);
-            setUsers([]);
-        }
-        setUploadStatus({ status: resp.status as "success" | "error", message: resp.message, isLoading: false });
-    }
-
-    function removeFromUsers(user: string) {
-        setUsers(users.filter((u) => u !== user));
-    }
-
-    function setUserWithFilter(user: string) {
-        setUsers([...users.filter((u) => u !== user), user]);
-    }
-
-    return (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="text-xs px-2 py-1 h-8">Hide User</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Hide Users from Leaderboards</DialogTitle>
-                </DialogHeader>
-                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
-                <div className="space-y-4">
-                    <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
-                    <div>
-                        {users.map((user) => <Button variant="outline" onClick={() => removeFromUsers(user)} key={user}>{user} <X className="w-4 h-4 ml-1" /></Button>)} 
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="submit" onClick={() => addToHidden()}>Save changes {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="whyyyyy" /> : ""}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-// Dialog to remove by search from hidden
-export function RemoveHiddenDialog() {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
-    const [users, setUsers] = useState<string[]>([]);
-    const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
-    const [query, setQuery] = useState('');
-
-    async function removeFromHiddenList() {
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        const resp = await removeFromHidden(users);
-        router.refresh();
-        setIsDialogOpen(false);
-        setUsers([]);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-    }
-
-    function removeFromUsers(user: string) {
-        setUsers(users.filter((u) => u !== user));
-    }
-
-    function setUserWithFilter(user: string) {
-        setUsers([...users.filter((u) => u !== user), user]);
-    }
-
-    return (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="text-xs px-2 py-1 h-8">Unhide User</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Unhide Users from Leaderboards</DialogTitle>
-                </DialogHeader>
-                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
-                <div className="space-y-4">
-                    <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
-                    <div>
-                        {users.map((user) => <Button variant="outline" onClick={() => removeFromUsers(user)} key={user}>{user} <X className="w-4 h-4 ml-1" /></Button>)} 
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="submit" onClick={() => removeFromHiddenList()}>Save changes {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="whyyyyy" /> : ""}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-// Dialog to remove by search from whitelist
-export function RemoveWhitelistDialog() {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
-    const [users, setUsers] = useState<string[]>([]);
-    const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
-    const [query, setQuery] = useState('');
-
-    async function removeFromWhitelistBySearch() {
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await removeFromWhitelist(users);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-        setIsDialogOpen(false);
-        setUsers([]);
-    }
-
-    function removeFromUsers(user: string) { setUsers(users.filter((u) => u !== user)); }
-    function setUserWithFilter(user: string) { setUsers([...users.filter((u) => u !== user), user]); }
-
-    return (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="text-xs px-2 py-1 h-8">Remove Whitelist</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader><DialogTitle>Remove Users from Whitelist</DialogTitle></DialogHeader>
-                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
-                <div className="space-y-4">
-                    <SearchBar setUsers={(user:string)=>setUserWithFilter(user)} query={query} setQuery={setQuery} />
-                    <div>{users.map((u)=><Button variant="outline" onClick={()=>removeFromUsers(u)} key={u}>{u} <X className="w-4 h-4 ml-1" /></Button>)}</div>
-                </div>
-                <DialogFooter>
-                    <Button type="submit" onClick={removeFromWhitelistBySearch}>Save changes {uploadStatus.isLoading && <img className="w-4 h-4" src="/spinner.svg" alt="loading"/>}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-// Dialog to remove by search from admin
-export function RemoveAdminDialog() {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const router = useRouter();
-    const [users, setUsers] = useState<string[]>([]);
-    const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
-    const [query, setQuery] = useState('');
-
-    async function removeFromAdminBySearch() {
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await removeFromAdmin(users);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-        setIsDialogOpen(false);
-        setUsers([]);
-    }
-    function removeFromUsers(user: string) { setUsers(users.filter((u)=>u!==user)); }
-    function setUserWithFilter(user: string) { setUsers([...users.filter((u)=>u!==user), user]); }
-
-    return (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="text-xs px-2 py-1 h-8">Remove Admin</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader><DialogTitle>Remove Users from Admin</DialogTitle></DialogHeader>
-                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
-                <div className="space-y-4">
-                    <SearchBar setUsers={(user:string)=>setUserWithFilter(user)} query={query} setQuery={setQuery} />
-                    <div>{users.map((u)=> <Button variant="outline" onClick={()=>removeFromUsers(u)} key={u}>{u} <X className="w-4 h-4 ml-1" /></Button>)}</div>
-                </div>
-                <DialogFooter>
-                    <Button type="submit" onClick={removeFromAdminBySearch}>Save changes {uploadStatus.isLoading && <img className="w-4 h-4" src="/spinner.svg" alt="loading"/>}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
 
 interface DataTableProps<TData extends AdminPerson, TValue> {
     columns: ColumnDef<TData, TValue>[]
@@ -363,54 +69,16 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
         },
     });
 
-    type TDataWithId = TData & { id: string };
-
-    async function commitRemoveFromWhitelist() {
-        const selectedUsers = table.getFilteredSelectedRowModel().rows.map((row) => row.original as TDataWithId).map((row) => row.id);
+    async function commitSelected(role: "whitelisted" | "admin" | "hidden", enabled: boolean) {
+        const userIds = table.getFilteredSelectedRowModel().rows.map((row) => row.original.id);
         setUploadStatus({ status: "success", message: "", isLoading: true });
-        await removeFromWhitelist(selectedUsers);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
-
-    async function commitRemoveFromAdmin() {
-        const selectedUsers = table.getFilteredSelectedRowModel().rows.map((row) => row.original as TDataWithId).map((row) => row.id);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await removeFromAdmin(selectedUsers);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
-
-    async function commitAddSelectedToWhitelist() {
-        const wallets = table.getFilteredSelectedRowModel().rows.map((row)=> row.original as TDataWithId).map((row:any)=> row.wallet).filter(Boolean);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await addUsersToWhitelist(wallets);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
-
-    async function commitAddSelectedToAdmin() {
-        const wallets = table.getFilteredSelectedRowModel().rows.map((row)=> row.original as TDataWithId).map((row:any)=> row.wallet).filter(Boolean);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await addUsersToAdmin(wallets);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
-
-    async function commitAddSelectedToHidden() {
-        const wallets = table.getFilteredSelectedRowModel().rows.map((row)=> row.original as TDataWithId).map((row:any)=> row.wallet).filter(Boolean);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await addUsersToHidden(wallets);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
-
-    async function commitRemoveFromHidden() {
-        const selectedUsers = table.getFilteredSelectedRowModel().rows.map((row) => row.original as TDataWithId).map((row) => row.id);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await removeFromHidden(selectedUsers);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
+        try {
+            await setAdminUserRole(userIds, role, enabled);
+            setUploadStatus({ status: "success", message: "", isLoading: false });
+            router.refresh();
+        } catch (error) {
+            setUploadStatus({ status: "error", message: error instanceof Error ? error.message : "Could not change user roles.", isLoading: false });
+        }
     }
 
     return (
@@ -429,38 +97,38 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
                 {Object.values(rowSelection).some(Boolean) ? (
                     <>
                         {/* Selected state buttons */}
-                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToWhitelist()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => void commitSelected("whitelisted", true)}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Whitelist"}
                         </Button>
-                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromWhitelist()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => void commitSelected("whitelisted", false)}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Whitelist"}
                         </Button>
 
                         {/* Admin selected buttons */}
-                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToAdmin()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => void commitSelected("admin", true)}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Admin"}
                         </Button>
-                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromAdmin()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => void commitSelected("admin", false)}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Admin"}
                         </Button>
 
                         {/* Hidden selected buttons */}
-                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToHidden()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => void commitSelected("hidden", true)}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Hide Selected"}
                         </Button>
-                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromHidden()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => void commitSelected("hidden", false)}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Unhide Selected"}
                         </Button>
                     </>
                 ) : (
                     <>
                         {/* Default state buttons */}
-                        <AddWhitelistDialog />
-                        <RemoveWhitelistDialog />
-                        <AddAdminDialog />
-                        <RemoveAdminDialog />
-                        <AddHiddenDialog />
-                        <RemoveHiddenDialog />
+                        <RoleUsersDialog trigger="Add Whitelist" title="Add Users to Whitelist" role="whitelisted" enabled />
+                        <RoleUsersDialog trigger="Remove Whitelist" title="Remove Users from Whitelist" role="whitelisted" enabled={false} />
+                        <RoleUsersDialog trigger="Add Admin" title="Add Users to Admin" role="admin" enabled />
+                        <RoleUsersDialog trigger="Remove Admin" title="Remove Users from Admin" role="admin" enabled={false} />
+                        <RoleUsersDialog trigger="Hide User" title="Hide Users from Leaderboards" role="hidden" enabled />
+                        <RoleUsersDialog trigger="Unhide User" title="Unhide Users from Leaderboards" role="hidden" enabled={false} />
                     </>
                 )}
                 </div>

@@ -3,7 +3,7 @@ import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { approveUgcAdminAction } from '@/app/actions/serverActions';
+import { approveLinkSuggestion } from '@/lib/admin/approveLinkSuggestion';
 import { updateSourceStatus } from '@/app/actions/dashboardActions';
 import type { Contribution, getAdminContributions } from '@/server/utils/contributions/getAdminContributions';
 import ContributionFilters from './ContributionFilters';
@@ -16,10 +16,10 @@ import surface from '@/app/profile/ProfileConcept.module.css';
 const origins = { user: 'User submissions', research: 'Automated research', unknown: 'Unknown origin' };
 const types = { link: 'Link submission', lore: 'Lore source', upload: 'Upload' };
 
-export default function ContributionReview({ data, contributorName, onApproveLinks = approveUgcAdminAction, onReviewLore = updateSourceStatus }: {
+export default function ContributionReview({ data, contributorName, onApproveLink = approveLinkSuggestion, onReviewLore = updateSourceStatus }: {
  data: Awaited<ReturnType<typeof getAdminContributions>>;
  contributorName?: string;
- onApproveLinks?: typeof approveUgcAdminAction; onReviewLore?: typeof updateSourceStatus;
+ onApproveLink?: typeof approveLinkSuggestion; onReviewLore?: typeof updateSourceStatus;
 }) {
  const router = useRouter();
  const [refreshing, startRefresh] = useTransition();
@@ -34,9 +34,9 @@ export default function ContributionReview({ data, contributorName, onApproveLin
   if(inFlight.current || refreshing) return;
   inFlight.current = true; setBusy(true); setFeedback(null);
   try {
-   const response = item.type === 'link' ? await onApproveLinks([item.id]) : await onReviewLore(item.id,status,'pending');
-   const success = 'success' in response ? response.success : response.status === 'success';
-   const error = 'error' in response ? response.error : 'message' in response ? response.message : undefined;
+   let success = true, error: string | undefined;
+   if (item.type === 'link') { try { await onApproveLink(item.artistId,item.id); } catch (e) { success = false; error = e instanceof Error ? e.message : undefined; } }
+   else { const response = await onReviewLore(item.id,status,'pending'); success = response.success; error = response.error; }
    setFeedback({error:!success,message:success ? `Submission ${status}.` : error || 'Could not review this submission.'});
    startRefresh(() => router.refresh());
   } catch { setFeedback({error:true,message:'Review could not be confirmed. Refresh before retrying.'}); }

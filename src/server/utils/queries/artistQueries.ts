@@ -732,49 +732,6 @@ export async function addArtist(
     }
 }
 
-// ----------------------------------
-// UGC approval / submission flows
-// ----------------------------------
-
-export async function approveUgcAdmin(ugcIds: string[]) {
-    const user = await getServerAuthSession();
-    if (!user) throw new Error("Not authenticated");
-    const dbUser = await getUserById(user.user.id);
-    if (!dbUser || !dbUser.isAdmin) throw new Error("Not authorized");
-
-    try {
-        const ugcData = await db.query.ugcresearch.findMany({ where: inArray(ugcresearch.id, ugcIds) });
-        const approvalResults = await Promise.allSettled(
-            ugcData.map(async (ugc) => {
-                await approveUGC(ugc.id, ugc.artistId ?? "", ugc.siteName ?? "", ugc.siteUsername ?? "");
-            })
-        );
-
-        const failures = approvalResults.flatMap((result, index) => {
-            if (result.status === "fulfilled") return [];
-
-            const reason = result.reason instanceof Error
-                ? result.reason.message
-                : String(result.reason);
-            return [{ ugcId: ugcData[index]?.id ?? "unknown", reason }];
-        });
-
-        if (failures.length > 0) {
-            const approvedCount = approvalResults.length - failures.length;
-            return {
-                status: "error",
-                message: `Approved ${approvedCount} of ${approvalResults.length} UGC items. Failed: ${failures
-                    .map(({ ugcId, reason }) => `${ugcId} (${reason})`)
-                    .join("; ")}`,
-            };
-        }
-    } catch (e) {
-        console.error("error approving ugc:", e);
-        return { status: "error", message: "Error approving UGC" };
-    }
-    return { status: "success", message: "UGC approved" };
-}
-
 export async function addArtistData(artistUrl: string, artist: Artist): Promise<AddArtistDataResp> {
     const session = await getServerAuthSession();
 
