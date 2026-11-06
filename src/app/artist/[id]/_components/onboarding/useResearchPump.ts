@@ -12,11 +12,6 @@ import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
  * there, and each tick is a full-budget invocation happening while someone is
  * actually waiting for the result.
  *
- * Deliberately its own hook rather than part of useOnboardingChat. It shares
- * nothing with the chat, and putting it there meant a background fetch racing
- * the chat's own — which the chat tests noticed immediately by having their
- * mocked response eaten.
- *
  * The queue runs on MusicNerdAPI since the #1365 cutover, so the tick goes
  * there; MusicNerdAPI answers any origin.
  *

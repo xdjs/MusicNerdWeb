@@ -14,8 +14,8 @@ concurrent provider reads, two items per artist after filtering, and explicit
 partial-coverage copy. Display order is not a new contribution ranking.
 
 No bookmark imports, writes, toggles, suggestions, or bookmark-specific search
-presentation run in the current UI. Stored bookmarks and their underlying API
-remain intact for potential future use. No migration or credit-rule change is needed.
+presentation run in the current UI. October 26, 2026 — the bookmark routes were deleted and
+the `user_artist_bookmarks` table is dropped (#1595 P5). No credit-rule change is needed.
 The collection is derived at read time, so new approved contributions appear on
 refresh; pending and empty accounts never receive sample artists. Account headers,
 private/no-store responses, account-scoped query keys and cancellation isolate users.

@@ -44,3 +44,24 @@ describe('insertVaultSource', () => {
         expect(values).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://example.com/article' }));
     });
 });
+
+
+describe('direct page metadata reaches the insert boundary', () => {
+    const originalFetch = global.fetch;
+    afterEach(() => { global.fetch = originalFetch; jest.resetModules(); });
+    it.each([
+        ['<meta property="og:image" content="https://example.com/unique-story.jpg">', 'https://example.com/unique-story.jpg'],
+        ['', null],
+    ])('passes page-specific image or null without substituting artist artwork: %s', async (metadata, expected) => {
+        jest.resetModules();
+        global.fetch = jest.fn().mockResolvedValue({ok:true, text:async () => `<html><head>${metadata}</head><body>Story</body></html>`});
+        const values = jest.fn().mockReturnValue({onConflictDoNothing: () => ({returning: async () => [{id:'s1'}]})});
+        jest.doMock('@/server/db/drizzle', () => ({db:{transaction: async fn => fn({insert: () => ({values}),execute:jest.fn().mockResolvedValue([])})}}));
+        const { fetchLinkPreview } = await import('@/server/utils/linkPreview');
+        const { insertVaultSource } = await import('../dashboardQueries');
+        const preview = await fetchLinkPreview('https://example.com/story');
+        await insertVaultSource({artistId:'a1',url:'https://example.com/story',ogImage:preview.imageUrl});
+        expect(values).toHaveBeenCalledWith(expect.objectContaining({url:'https://example.com/story',ogImage:expected}));
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+});

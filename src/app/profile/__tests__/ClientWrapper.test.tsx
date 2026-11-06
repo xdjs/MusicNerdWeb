@@ -34,6 +34,8 @@ jest.mock('@/app/_components/AutoRefresh', () => {
   };
 });
 
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api.test${path}` }));
+
 // Import the component after mocks are wired
 import ClientWrapper from '../ClientWrapper';
 
@@ -70,7 +72,7 @@ describe('ClientWrapper', () => {
       Promise.resolve({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockUserData),
+        json: () => Promise.resolve({ status: 'ok', ...mockUserData }),
       })
     ) as jest.Mock;
   });
@@ -91,7 +93,9 @@ describe('ClientWrapper', () => {
 
     expect(screen.getByTestId('dashboard')).toHaveAttribute('data-user-id', 'user-123');
     expect(screen.getByTestId('dashboard')).toHaveAttribute('data-username', 'testuser');
-    expect(global.fetch).toHaveBeenCalledWith('/api/user/user-123');
+    expect(global.fetch).toHaveBeenCalledWith('https://api.test/api/user/user-123', expect.objectContaining({
+      headers: { Authorization: 'Bearer mock-access-token' }, credentials: 'omit',
+    }));
   });
 
   // --- 2. 404 case: JWT references a deleted user ---

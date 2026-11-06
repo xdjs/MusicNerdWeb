@@ -37,6 +37,8 @@ import Link from "next/link";
 import { LINK_NOT_SUPPORTED, LINK_TWITTER_INVALID } from "@/lib/linkSubmissionMessages";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 import { trackEvent } from "@/lib/analytics/trackEvent";
+import { requestArtistLinkEdit } from "@/lib/artistLinks/requestArtistLinkEdit";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 type AddArtistDataProps = {
     artist: Artist;
@@ -78,15 +80,15 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
     useEffect(() => {
         let isMounted = true;
 
-        fetch('/api/platformRegexes')
+        fetch(musicNerdApiUrl('/api/platformRegexes'), { credentials: 'omit' })
             .then(res => {
                 if (!res.ok) throw new Error(`Platform regex request failed with ${res.status}`);
                 return res.json();
             })
             .then(data => {
-                if (!Array.isArray(data)) throw new Error('Platform regex response was not an array');
+                if (!Array.isArray(data?.regexes)) throw new Error('Platform regex response had no regexes');
                 if (!isMounted) return;
-                setPlatformRegexes(data);
+                setPlatformRegexes(data.regexes);
                 setPlatformRegexStatus("ready");
             })
             .catch(e => {
@@ -222,10 +224,11 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
         }
 
         try {
-            const response = await fetch('/api/validateLink', {
+            const response = await fetch(musicNerdApiUrl('/api/validateLink'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url }),
+                credentials: 'omit',
             });
             const data = await response.json();
             console.debug('Backend validation response:', data);
@@ -262,26 +265,25 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
         }
         if (directEdit) {
             try {
-                const res = await fetch("/api/directEditLink", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ artistId: artist.id, action: "set", url: formattedUrl }),
+                const res = await requestArtistLinkEdit("directEditLink", {
+                    artistId: artist.id, action: "set", url: formattedUrl,
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
+                    if (data.changed === true) trackEvent("profile_edit", { action: "link_add", target: data.siteName ?? null });
                     toast({ title: `${artist.name}'s ${data.platformName ?? data.siteName ?? "link"} saved` });
                     setAddArtistResp({ status: "success", message: "Link saved successfully." });
                 } else {
                     setAddArtistResp({ status: "error", message: data.error ?? "Failed to save link." });
                 }
-            } catch {
-                setAddArtistResp({ status: "error", message: "Failed to save link." });
+            } catch (error) {
+                setAddArtistResp({ status: "error", message: error instanceof Error ? error.message : "Failed to save link." });
             }
             setIsLoading(false);
             return;
         }
         const resp = await addArtistData(formattedUrl, artist);
-        // Owners edit through /api/directEditLink above, which reports `profile_edit` server-side.
+        // Owners edit through the authenticated API path above; only changed saves report profile_edit.
         trackEvent("add_link_submit", { platform: resp.siteName ?? null, result: resp.status === "success" ? "success" : "error" });
         if (resp.status === "success") {
             toast({
@@ -334,14 +336,14 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
                 {label ? <span className="whitespace-nowrap">{label}</span> : <Plus size={24} aria-hidden="true" />}
             </Button>
             <Dialog open={isModalOpen && !editingBlocked} onOpenChange={handleClose}>
-                <DialogContent className="artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6">
+                <DialogContent className="mn-themed-dialog max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl p-5 text-foreground sm:rounded-2xl sm:p-6">
                     <DialogHeader className="space-y-2 pr-7 text-left">
                         <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">
                             {directEdit || autoApprove
                                 ? `Add a link for ${artist.name}`
                                 : `Suggest a link for ${artist.name}`}
                         </DialogTitle>
-                        <DialogDescription className="text-sm leading-relaxed text-white/60">
+                        <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
                             {directEdit
                                 ? "This link will be saved directly to the artist profile."
                                 : autoApprove
@@ -356,7 +358,7 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
                                 name="artistDataUrl"
                                 render={({ field }) => (
                                     <FormItem className="space-y-2">
-                                        <FormLabel className="text-sm font-medium text-white/80">Profile link</FormLabel>
+                                        <FormLabel className="text-sm font-medium text-foreground">Profile link</FormLabel>
                                         <FormControl>
                                             <Input
                                                 placeholder="Paste a profile link…"
@@ -364,11 +366,11 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
                                                 autoCapitalize="none"
                                                 autoCorrect="off"
                                                 spellCheck={false}
-                                                className="min-h-12 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-3 text-base sm:text-sm text-white/90 placeholder:text-white/45 outline-none transition-colors focus:border-pastypink/50 focus:ring-1 focus:ring-pastypink/30"
+                                                className="min-h-12 rounded-xl border border-input bg-black/[0.03] dark:bg-white/5 px-3 py-3 text-base sm:text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-pastypink/50 focus:ring-1 focus:ring-pastypink/30"
                                                 {...field}
                                             />
                                         </FormControl>
-                                        <p className="text-xs leading-relaxed text-white/50">
+                                        <p className="text-xs leading-relaxed text-muted-foreground">
                                             Copy the artist’s profile link from Spotify or another supported service. Spotify links end with an artist ID, not the artist’s name.
                                         </p>
                                         <FormMessage />
@@ -384,7 +386,7 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
                             />
                             <DialogFooter className="flex-col gap-3 sm:flex-col sm:space-x-0">
                                 {addArtistResp && addArtistResp.status === "error" ? (
-                                    <Label className="text-xs text-red-400 leading-relaxed">
+                                    <Label className="text-xs text-red-700 dark:text-red-400 leading-relaxed">
                                         {addArtistResp.message}
                                     </Label>
                                 ) : null}
@@ -406,10 +408,10 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
                                 </Button>
                                 {addArtistResp && addArtistResp.status === "success" ? (
                                     <div className="flex flex-col items-center gap-1">
-                                        <h2 className="text-sm font-semibold text-green-400">
+                                        <h2 className="text-sm font-semibold text-green-700 dark:text-green-400">
                                             {addArtistResp.message}
                                         </h2>
-                                        <Link href="/leaderboard" className="text-xs text-pastypink hover:underline">
+                                        <Link href="/leaderboard" className="text-xs text-foreground underline underline-offset-4">
                                             View Leaderboard
                                         </Link>
                                     </div>

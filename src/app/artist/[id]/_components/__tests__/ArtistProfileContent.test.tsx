@@ -13,7 +13,6 @@ jest.mock("../LatestSection", () => ({ __esModule: true, default: () => <section
 jest.mock("../RevealSection", () => ({ __esModule: true, default: ({ children, id }) => <section id={id}>{children}</section> }));
 jest.mock("../AddArtistData", () => ({ __esModule: true, default: ({ directEdit, autoApprove }) => <button data-testid="add" data-direct={String(directEdit)} data-auto={String(autoApprove)} /> }));
 jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: ({ isMonetized, hasSupplementalLinks, supplementalLinks = [] }) => <div data-testid={isMonetized ? "support-grid" : "links-grid"} data-supplemental={String(hasSupplementalLinks)} data-icons={supplementalLinks.map(link => link.label).join(",")} /> }));
-jest.mock("../OfficialSiteLinks", () => ({ __esModule: true, default: () => <div /> }));
 jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSources, autoApprove, researching }) => <section data-testid="vault" data-pending={pendingSources.length} data-auto={String(autoApprove)} data-researching={String(researching)} /> }));
 jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <section data-testid="knowledge" /> }));
 jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: ({ researching }) => <aside data-testid="ask" data-researching={String(researching)} /> }));
@@ -167,4 +166,15 @@ it("keeps the interview entry inside the hero actions instead of inserting a sec
     rerender(<ArtistProfileContent {...base} interviewAction={<button>Resume interview</button>} />);
     expect(within(hero).getByRole("button", { name: "Resume interview" })).toBeVisible();
     expect(container.firstElementChild).toBe(hero);
+});
+
+it('places canonical approved websites in the shared Links icon grid, retaining Support routing', () => {
+ render(<ArtistProfileContent {...base} approvedSources={[
+  {id:'web',url:'https://theelliscourt.com',type:'website',status:'approved'},
+  {id:'duplicate',url:'https://theelliscourt.com/',type:'website',status:'approved'},
+  {id:'support',url:'https://theelliscourt.bandcamp.com',type:'website',status:'approved'},
+  {id:'blocked',url:'https://blocked.example.com',type:'website',status:'approved'},
+ ]} blockedMusicSourceIds={['blocked']} />);
+ expect(screen.getByTestId('links-grid')).toHaveAttribute('data-icons','theelliscourt.com');
+ expect(screen.getByTestId('support-grid')).toHaveAttribute('data-icons','Bandcamp');
 });

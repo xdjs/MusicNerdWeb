@@ -71,7 +71,8 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   the existing indexes and fuzzy fallback remain in use. Regression: issue #1256.
 - **Auth:** `src/server/auth.ts` uses a Privy CredentialsProvider and NextAuth JWT sessions.
   `src/server/utils/privy.ts` verifies tokens. Privy login UI lives under
-  `src/app/_components/nav/components/`. Legacy wallets can be linked with `mergeAccounts()`;
+  `src/app/_components/nav/components/`. Legacy wallets are linked by MusicNerdAPI's `POST /api/auth/link-wallet`
+  (`src/lib/account/requestLinkWallet.ts`), which runs `mergeAccounts`;
   inspect account-owned data whenever changing that path.
 - **Authorization:** `src/lib/auth-helpers.ts` provides `requireAuth`, `requireAdmin`, and
   `requireWhitelistedOrAdmin`. Artist edits additionally require the existing ownership guard.
@@ -88,11 +89,13 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Source-backed research:** since the cutover (#1365), MusicNerdAPI runs every
   `artist_research_jobs` kind (`social_ingest`, `caption_extract`, `lore_refresh`, `source_search`,
   `latest_refresh`) and its cron resumes unwatched work. This repo queues jobs
-  (`queries/researchJobQueries.ts`, `latest/requestLatestRefresh.ts`);
+  (`queries/researchJobQueries.ts`); Update Latest is read and queued by MusicNerdAPI's
+  `/api/artist/{id}/latest-refresh` (`src/lib/latest/requestLatestRefresh.ts`, Privy token);
   the browser pumps (`useResearchPump`, `LatestRefreshControl`) post to MusicNerdAPI's
-  `/api/research/advance`, "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`, and the onboarding
-  chat (`useOnboardingChat`) sends every turn to MusicNerdAPI's `/api/onboarding/{artistId}/chat`,
-  both with the Privy access token. The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
+  `/api/research/advance`, "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`, and the
+  build view's "try again" (`useRestartClaimBuild`) posts MusicNerdAPI's `/api/onboarding/{artistId}/build`,
+  both with the Privy access token. Claim approval starts that build server to server (`startClaimBuild`,
+  research key); the page never sends onboarding chat turns ([research-view.md](research-view.md)). The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
   `NEXT_PUBLIC_VERCEL_ENV`: production → `api.musicnerd.net`; previews, staging and local →
   `musicnerd-api-staging.vercel.app` (MusicNerdAPI's `staging` environment: `main` on the staging
   database). Promote a production-target build: a promoted preview build still calls staging.
@@ -102,20 +105,16 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Catalogs:** `src/server/utils/musicPlatform/` handles platform data.
   `cachedOrDirect` preserves function behavior outside Next cache context (e.g. CLIs), falling
   back only for a missing cache context, not for real provider failures.
-- **MCP:** `src/app/api/mcp/` contains tool registration, HTTP transport, bearer-key auth,
-  request context, audit and response transformers. Read tools and write tools have different
-  authorization boundaries. Writes reuse `artistLinkService.ts` / `idMappingService.ts`.
+- **MCP:** the server runs in MusicNerdAPI (`/api/mcp`). This repo keeps only the audit writer,
+  `src/server/utils/logMcpAudit.ts`, which admin claim actions call.
   Use Admin → MCP Keys to create/revoke keys; secrets cannot be retrieved afterward.
   See the [MCP reference](mcp.md); [ID mapping](cross-platform-id-mapping.md) records the original
-  algorithm design and should be compared with the current service before changing behavior.
+  algorithm design.
 - **Admin:** `src/app/admin/` owns UGC, Users, MCP Keys and Agent Work surfaces.
   User/artist/UGC relationships and mapping enums are defined in `schema.ts`; don't keep a
   second schema inventory in instructions.
 - **Rate limiting:** `src/middleware.ts` applies configurable API limits (auth excluded).
   Storage is in-process: cold starts reset it and different workers don't share it.
-- **Bookmarks:** the released implementation uses browser storage. The account-backed API,
-  shared hook and profile panel are local feature work, absent from this docs release. See
-  [account-bookmarks.md](account-bookmarks.md) for that proposed contract and migration gate.
 
 ## Coding and test patterns
 
@@ -186,6 +185,22 @@ For browser tests install the matching browser once: `npx playwright install chr
 `E2E_BASE_URL` targets an existing server; otherwise Playwright starts local HTTPS on port 3001.
 Inspect a test's effects before using a live URL: some E2Es create fixtures, claim artists or
 write answers. Latest's read-only test is documented [here](artist-latest.md#verification).
+
+The anonymous disconnect/edit checks in `e2e/ugc-auth.spec.ts` target MusicNerdAPI using
+the application's URL selector. They send empty bodies without credentials and require
+401 plus the authentication error, before any artist mutation. `E2E_BASE_URL` selects
+the Web server only; pair an API preview with `NEXT_PUBLIC_MUSICNERD_API_PREVIEW_URL`,
+or set `NEXT_PUBLIC_VERCEL_ENV=production` when checking the production API. With neither,
+the API target is staging. Run only these safe negative checks with:
+
+```bash
+E2E_BASE_URL=https://staging.musicnerd.net npm run test:e2e -- \
+  e2e/ugc-auth.spec.ts --grep 'POST MusicNerdAPI'
+```
+
+The signed-in UGC test checks that the retired Web disconnect route returns 404; it does
+not prove bearer authentication or successful disconnect on MusicNerdAPI. That live
+acceptance requires an explicitly approved disposable fixture and remains separate.
 
 `npm run eval` runs an LLM eval suite against real data and spends model tokens; it is not part
 of `npm run ci` and runs on demand, from the Evals workflow. See the [evals contract](evals.md).
@@ -324,3 +339,18 @@ search remains `Research requested by {actor}`. Direct contributions remain
 origin/actor information stays unknown; missing or unrecorded research reasons use the
 neutral `Recorded account` label. This is presentation only: actor IDs, triggers,
 submission timestamps, claim records, and research execution are unchanged.
+
+## Dialog theme consistency
+
+Issue #1623: dialog content follows the shared Music Nerd light/dark surface. Use
+`text-foreground` for labels and values, `text-muted-foreground` for supporting text
+and placeholders, and theme-aware borders and hover fills. Keep inverse text only
+on an explicitly dark child surface (such as an artwork overlay). Form dialogs use
+`mn-themed-dialog` for the existing input/focus treatment and mobile geometry.
+Check expanded examples, validation/status messages, loading and hover states as
+well as the initial dialog, at 390px and 832px in both themes. This is presentation
+only; authentication, routes, persistence, jobs and external services are unchanged.
+
+`text-destructive` uses `--destructive-text` (red-700 light / red-400 dark),
+independent of destructive button backgrounds. The shared FormMessage and
+photo/user-name errors therefore keep readable contrast on both dialog surfaces.

@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import HeaderPhotoPosition from '@/app/artist/[id]/_components/HeaderPhotoPosition';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
 const props = { artistId: 'a1', imageUrl: '/photo.jpg', position: 20, onChange: jest.fn(), onClose: jest.fn() };
 beforeEach(() => { jest.clearAllMocks(); });
@@ -19,7 +20,7 @@ it('saves the image-specific position, and closes only after success', async () 
   fireEvent.keyDown(screen.getByRole('slider', { name: 'Photo position' }), { key: 'End' });
   fireEvent.click(screen.getByRole('button', { name: 'Save position' }));
   await waitFor(() => expect(props.onClose).toHaveBeenCalled());
-  expect(fetchMock).toHaveBeenCalledWith('/api/artist/header-position', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ artistId: 'a1', imageUrl: '/photo.jpg', y: 100 }) }));
+  expect(fetchMock).toHaveBeenCalledWith(musicNerdApiUrl('/api/artist/header-position'), expect.objectContaining({ method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer mock-access-token' }, body: JSON.stringify({ artistId: 'a1', imageUrl: '/photo.jpg', y: 100 }) }));
   fetchMock.mockRestore();
 });
 it('keeps the draft and permits retry when saving fails', async () => {

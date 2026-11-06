@@ -22,7 +22,6 @@ import { artists, artistIdMappings, ugcresearch } from "@/server/db/schema";
 import { Artist, UrlMap } from "@/server/db/DbTypes";
 import { isObjKey, extractArtistId } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
-import { PgColumn } from "drizzle-orm/pg-core";
 
 import { getUserById, getUserDisplayName } from "@/server/utils/queries/userQueries";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
@@ -30,11 +29,7 @@ import { maybePingDiscordForPendingUGC } from "@/server/utils/ugcDiscordNotifier
 import { notifyDiscordOfArtistLinkAdded } from "@/server/utils/artistLinkDiscordNotifier";
 import {
     ArtistLinkConflictError,
-    clearArtistLink,
 } from "@/server/utils/artistLinkService";
-import { regenerateArtistBio } from "@/server/utils/queries/regenerateArtistBio";
-import { isAboutEmptyState } from "@/lib/bio/bioConstants";
-import { BioGenerationError } from "@/lib/bio/bioGenerationError";
 import { LINK_NOT_SUPPORTED_LONG } from "@/lib/linkSubmissionMessages";
 import {
     acquireArtistNameLock,
@@ -44,13 +39,6 @@ import {
 // ----------------------------------
 // Types
 // ----------------------------------
-
-type getResponse<T> = {
-    isError: boolean;
-    message: string;
-    data: T | null;
-    status: number;
-};
 
 export type ArtistLink = UrlMap & {
     artistUrl: string;
@@ -119,29 +107,6 @@ export type RemoveArtistDataResp = {
 // ----------------------------------
 // Artist helpers & basic look-ups
 // ----------------------------------
-
-export async function getArtistByProperty(column: PgColumn<any>, value: string): Promise<getResponse<Artist>> {
-    try {
-        const result = await db.query.artists.findFirst({
-            where: eq(column, value),
-        });
-        if (!result)
-            return {
-                isError: true,
-                status: 404,
-                message: "The artist you're searching for is not found",
-                data: null,
-            };
-        return { isError: false, message: "", data: result, status: 200 };
-    } catch {
-        return {
-            isError: true,
-            message: "Something went wrong on our end",
-            data: null,
-            status: 404,
-        };
-    }
-}
 
 // Searches for artists in the database by name using fuzzy matching and similarity scoring
 export async function searchForArtistByName(name: string) {
@@ -911,23 +876,6 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
 // UGC stats & retrieval
 // ----------------------------------
 
-export async function getPendingUGC() {
-    const start = performance.now();
-    try {
-        const result = await db.query.ugcresearch.findMany({ where: and(eq(ugcresearch.accepted, false), sql`${ugcresearch.dateProcessed} is null`), with: { user: true } });
-        return result.map((obj) => {
-            const { user, ...rest } = obj;
-            return { ...rest, wallet: user?.wallet ?? null, username: user?.username ?? null };
-        });
-    } catch (e) {
-        console.error("error getting pending ugc", e);
-        throw new Error("Error finding pending UGC");
-    } finally {
-        const end = performance.now();
-        console.debug(`[getPendingUGC] took ${end - start}ms`);
-    }
-}
-
 // Removed getUgcStats and getUgcStatsInRange – these functions have been moved to leaderboardQueries.ts
 
 // ----------------------------------
@@ -949,86 +897,6 @@ export async function getAllSpotifyIds(): Promise<string[]> {
     } catch (e) {
         console.error("Error fetching Spotify IDs:", e);
         return [];
-    }
-}
-
-export async function removeArtistData(artistId: string, siteName: string): Promise<RemoveArtistDataResp> {
-    const session = await getServerAuthSession();
-    if (!session) {
-        throw new Error("Not authenticated");
-    }
-
-    const user = session?.user?.id ? await getUserById(session.user.id) : null;
-    const isWhitelistedOrAdmin = user?.isAdmin || user?.isWhiteListed;
-
-    if (!isWhitelistedOrAdmin) {
-        return { status: "error", message: "Unauthorized" };
-    }
-
-    try {
-        if (siteName === "wallets" || siteName === "wallet") {
-            // FIXME: Bug — uses artistId as the value to remove instead of the wallet address.
-            // The caller should pass the wallet address, not the artist ID.
-            await db.execute(sql`
-                UPDATE artists
-                SET wallets = array_remove(wallets, ${artistId})
-                WHERE id = ${artistId}`);
-        } else {
-            await clearArtistLink(artistId, siteName);
-        }
-
-        // NOTE: We no longer delete the UGC record so that the original contribution
-        // continues to count towards the leaderboard. Keeping the row ensures the
-        // user retains credit for having added the link, even after it is removed
-        // from the artist profile. If we want to track removal explicitly in the
-        // future we can add a column (e.g. `removed: boolean`) but for now simply
-        // leaving the row untouched is sufficient.
-
-        return { status: "success", message: "Artist data removed" };
-    } catch (e) {
-        console.error("Error removing artist data", e);
-        if (e instanceof Error && e.message.startsWith("Column not in writable whitelist")) {
-            return { status: "error", message: "Invalid platform column" };
-        }
-        return { status: "error", message: "Error removing artist data" };
-    }
-}
-
-// ----------------------------------
-// Bio update helper
-// ----------------------------------
-export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean, ownership: import('./ownershipWrites').ArtistWriteAuth): Promise<RemoveArtistDataResp & { statusCode?: number; code?: string }> {
-    try {
-        if (regenerate) {
-            // Snapshot the current About so we can tell a real regeneration apart from a
-            // no-op (a pinned bio is deliberately returned unchanged).
-            const priorBio = (await getArtistById(artistId))?.bio ?? null;
-            const generatedBio = await regenerateArtistBio(artistId, ownership);
-            if (!generatedBio) {
-                return { status: "error", message: "Failed to generate bio" };
-            }
-            // Discovery found nothing verifiable — the About degraded to the claim-nudge.
-            // Surface that distinctly so an admin regenerate doesn't look like a normal success.
-            if (isAboutEmptyState(generatedBio)) {
-                return { status: "success", message: "No verified sources found — showing the claim prompt", data: generatedBio };
-            }
-            // A pinned bio or identical Lore synthesis leaves the existing About unchanged.
-            if (priorBio !== null && generatedBio === priorBio) {
-                return { status: "success", message: "About unchanged. A pinned bio stays locked until you unpin it; otherwise the saved Lore produced the same text.", data: generatedBio };
-            }
-            return { status: "success", message: "Bio regenerated", data: generatedBio };
-        } else {
-            // Update with provided bio
-            const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-            await persistArtistBio(artistId, bio, { ownership });
-            return { status: "success", message: "Bio updated" };
-        }
-    } catch (e) {
-        console.error("Error updating bio", e);
-        if (e instanceof BioGenerationError) {
-            return { status: "error", message: e.message, statusCode: e.status, code: e.code };
-        }
-        return { status: "error", message: e instanceof Error ? e.message : "Error updating bio" };
     }
 }
 

@@ -85,13 +85,20 @@ is confirmed. The approved design is linked from the issue.
 approved claimant only. An unreadable state (a 503, a network error, or no answer within 5 s)
 means **no takeover**, never "not started": the page renders as usual (fail closed).
 
-While onboarding is incomplete, `OnboardingGate` renders the profile it is given and sends the
-`open` turn of MusicNerdAPI's `POST /api/onboarding/{artistId}/chat` once, as the kick-off. The turn
-is idempotent: a reload or a "try again" resumes the build rather than repeating it. The page does
-not read the turn's stream for progress.
+The page doesn't drive the build. Approving a claim (`approveClaimAction`) starts it on
+MusicNerdAPI with `POST /api/onboarding/{artistId}/build` (`startClaimBuild`, server to server with
+the research key), which runs it as a durable workflow under the approved claim: profiles, sources,
+then the Lore and About, each a retried step. It finishes whether or not anyone is on the page
+([#1538](https://github.com/xdjs/MusicNerdWeb/issues/1538)).
 
-The resume path is unchanged: when the turn answers with a step card (`step` or `draft` event), the
-step cards open over the page as before.
+While onboarding is incomplete, `OnboardingGate` renders the profile it is given inside the build
+view (`ResearchInPlace`), which watches the state endpoint. When it opens, once Privy is signed in,
+it also starts the build with the claimant's token (`useStartClaimBuild`), in case nothing has: a
+claim approved before the build moved to the server, a failed start at approval, or a preview
+without the research key. That is safe to repeat: a running build is left alone and a stopped one
+resumes at its first unconfirmed step. There is no popup, step card or
+chat: the old "Set up {artist}" step-card modal and its chat client are deleted
+([#1533](https://github.com/xdjs/MusicNerdWeb/issues/1533)).
 
 ## Sections
 
@@ -134,8 +141,7 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   never treated as "not started".
 - **Progress pill.** Fixed at the bottom right, where the Ask button sits; Ask is hidden while it
   shows. Ask is hidden from the first paint when the claimant's page arrives mid-build, so it
-  doesn't flash before the pill mounts; on that visit it stays hidden under the step-card modal
-  and its banner too, until research completes. It carries the current step (`buildStepLabel`, announced politely), its place ("1 of 3"), and three
+  doesn't flash before the pill mounts; on that visit it stays hidden until research completes. It carries the current step (`buildStepLabel`, announced politely), its place ("1 of 3"), and three
   segments (Links, Lore, About: done, running or waiting; `interview` counts as About). The running
   segment sweeps and the pill has a soft glow (`highlightpink` in light, `pastyblue` in dark), so it
   reads as live. Until the artist first taps it, a "Tap to follow along" hint with a bouncing arrow
@@ -158,26 +164,19 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   **Next** and **Back** scroll to theirs, so the card is always beside its section. The card stays
   within the viewport. Its About copy is: "This draft
   is based on the sources on your profile. Edit it or write your own."
-- **Failure.** In the same place, the pill shows the failure with "try again" (`{ type: "open" }`) when the turn’s
-  stream ends in an `error` event (its message), or when no step is newly confirmed for 90 s while
-  incomplete ("This is taking longer than usual."). Trying again resets that clock. What already
-  painted stays.
-- **Skip.** There is none during the build. The step-card modal (the resume path) keeps "Skip for
-  now", with its session-scoped behaviour (`OnboardingGate`): the banner, no skeletons. The build
-  carries on server-side.
+- **Failure.** In the same place, the pill shows "This is taking longer than usual." with "try
+  again" when no step is newly confirmed for 90 s while incomplete. Trying again restarts the build
+  as the signed-in claimant (`useRestartClaimBuild` → `POST /api/onboarding/{artistId}/build` with
+  the Privy token), which resumes at the first unconfirmed step and leaves a running build alone.
+  It resets the clock; if the API refuses, the pill says "Couldn't restart the build. Try again in
+  a moment." What already painted stays.
+- **Skip.** There is none: the build runs on the server and the page is usable throughout.
 
-## Sign-in readiness
+## Sign-in
 
-The automatic opening turn waits for Privy to be ready and authenticated. A Web session can
-already show **Edit profile** while Privy is still restoring its browser session; that is not a
-sign-in failure. The opening turn runs once per mounted onboarding view, including repeated
-renders while sign-in settles. See [#1514](https://github.com/xdjs/MusicNerdWeb/issues/1514).
-
-Before any turn is sent, the client obtains a nonempty access token. A briefly unavailable token
-gets up to five checks, 500 ms apart, without making an API request. If it stays unavailable,
-the existing **Try again** control remains available. Signing out or leaving the view during
-this wait prevents a late request. API authorization is unchanged; an actual rejected request
-is never automatically replayed.
+Watching the build needs no sign-in: the state endpoint is public. Starting it on open and "try
+again" send the claimant's Privy access token; without one, the start on open sends nothing and
+"try again" reports the restart failure.
 
 ## Reviewing the loading colors
 

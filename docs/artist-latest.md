@@ -232,8 +232,6 @@ an automatic refresh introduced by this feature.
 - Older posts without retained thumbnails can still have expired Instagram image URLs. They
   need an authorized ingestion or image-only refresh; visiting the profile does not refresh them.
 - This section does not refresh Instagram data or implement notification subscriptions.
-- The initial audit found browser-only bookmarks. Pete clarified that they must sync by account;
-  that implementation and its separate migration are documented in [account-bookmarks.md](account-bookmarks.md).
 - These are preview limits, not reasons to silently add new storage, migrations or services.
 
 ## Verification
@@ -327,3 +325,11 @@ The display joins only windows with matching source identity, revision, URL, dat
 length. It never changes original text or increases the answer model's reading budget.
 Records beyond this display limit retain an original-source link without exposing raw
 JSON. Opening details does not start research or write artist data.
+
+### Expanded update contrast — 2026-10-21
+
+Expanded non-release updates use the shared dialog's theme-aware foreground and
+muted text colors. Full artwork ends before the content block; captions and titles
+never overlap a black fade. This keeps light-mode metadata readable and long titles
+clear of artwork while retaining dialog scrolling, source actions and image fallback.
+Compact gallery overlays and release/listening dialogs are unchanged.

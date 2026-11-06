@@ -393,6 +393,69 @@
       "when": 1792252800002,
       "tag": "0055_interview_preparation",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792648776182,
+      "tag": "0056_catalog_disconnect",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1793040104782,
+      "tag": "0057_drop_funfacts_bookmarks",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793208147927,
+      "tag": "0058_catalog_automatic_reconnect_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793209283097,
+      "tag": "0059_catalog_counterpart_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793664000000,
+      "tag": "0060_source_publication",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793750400000,
+      "tag": "0061_about_evidence_provenance",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793836800000,
+      "tag": "0062_public_url_receipts",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793923200000,
+      "tag": "0063_legacy_bio_publications",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1794009600000,
+      "tag": "0064_lore_activity_lock",
+      "breakpoints": true
     }
   ]
 }

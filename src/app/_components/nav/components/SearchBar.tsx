@@ -19,6 +19,7 @@ import type { MusicPlatform } from "@/server/utils/musicPlatform";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 import { trackEvent } from "@/lib/analytics/trackEvent";
 import { trackAddArtistResult } from "@/lib/analytics/trackAddArtistResult";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -215,12 +216,13 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         queryFn: async () => {
             if (!debouncedQuery || debouncedQuery.trim() === '') return [];
 
-            const response = await fetch('/api/searchArtists', {
+            const response = await fetch(musicNerdApiUrl('/api/searchArtists'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ query: debouncedQuery }),
+                credentials: 'omit',
             });
             if (!response.ok) {
                 throw new Error('Search failed');

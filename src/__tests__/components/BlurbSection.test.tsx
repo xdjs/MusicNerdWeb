@@ -4,7 +4,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import BlurbSection from '@/app/artist/[id]/_components/BlurbSection';
 import { EditModeContext } from '@/app/_components/EditModeContext';
 
-jest.mock('@privy-io/react-auth', () => ({usePrivy: () => ({ready:true,authenticated:false,login:jest.fn()})}));
+jest.mock('@privy-io/react-auth', () => ({usePrivy: () => ({ready:true,authenticated:false,login:jest.fn()}), getAccessToken: jest.fn(async () => 'private-token')}));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
+const mockToast = jest.fn();
+jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mockToast }) }));
 
 // Mock the useArtistBio hook
 jest.mock('@/hooks/useArtistBio', () => ({
@@ -355,6 +358,24 @@ describe('BlurbSection', () => {
             await waitFor(() => {
                 expect(mockRefetch).toHaveBeenCalled();
             });
+        });
+
+        it('saves to the API with the Privy token and shows the API error when refused', async () => {
+            mockUseArtistBio.mockReturnValue({ bio: 'Original bio', loading: false, error: null, refetch: jest.fn() });
+            renderWithEditMode();
+            fireEvent.change(screen.getByPlaceholderText('Enter artist bio...'), { target: { value: 'Updated bio' } });
+            global.fetch = jest.fn().mockResolvedValueOnce({
+                ok: false,
+                json: async () => ({ status: 'error', error: 'Not your artist' })
+            });
+
+            fireEvent.click(screen.getByText('Save'));
+
+            await waitFor(() => expect(mockToast).toHaveBeenCalledWith({ title: 'Error saving bio', description: 'Not your artist' }));
+            expect(global.fetch).toHaveBeenCalledWith('https://api-preview.test/api/artistBio/test-artist-id', expect.objectContaining({
+                method: 'PUT', body: JSON.stringify({ bio: 'Updated bio' }), credentials: 'omit',
+                headers: expect.objectContaining({ Authorization: 'Bearer private-token' }),
+            }));
         });
     });
 

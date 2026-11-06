@@ -14,6 +14,7 @@ import ResearchNewCount from "./onboarding/ResearchNewCount";
 import BioVersionHistory from "./BioVersionHistory";
 import VaultManager from "./VaultManager";
 import ResearchDiscoveryReview from "./ResearchDiscoveryReview";
+import TrustedLoreUpload from "./TrustedLoreUpload";
 import SuggestLoreSource from "./SuggestLoreSource";
 import { Button } from "@/components/ui/button";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
@@ -23,17 +24,18 @@ interface VaultSectionProps {
   artistId: string;
   isClaimed: boolean;
   autoApprove?: boolean;
+  canPublishSources?: boolean;
   pendingSources: ArtistVaultSource[];
   approvedSources: ArtistVaultSource[];
 
 }
 
-export default function VaultSection({ artistId, isClaimed, autoApprove = false, pendingSources, approvedSources, children }: VaultSectionProps) {
+export default function VaultSection({ artistId, isClaimed, autoApprove = false, canPublishSources = false, pendingSources, approvedSources, children }: VaultSectionProps) {
   const edit = useContext(EditModeContext);
   const { isEditing, canEdit, toggle, suspendedEditMode, editingBlocked } = edit;
   const retainEditor = (canEdit && isEditing) || !!suspendedEditMode;
   const [collapsed, setCollapsed] = useState(false);
-  const pendingLore = pendingSources.filter(source => !isDestinationSource(source));
+  const pendingLore = pendingSources.filter(source => !isDestinationSource(source, approvedSources));
   const approvedLore = approvedSources;
 
   return (
@@ -47,7 +49,7 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
       </div>
       <div id="lore-editor-content" hidden={isEditing && collapsed}>
       {/* VaultManager owns the approved list in edit mode. */}
-      <ResearchPending step="vault" skeleton="sources" label="reading what’s written about you…" arrivedLabel="Your Lore is ready">
+      <ResearchPending hasContent={approvedSources.length > 0} step="vault" skeleton="sources" label="reading what’s written about you…" arrivedLabel="Your Lore is ready">
         {!isEditing && <div id="mn-sources"><PressAndFeatures key={artistId} sources={approvedSources} /></div>}
       </ResearchPending>
       {retainEditor && <div hidden={!!suspendedEditMode} inert={!!suspendedEditMode}><EditModeContext.Provider value={suspendedEditMode ? { ...suspendedEditMode, editingBlocked: true, toggle: edit.toggle } : edit}><Tabs defaultValue="sources" className="space-y-5">
@@ -57,9 +59,10 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
           <TabsTrigger value="bios" className="min-h-11 rounded-lg px-1 text-xs text-gray-600 transition-colors data-[state=active]:bg-pink-500/10 data-[state=active]:text-pink-800 data-[state=active]:shadow-none dark:text-gray-300 dark:data-[state=active]:text-pink-200 sm:text-sm">Bios</TabsTrigger>
         </TabsList>
         <TabsContent value="questions" forceMount className="data-[state=inactive]:hidden"><ArtistInterviews key={artistId} artistId={artistId} /></TabsContent>
-        <TabsContent value="sources" forceMount className="data-[state=inactive]:hidden"><div id="mn-sources"><SuggestedLinkReview key={artistId} artistId={artistId} /><VaultManager key={artistId} artistId={artistId} pendingSources={pendingLore} approvedSources={approvedLore} /><ResearchDiscoveryReview key={artistId} artistId={artistId} /></div></TabsContent>
+        <TabsContent value="sources" forceMount className="data-[state=inactive]:hidden"><div id="mn-sources"><SuggestedLinkReview key={`suggested:${artistId}`} artistId={artistId} /><VaultManager canPublishSources={canPublishSources} key={`vault:${artistId}`} artistId={artistId} pendingSources={pendingLore} approvedSources={approvedLore} /><ResearchDiscoveryReview key={`discovery:${artistId}`} artistId={artistId} /></div></TabsContent>
         <TabsContent value="bios" forceMount className="data-[state=inactive]:hidden"><h3 className="text-base font-semibold text-foreground">Saved bios</h3><BioVersionHistory artistId={artistId} showLockNotice={false} /></TabsContent>
       </Tabs></EditModeContext.Provider></div>}
+      {!canEdit && !editingBlocked && !isClaimed && autoApprove && <TrustedLoreUpload artistId={artistId} />}
       {!canEdit && !editingBlocked && <SuggestLoreSource artistId={artistId} isClaimed={isClaimed} autoApprove={autoApprove} />}
       </div>
       {children}

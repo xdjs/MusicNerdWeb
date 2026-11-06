@@ -55,7 +55,7 @@ the same boundary `GEMINI_API_KEY` had. The stub build needs no LLM variable.
 
 ## Call sites
 
-Fourteen sites in eight files. Every column is a contract: the switch may not change a model,
+Twelve sites in eight files. Every column is a contract: the switch may not change a model,
 temperature, thinking budget, timeout, or the error a caller matches on.
 
 | # | Site | Purpose | Model | Config | Timeout → on timeout | Surface |
@@ -63,17 +63,15 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 1 | `api/askArtist/route.ts` main answer | Answer from our sources, citation markers | flash | temp 0.5 | 20 s → `"Gemini timeout"` → HTTP 408 | Ask (user) |
 | 2 | `api/askArtist/route.ts` open-web fallback | Answer with Google Search grounding; `webDomains` + blocklist | flash | temp 0.4, `google_search` | 15 s → resolves `null`, route answers "don't know" | Ask (user) |
 | 3 | `api/askArtist/route.ts` `suggestFollowUps` | 4 follow-up questions | flash | temp 0.4, JSON schema, thinking 0 | 4 s outer race → `generateFollowUps` fallback | Ask (user) |
-| 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About from saved Lore; delegates to #6 | flash | no web tools | #6 timeout → error, existing bio preserved | Explicit editor regeneration / backfill; ordinary GET never generates |
+| 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About from saved Lore; delegates to #6 | flash | no web tools | #6 timeout → error, existing bio preserved | `scripts/backfill-ai-bios.ts` only; editor regeneration runs on MusicNerdAPI (`/api/artistBio`, #1595); ordinary GET never generates |
 | 5 | `artistDoc/synthesizeArtistDoc.ts` | Knowledge document from sources | flash | temp 0.4, thinking 0, streamed | 15 s → `"Gemini timeout"` | onboarding, `refreshArtistDoc` |
 | 6 | `artistDoc/generateAboutFromDoc.ts` | About from the document | flash | temp 0.5, thinking 0, streamed | 12 s → `"Gemini timeout"` | onboarding and explicit About regeneration |
 | 7 | `artistDocService.ts` `synthesizeFallbackAbout` | About without a document | flash | temp 0.5, thinking 0 | 12 s → `"Gemini timeout"` | onboarding |
 | 8 | `artistDocService.ts` `generateLoreSummary` | Two-sentence Lore inventory overview | flash | temp 0.2, thinking 0 | 12 s → returns `undefined`, never throws | `refreshArtistDoc` (runs alongside #5) |
-| 9 | `questionGenerator.ts` `generateGroundedQuestions` | Interview questions from posts | flash | temp 0.8, JSON schema, thinking 1024 | 30 s → `"questionGenerator timeout"` | interview, onboarding |
+| 9 | `questionGenerator.ts` `generateGroundedQuestions` | Interview questions from posts | flash | temp 0.8, JSON schema, thinking 1024 | 30 s → `"questionGenerator timeout"` | `scripts/ingest-social.ts` (manual CLI) |
 | 10 | `questionGenerator.ts` verifier | Question vs source statement | flash | temp 0, JSON schema, thinking 512 | 12 s → `"verifier timeout"` | same |
 | 11 | `sourceRelevance.ts` `judgeSourceRelevance` | Is this page about this artist | flash | temp 0, JSON schema, thinking 0 | 20 s → `"relevance judge timeout"` | `vaultWebSearch` |
 | 12 | `socialCredits.ts` `extractCaptionCredits` | Credits from Instagram captions, 15 per batch | flash | temp 0, JSON schema | 90 s → `"caption extraction timed out"` | `researchRunner`, `socialIngest` |
-| 13 | ~~`onboarding/turnHandlers.ts` ack~~ | Moved to MusicNerdAPI (`lib/onboarding/generateInterviewAck.ts`) with the onboarding chat (#1365, cutover 2) | — | — | — | — |
-| 14 | `api/funFacts/[type]/route.ts` | Fun fact | flash | temp 0.8 | 15 s → `"Gemini timeout"` → HTTP 408, inside the route's 20 s budget | profile (user) |
 
 Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen).
 
@@ -101,8 +99,8 @@ citation markers included, and the page shows the validated version.
 `{ kind: "text-delta", group: "about-write", call: "doc" | "about", delta }` on MusicNerdAPI's
 `/api/onboarding/{artistId}/chat` stream, through `yieldWhileRunning` (in MusicNerdAPI): a generator cannot `yield` from inside a callback, so the
 helper runs the call, yields what it emits while it runs, and returns its result (or rethrows
-its error) once it settles. `useOnboardingChat` appends deltas to one `writing` item per `call`,
-and the [research view](research-view.md) renders them as Markdown under "Writing your About".
+its error) once it settles. Since the build moved to a server workflow (#1538) nothing on the site
+reads these deltas: the [research view](research-view.md) shows the About when `publish` is confirmed.
 
 ## How each Gemini option maps
 
@@ -179,11 +177,11 @@ asked, and `Output.array` / `Output.object` wrapping.
 - Per-site timings recorded on the PR next to the pre-switch numbers (the 90 s caption batch is
   the one to watch).
 
-## API-backed interviewer (draft flag)
+## API-backed interviewer
 
-`MUSICNERD_API_INTERVIEWER_ENABLED=true` uses `researchInterviewAngles` (AI SDK ToolLoopAgent, Gemini 3.8 Flash, at most eight steps) followed by a Gemini 3.8 Flash writer and independent Opus 5.5 evidence/conversation checker through the existing Gateway. The host restores complete mandatory memory and the prior-question index first. Six read-only tools call MusicNerdAPI, capped at ten calls and 48,000 serialized response characters. Generation stops at 75 seconds with no provider retries, and verifies current memory again before the API atomically accepts the offer. Web never scrapes or writes interview rows directly on this path. Page load only restores an existing API session; Start/Continue is explicit. Model guard approval is not editorial acceptance. Requires migrations 0041/0042 and the matching API before setting the server-only flag. Production stays on the current interview while the flag is absent.
+The artist-page interview uses `researchInterviewAngles` (AI SDK ToolLoopAgent, Gemini 3.8 Flash, at most eight steps) followed by a Gemini 3.8 Flash writer and independent Opus 5.5 evidence/conversation checker through the existing Gateway. The host restores complete mandatory memory and the prior-question index first. Six read-only tools call MusicNerdAPI, capped at ten calls and 48,000 serialized response characters. Generation stops at 75 seconds with no provider retries, and verifies current memory again before the API atomically accepts the offer. Web never scrapes or writes interview rows directly on this path. Page load only restores an existing API session; Start/Continue is explicit. Model guard approval is not editorial acceptance. Requires migrations 0041/0042.
 
-The flagged interviewer model pair is scoped to Web#1443 / #1422, with model-choice evidence linked from #1259. One rejected draft can be revised and checked once inside the same deadline. The revised question, observation, intended unknown and rationale are checked together; references remain the validated original spans. A valid evidence set reserves the last research step for synthesis. The private local pilot compares full pipelines and retains failures, not just successful questions. Its stronger checker caught selected unsupported premises missed by Flash, but these small development runs are not general editorial acceptance. No other call-site model or production flag changes.
+The interviewer model pair is scoped to Web#1443 / #1422, with model-choice evidence linked from #1259. One rejected draft can be revised and checked once inside the same deadline. The revised question, observation, intended unknown and rationale are checked together; references remain the validated original spans. A valid evidence set reserves the last research step for synthesis. The private local pilot compares full pipelines and retains failures, not just successful questions. Its stronger checker caught selected unsupported premises missed by Flash, but these small development runs are not general editorial acceptance. No other call-site model changes.
 
 Ask About routing uses Gemini 3.8 Flash with `thinkingLevel: low` and `maxRetries: 0`. Its separately configured `MODEL_ASK_DRAFT` uses Sonnet 5.5 with low Anthropic effort, a 2,400-token output cap, and no retries. Its independent `MODEL_ASK_CHECKER` uses Sonnet 5.5 with explicit low Anthropic effort, a 1,500-token output cap, no temperature or Google thinking options, and no retries. One internal repair allows at most two drafts and two checks within the same 45-second deadline; see `ask-conversation-context.md` for the targeted comparison and limits. Safe failure logs include only an allowlisted finish reason (such as `length`) alongside stage/category/status; no question, source, model output, or provider error payload is logged.
 

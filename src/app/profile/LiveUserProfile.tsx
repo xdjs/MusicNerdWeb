@@ -9,6 +9,7 @@ import ProfileConcept from './ProfileConcept';
 import ProfileLoading from './ProfileLoading';
 import { readProfileJson as readJson } from '@/lib/profile/readProfileJson';
 import { Button } from '@/components/ui/button';
+import { requestUserApi } from '@/lib/user/requestUserApi';
 
 type Account = Pick<User, 'id' | 'username' | 'email' | 'wallet' | 'isAdmin' | 'isWhiteListed' | 'isHidden'> & { usernameNeedsConfirmation?: boolean };
 type FeedPage = { items: ProfileUpdate[]; next: number | null; checked: number; unavailable: boolean; unavailableProviders?: Array<'spotify' | 'deezer' | 'inprocess'> | null };
@@ -83,7 +84,7 @@ export default function LiveUserProfile({ user }: { user: Account }) {
             const body = new FormData(); body.append('file', file);
             let upload: Response;
             try {
-              upload = await fetch('/api/user/profile-image', {method: 'POST', headers: {'X-Profile-Account': user.id}, body});
+              upload = await requestUserApi('/api/user/profile-image', {method: 'POST', headers: {'X-Profile-Account': user.id}, body});
             } catch {
               throw new Error('Your photo upload could not be confirmed. Your name has not changed. Please retry.');
             }
@@ -101,8 +102,8 @@ export default function LiveUserProfile({ user }: { user: Account }) {
           // even if the following PATCH is rejected.
           queryClient.setQueryData(['profile-photo', user.id], next);
         }
-        const response = await fetch(`/api/user/${user.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: name})});
-        if (!response.ok) { const data = await response.json(); throw new Error(data.message || 'Could not save your name.'); }
+        const response = await requestUserApi(`/api/user/${user.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: name})});
+        if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Could not save your name.'); }
         await update();
         return {name, photo: next.url};
       },

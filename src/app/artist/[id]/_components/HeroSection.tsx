@@ -12,6 +12,8 @@ import ResearchPending from "./onboarding/ResearchPending";
 import ListenPicker from "./ListenPicker";
 import type { ProfileLink } from "@/lib/artist/artistProfileLinks";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/analytics/trackEvent";
+import { requestArtistImageApi } from "@/lib/artistImages/requestArtistImageApi";
 
 import type { PublicArtistAbout } from '@/lib/bio/types';
 
@@ -77,9 +79,10 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
             const fd = new FormData();
             fd.append("file", file);
             fd.append("artistId", artistId);
-            const res = await fetch("/api/artist/profile-image", { method: "POST", body: fd });
+            const res = await requestArtistImageApi("/api/artist/profile-image", { method: "POST", body: fd });
             const data = await res.json().catch(() => ({}));
             if (res.ok && data.imagePath) {
+                trackEvent("profile_edit", { action: "photo", target: null });
                 setImg(data.imagePath);
                 setPortrait(true);
                 setPosition(0);
@@ -119,7 +122,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
 
     const identity = <>
         <h1 className={`break-words font-extrabold leading-[1.05] tracking-tight ${portrait ? 'text-[40px] text-white sm:text-[56px]' : 'text-3xl text-black dark:text-white sm:text-4xl'}`}>{artistName}</h1>
-        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "text-white" : "mx-auto"}`}><ResearchPending step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} publicAbout={publicAbout} hero portrait={portrait} /></ResearchPending></div>
+        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "text-white" : "mx-auto"}`}><ResearchPending hasContent={!!bio?.trim()} step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} publicAbout={publicAbout} hero portrait={portrait} /></ResearchPending></div>
     </>;
 
     return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>

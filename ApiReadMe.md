@@ -12,32 +12,7 @@ agent tool access. MCP bearer keys are not a general authentication scheme for t
 
 ### Artist Search & Discovery
 
-**searchArtists**
-
- - Type: POST
- - Body: `{query: "searchTerm", bookmarkedArtistIds?: string[]}`
- - Response: `{results: [...]}` combining local artists with external catalog candidates. External-only results have `id: null`, `platformId`, `platform`, and `isExternalOnly: true`; do not treat them as persisted artists.
- - Auth: N/A
- - Error: Returns 400 if query is missing or invalid, 500 for server errors
-
-**searchArtists/batch**
-
- - Type: POST
- - Body: `{query: {artists: ["artist1", "artist2"]}}` or `{query: {artist: "singleArtist"}}`
- - Response: `{results: [...]}` with one best local database match or `null` per trimmed, deduplicated query. No external catalog search.
- - Auth: N/A
- - CORS: Enabled
- - Error: Returns 400 if no queries provided, 408 for timeout, 500 for server errors
-
-The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHandle` are served by MusicNerdAPI at `api.musicnerd.net` ([docs](https://docs.musicnerd.net/api-reference/lookups/find-artist-by-spotify-id)).
-
-**findArtistByDeezerID**
-
- - Type: POST
- - Body: `{deezerID: "yourDeezerId"}`
- - Response: `{result: Artist}` for an existing local artist
- - Auth: N/A
- - Error: 400 for an invalid parameter; lookup errors use the query service's status
+The public lookups `searchArtists`, `findArtistBySpotifyID`, `findArtistByIG`, `findTwitterHandle`, `trackLinks`, `leaderboard` and `artist/[id]/image` are served by MusicNerdAPI at `api.musicnerd.net`, in the response shapes external clients already use ([docs](https://docs.musicnerd.net/api-reference/lookups/search-artists)).
 
 ### Artist Data & Content
 
@@ -50,25 +25,6 @@ The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHan
  - Auth: PUT and GET with `?regenerate=true` require an admin or approved artist claimant. Ordinary GET is public and can generate a missing bio; it is not a read-only smoke check.
  - CORS: Enabled
  - Error: 404 if artist not found, 408 for timeout, 500 for server errors
-
-**getSpotifyData**
-
- - Type: GET, POST
- - GET Query: `?spotifyId=yourSpotifyId` or `?spotifyIds=id1,id2`
- - POST Body: `{spotifyIds: ["id1", "id2"]}`; batch requests allow at most 50 IDs
- - Response: `{data: ...}` with one Spotify artist or batch artist data
- - Auth: N/A
- - CORS: Enabled
- - Error: 400 for missing/oversized input; provider failures can return 502; POST timeout returns 408
-
-**funFacts/[type]**
-
- - Type: GET
- - Query: `?id=artistId`
- - Params: `type` (fun fact category)
- - Response: `{text: "generated fun fact"}`; this invokes generation
- - Auth: N/A
- - Error: 400 if artist id missing, 404 if artist not found, 408 for timeout
 
 ### Platform & Link Management
 
@@ -87,28 +43,13 @@ The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHan
  - Auth: N/A
  - Note: Excludes 'ens' and 'wallets' platforms
 
-### Leaderboard & Statistics
-
-**leaderboard**
-
- - Type: GET
- - Query: `?from=date&to=date&page=1&perPage=10`
- - Response: `Array<LeaderboardEntry>` or `{entries: Array, total: number, pageCount: number}`
- - Auth: N/A
- - Error: 500 for server errors
+### Statistics
 
 **pendingUGCCount**
 
  - Type: GET
  - Response: `{count: number}`
  - Auth: Admin required (returns 0 for non-admin)
- - Error: Returns count 0 on errors
-
-**approvedUGCCount**
-
- - Type: GET
- - Response: `{count: number}` for the current user’s approved contributions
- - Auth: Session-based; returns count 0 without a session
  - Error: Returns count 0 on errors
 
 **ugcCount**
@@ -130,11 +71,10 @@ The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHan
 
 | Area | Entry points |
 | --- | --- |
-| Account bookmarks (local feature; check migration/release status) | [Local feature contract](docs/account-bookmarks.md); `/api/bookmarks` is not in this docs release |
-| Account login and wallet linking | [Auth reference](docs/development.md#architecture-and-integration-map), [link handler](src/app/api/auth/link-wallet/route.ts) |
-| Artist questions and interview | [Ask](src/app/api/askArtist/route.ts), [interview chat](src/app/api/onboarding/[artistId]/chat/route.ts) |
+| Account login and wallet linking | [Auth reference](docs/development.md#architecture-and-integration-map), [link client](src/lib/account/requestLinkWallet.ts) calls MusicNerdAPI `POST /api/auth/link-wallet` |
+| Artist questions and interview | Ask (`/api/artist/{id}/chat` on MusicNerdAPI, streamed to `useChat`), [interview chat](src/app/api/onboarding/[artistId]/chat/route.ts) |
 | Source research and stored knowledge | [Lore URL suggestions](src/app/api/artist/[id]/lore-suggestions/route.ts), [research refresh](src/app/api/artist/[id]/research/refresh/route.ts), [scheduler](src/app/api/research/advance/route.ts), [knowledge export](src/app/api/artist/[id]/knowledge-doc/export/route.ts) |
-| Uploads | [Vault upload](src/app/api/vault/upload/route.ts), [profile image](src/app/api/artist/profile-image/route.ts) |
+| Uploads | Vault upload and artist profile image are on [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) |
 | Admin and worker operations | [Admin routes](src/app/api/admin), [agent routes](src/app/api/agent) |
 | MCP | [Reference](docs/mcp.md) |
 | Health | [Health handler](src/app/api/health/route.ts) |
@@ -144,13 +84,13 @@ and `npm run test:ci` for CI verification.
 
 ### Example
 
-This searches stored artists and does not create an artist:
+This searches artists on MusicNerdAPI and does not create an artist:
 
 ```javascript
-const response = await fetch('/api/searchArtists/batch', {
+const response = await fetch('https://api.musicnerd.net/api/searchArtists', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ query: { artists: ['Pete Rango'] } }),
+  body: JSON.stringify({ query: 'Pete Rango' }),
 });
 if (!response.ok) throw new Error(`Search failed: ${response.status}`);
 const { results } = await response.json();

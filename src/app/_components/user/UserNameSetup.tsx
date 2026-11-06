@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import UserNamePrompt from './UserNamePrompt';
+import { requestUserApi } from '@/lib/user/requestUserApi';
 
 type Account = { id: string; username: string; usernameNeedsConfirmation: boolean; usernamePromptedAt: string | null };
 
@@ -19,13 +20,13 @@ export default function UserNameSetup() {
     const controller = new AbortController();
     void (async () => {
       try {
-        const response = await fetch(`/api/user/${id}`, { signal: controller.signal, cache: 'no-store' });
+        const response = await requestUserApi(`/api/user/${id}`, { signal: controller.signal });
         if (!response.ok) return;
         const user = await response.json() as Account;
         if (controller.signal.aborted || user.id !== id) return;
         setAccount(user);
         if (!user.usernameNeedsConfirmation || user.usernamePromptedAt) return;
-        const shown = await fetch(`/api/user/${id}/name-prompt`, { method: 'POST', signal: controller.signal });
+        const shown = await requestUserApi(`/api/user/${id}/name-prompt`, { method: 'POST', signal: controller.signal });
         if (shown.ok) {
           const result = await shown.json();
           if (!controller.signal.aborted) setOpen(result.showPrompt === true);
@@ -41,11 +42,11 @@ export default function UserNameSetup() {
   }, [account]);
   if (!open || !account || account.id !== id) return null;
   return <UserNamePrompt key={account.id} name={account.username} onDismiss={() => setOpen(false)} onSave={async name => {
-    const response = await fetch(`/api/user/${account.id}`, {
+    const response = await requestUserApi(`/api/user/${account.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name }),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Could not save your user name.');
+    if (!response.ok) throw new Error(result.error || 'Could not save your user name.');
     if (currentId.current !== account.id) return;
     setOpen(false); setAccount({ ...account, username: name, usernameNeedsConfirmation: false });
     await update(); router.refresh();

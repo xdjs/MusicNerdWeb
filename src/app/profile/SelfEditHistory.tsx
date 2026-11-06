@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { requestContributions } from '@/lib/contributions/requestContributions';
 
 type HistoryPage = {
     entries: { id: string; artistId: string; artistName: string | null; siteName: string;
@@ -25,7 +26,7 @@ export default function SelfEditHistory() {
         setError(false);
         async function load() {
             try {
-                const response = await fetch(`/api/selfEdits?page=${page}`, { signal: controller.signal, cache: 'no-store' });
+                const response = await requestContributions(`/api/selfEdits?page=${page}`, controller.signal);
                 if (!response.ok) throw new Error('History unavailable');
                 const result: HistoryPage = await response.json();
                 if (!controller.signal.aborted) setData(result);

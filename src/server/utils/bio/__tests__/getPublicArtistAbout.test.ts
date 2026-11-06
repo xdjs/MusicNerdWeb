@@ -19,7 +19,7 @@ beforeAll(async () => {
  create table artist_bio_versions(artist_id uuid,is_pinned boolean);
  create table artist_activity_events(id uuid,artist_id uuid,trigger text);
  create table artist_research_jobs(id uuid,artist_id uuid,activity_id uuid);
- create table artist_vault_sources(id uuid,artist_id uuid,status text,file_path text,snapshot jsonb);
+ create table artist_vault_sources(id uuid,artist_id uuid,status text,file_path text,snapshot jsonb,publication text default 'inherit');
  create function knowledge_vault_source_snapshot(v artist_vault_sources) returns jsonb language sql as 'select v.snapshot';
  create table artist_source_assessments(source_id uuid,artist_id uuid,activity_id uuid,snapshot jsonb);
  create table artist_directory_preparations(artist_id uuid,activity_id uuid,job_id uuid,status text,starting_bio text,manifest jsonb,public_about jsonb);`);
@@ -29,7 +29,7 @@ beforeEach(async () => {
  await client.query('insert into artists(id,bio) values($1,null)',[artist]);
  await client.query("insert into artist_activity_events values($1,$2,'directory_add')",[activity,artist]);
  await client.query('insert into artist_research_jobs values($1,$2,$1)',[activity,artist]);
- await client.query("insert into artist_vault_sources values($1,$2,'pending',null,$3)",[source,artist,JSON.stringify(snapshot)]);
+ await client.query("insert into artist_vault_sources(id,artist_id,status,file_path,snapshot) values($1,$2,'pending',null,$3)",[source,artist,JSON.stringify(snapshot)]);
  await client.query('insert into artist_source_assessments values($1,$2,$3,$4)',[source,artist,activity,JSON.stringify(snapshot)]);
  await client.query("insert into artist_directory_preparations values($1,$2,$2,'ready',null,$3,$4)",[artist,activity,JSON.stringify([snapshot]),JSON.stringify(publicAbout)]);
 });
@@ -39,6 +39,8 @@ it('returns only separately prepared public prose and safe citations',async()=>{
 });
 it.each([
  "update artist_vault_sources set status='rejected'",
+ "update artist_vault_sources set publication='private'",
+ "update artist_vault_sources set publication=null",
  "update artist_vault_sources set snapshot=jsonb_set(snapshot,'{extractedText}','\"Different artist\"')",
  'delete from artist_vault_sources', 'delete from artist_source_assessments',
  "update artist_source_assessments set snapshot='{}'",

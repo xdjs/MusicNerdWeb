@@ -1,4 +1,10 @@
 // @ts-nocheck
+jest.mock('@/server/utils/bio/getPublicSavedBio', () => ({ getPublicSavedBio: jest.fn(async () => {
+ const getArtist = jest.requireMock('@/server/utils/queries/artistQueries').getArtistById;
+ const row = await getArtist.mock.results.at(-1)?.value;
+ return row?.bio?.trim() || null;
+}) }));
+jest.mock('@/server/utils/queries/getTrustedLoreSourceIds', () => ({ getTrustedLoreSourceIds: jest.fn().mockResolvedValue(new Set()) }));
 jest.mock('@/server/utils/bio/getPublicArtistAbout', () => ({ getPublicArtistAbout: jest.fn().mockResolvedValue(null) }));
 
 jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('approved-claim') }));
@@ -46,7 +52,6 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@/app/_components/ArtistLinksGrid', () => function ArtistLinksGrid() { return <div data-testid="artist-links" />; });
-jest.mock('@/app/_components/BookmarkButton', () => function BookmarkButton() { return <div data-testid="bookmark-button" />; });
 jest.mock('@/app/_components/EditModeContext', () => ({
     EditModeProvider: function EditModeProvider({ children }: { children: React.ReactNode }) { return <>{children}</>; },
     // A real context, not a stub: KnowledgeSection and VaultSection both call
@@ -68,8 +73,7 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtis
         />
     );
 });
-jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, statusBadge, hasPortrait, initialPosition, imageUrl }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{statusBadge}{children}</div>; });
-jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, statusBadge, hasPortrait, initialPosition, imageUrl, bio }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section">{bio}</div>{statusBadge}{children}</div>; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
 jest.mock('@/app/artist/[id]/_components/onboarding/ProfileTour', () => ({
@@ -77,7 +81,6 @@ jest.mock('@/app/artist/[id]/_components/onboarding/ProfileTour', () => ({
     default: function ProfileTour({ hasSupportLinks }: { hasSupportLinks: boolean }) {
         return <div data-testid="profile-tour" data-has-support={String(hasSupportLinks)} />;
     },
-    TOUR_FINISHED_EVENT: 'mn-tour-finished',
 }));
 // Same reason as SeoArtistLinks: an async server component that reads the link
 // table, which this suite does not stand up.
@@ -301,11 +304,6 @@ describe('ArtistProfile page', () => {
             expect(screen.getByTestId('ask-about-artist')).toBeVisible();
         });
 
-        it('does not render bookmark button when not authenticated', async () => {
-            await renderArtistPage();
-            expect(screen.queryByTestId('bookmark-button')).not.toBeInTheDocument();
-        });
-
         it('does not render edit mode toggle when not authenticated', async () => {
             await renderArtistPage();
             expect(screen.queryByTestId('edit-mode-toggle')).not.toBeInTheDocument();
@@ -359,11 +357,6 @@ describe('ArtistProfile page', () => {
 
         beforeEach(() => {
             setupMocks({ session: mockSession });
-        });
-
-        it('does not offer bookmarks now that profiles reflect contributions', async () => {
-            await renderArtistPage();
-            expect(screen.queryByTestId('bookmark-button')).not.toBeInTheDocument();
         });
 
         it('renders edit mode toggle when admin', async () => {
@@ -600,11 +593,28 @@ describe('ArtistProfile page', () => {
     });
 
     describe('generateMetadata', () => {
-        it('uses the preferred provider image for social previews', async () => {
+        it('points preview images at the deployment and keeps canonical URLs stable', async () => {
+            const oldEnv = process.env.VERCEL_ENV;
+            const oldUrl = process.env.VERCEL_URL;
+            process.env.VERCEL_ENV = 'preview';
+            process.env.VERCEL_URL = 'proposal.vercel.app';
+            try {
+                const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
+                expect(metadata.openGraph?.images?.[0]).toMatchObject({ url: 'https://proposal.vercel.app/artist/artist-uuid/share-image?v=3' });
+                expect(metadata.twitter?.images).toEqual(['https://proposal.vercel.app/artist/artist-uuid/share-image?v=3']);
+                expect(metadata.alternates?.canonical).toBe('https://musicnerd.net/artist/artist-uuid');
+                expect(musicPlatformData.getArtistPortrait).not.toHaveBeenCalled();
+            } finally {
+                if (oldEnv === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = oldEnv;
+                if (oldUrl === undefined) delete process.env.VERCEL_URL; else process.env.VERCEL_URL = oldUrl;
+            }
+        });
+
+        it('uses the composite route for social previews', async () => {
             (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://cdn.spotify.com/artist.jpg');
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.openGraph?.images).toEqual(expect.arrayContaining([
-                expect.objectContaining({ url: 'https://cdn.spotify.com/artist.jpg' }),
+                expect.objectContaining({ url: 'https://musicnerd.net/artist/artist-uuid/share-image?v=3', width: 1200, height: 630 }),
             ]));
         });
 
@@ -654,10 +664,10 @@ describe('ArtistProfile page', () => {
             expect(metadata.title).toBe('Artist Not Found | Music Nerd');
         });
 
-        it('includes OpenGraph image from platform provider', async () => {
+        it('uses the same composite for OpenGraph and Twitter', async () => {
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.openGraph?.images?.[0]).toMatchObject({
-                url: 'https://cdn.deezer.com/artist.jpg',
+                url: 'https://musicnerd.net/artist/artist-uuid/share-image?v=3',
             });
         });
     });
@@ -692,11 +702,69 @@ describe('Museum page composition', () => {
 });
 
 it('does not expose an unclaimed About in public metadata', async () => {
-  const { getLoreClaimGeneration } = await import('@/server/utils/queries/lorePersistence');
+  const { getPublicSavedBio } = await import('@/server/utils/bio/getPublicSavedBio');
   const { getArtistById } = await import('@/server/utils/queries/artistQueries');
   const { generateMetadata } = await import('@/app/artist/[id]/page');
-  getLoreClaimGeneration.mockResolvedValueOnce(null);
+  getPublicSavedBio.mockResolvedValueOnce(null);
   getArtistById.mockResolvedValueOnce({ id: 'artist-uuid', name: 'Artist', bio: 'Private prepared About' });
   const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
   expect(JSON.stringify(metadata)).not.toContain('Private prepared About');
+});
+
+describe('generated About evidence projection', () => {
+  beforeEach(() => { jest.clearAllMocks(); setupMocks(); (getVaultSourcesByArtistId as jest.Mock).mockReset().mockResolvedValue([]); });
+  it('shows safe unclaimed generated prose without serializing evidence metadata', async () => {
+    const { getPublicSavedBio } = await import('@/server/utils/bio/getPublicSavedBio');
+    const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+    (getClaimByArtistId as jest.Mock).mockResolvedValue(null);
+    (getArtistById as jest.Mock).mockResolvedValue({ ...mockArtist, bio:'PRIVATE OLD TEXT', bioProvenance:{ secret:'PRIVATE MANIFEST' } });
+    getPublicSavedBio.mockResolvedValueOnce('Current eligible biography.');
+    const view = await renderArtistPage();
+    expect(view.container.innerHTML).toContain('Current eligible biography.');
+    expect(view.container.innerHTML).not.toContain('PRIVATE OLD TEXT');
+    expect(view.container.innerHTML).not.toContain('PRIVATE MANIFEST');
+  });
+  it('hides claimed generated prose in metadata when evidence is no longer public', async () => {
+    const { getPublicSavedBio } = await import('@/server/utils/bio/getPublicSavedBio');
+    (getArtistById as jest.Mock).mockResolvedValue({ ...mockArtist, bio:'PRIVATE GENERATED TEXT' });
+    getPublicSavedBio.mockResolvedValueOnce(null);
+    const metadata = await generateMetadata({params:Promise.resolve({id:'artist-uuid'})});
+    expect(JSON.stringify(metadata)).not.toContain('PRIVATE GENERATED TEXT');
+  });
+});
+
+describe('legacy About public boundary', () => {
+ beforeEach(() => {jest.clearAllMocks();setupMocks();getVaultSourcesByArtistId.mockReset().mockResolvedValue([]);jest.requireMock('@/server/utils/queries/userQueries').getUserById.mockReset().mockResolvedValue({id:'viewer',isAdmin:false,isWhiteListed:false});});
+ it.each([null,{user:{id:'unrelated'}}])('withholds claimed legacy text from visitors and metadata (%j)',async session=>{
+  setupMocks({session,artist:{...mockArtist,bio:'LEGACY PRIVATE ABOUT'}});
+  const {getClaimByArtistId}=await import('@/server/utils/queries/dashboardQueries');
+  getClaimByArtistId.mockResolvedValue({id:'claim',userId:'owner',status:'approved'});
+  const {getPublicSavedBio}=await import('@/server/utils/bio/getPublicSavedBio');
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  const view=await renderArtistPage();expect(view.container.innerHTML).not.toContain('LEGACY PRIVATE ABOUT');
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  const metadata=await generateMetadata({params:Promise.resolve({id:'artist-uuid'})});
+  expect(JSON.stringify(metadata)).not.toContain('LEGACY PRIVATE ABOUT');
+  expect(metadata.description).toContain('social links and streaming profiles');
+ });
+ it('rechecks the public projection for a later render and metadata after a legacy allowance is consumed',async()=>{
+  setupMocks({session:null,artist:{...mockArtist,bio:'EXACT LEGACY ALLOWANCE'}});
+  const {getClaimByArtistId}=await import('@/server/utils/queries/dashboardQueries');
+  getClaimByArtistId.mockResolvedValue({id:'claim',userId:'owner',status:'approved'});
+  const {getPublicSavedBio}=await import('@/server/utils/bio/getPublicSavedBio');
+  getPublicSavedBio.mockResolvedValueOnce('EXACT LEGACY ALLOWANCE');
+  const first=await renderArtistPage();expect(first.container.innerHTML).toContain('EXACT LEGACY ALLOWANCE');first.unmount();
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  const next=await renderArtistPage();expect(next.container.innerHTML).not.toContain('EXACT LEGACY ALLOWANCE');
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  expect(JSON.stringify(await generateMetadata({params:Promise.resolve({id:'artist-uuid'})}))).not.toContain('EXACT LEGACY ALLOWANCE');
+ });
+ it('preserves raw claimed legacy text for its authorized owner only',async()=>{
+  setupMocks({session:{user:{id:'owner'}},artist:{...mockArtist,bio:'LEGACY OWNER EDITOR ABOUT'}});
+  const {getClaimByArtistId}=await import('@/server/utils/queries/dashboardQueries');
+  getClaimByArtistId.mockResolvedValue({id:'claim',userId:'owner',status:'approved'});
+  const {getPublicSavedBio}=await import('@/server/utils/bio/getPublicSavedBio');
+  getPublicSavedBio.mockResolvedValueOnce(null);
+  const view=await renderArtistPage();expect(view.container.innerHTML).toContain('LEGACY OWNER EDITOR ABOUT');
+ });
 });

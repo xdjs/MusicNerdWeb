@@ -109,12 +109,3 @@ export async function verifyPrivyToken(
     return null;
   }
 }
-
-export async function getPrivyUser(privyUserId: string) {
-  try {
-    return await getPrivyClient().getUser(privyUserId);
-  } catch (error) {
-    console.error('[Privy] Failed to get user:', error);
-    return null;
-  }
-}

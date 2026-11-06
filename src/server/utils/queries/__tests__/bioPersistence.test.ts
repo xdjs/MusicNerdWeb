@@ -1,12 +1,13 @@
 // @ts-nocheck
+import { createHash } from 'node:crypto';
 import { jest } from '@jest/globals';
 jest.mock('@/server/utils/activity/recordArtistActivity', () => ({ recordArtistActivity: jest.fn().mockResolvedValue('activity-1') }));
 
 describe('persistArtistBio', () => {
     beforeEach(() => { jest.resetModules(); });
-    async function setup({ bio = 'Artist edited bio', pinned = false } = {}) {
+    async function setup({ bio = 'Artist edited bio', pinned = false, bioProvenance = null } = {}) {
         const { db } = await import('@/server/db/drizzle');
-        const values = jest.fn().mockResolvedValue(undefined);
+        const values = jest.fn(() => ({returning:jest.fn().mockResolvedValue([{id:"history-id"}]),onConflictDoUpdate:jest.fn().mockResolvedValue(undefined)}));
         const set = jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) });
         const tx = {
             execute: jest.fn().mockResolvedValue([]),
@@ -14,9 +15,10 @@ describe('persistArtistBio', () => {
                 artistClaims: { findFirst: jest.fn().mockResolvedValue(undefined) },
                 users: { findFirst: jest.fn().mockResolvedValue({ isAdmin: true }) },
                 artists: { findFirst: jest.fn().mockResolvedValue({ id: 'a1', bio }) },
+                artistBioProvenance: {findFirst:jest.fn().mockResolvedValue(bioProvenance == null ? undefined : {provenance:bioProvenance})},
                 artistBioVersions: { findFirst: jest.fn().mockResolvedValueOnce(pinned ? { bioText: bio } : undefined).mockResolvedValue(undefined) },
             },
-            insert: jest.fn(() => ({ values })), update: jest.fn(() => ({ set })),
+            delete: jest.fn(()=>({where:jest.fn().mockResolvedValue(undefined)})), insert: jest.fn(() => ({ values })), update: jest.fn(() => ({ set })),
         };
         db.transaction = jest.fn(fn => fn(tx));
         const { persistArtistBio: persist } = await import('../bioPersistence');
@@ -77,7 +79,7 @@ describe('persistArtistBio', () => {
         const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
         const { persistArtistBio, set, values } = await setup({ bio: null });
         await persistArtistBio('a1', ABOUT_EMPTY_STATE, { generated: true, expectedBio: null });
-        expect(values).not.toHaveBeenCalled();
+        expect(values).toHaveBeenCalledWith({artistId:'a1',provenance:expect.objectContaining({kind:'unknown'})});
         expect(set).toHaveBeenCalledWith({ bio: ABOUT_EMPTY_STATE });
     });
     it('publishes document and citations in the same transaction, before bio/history writes', async () => {
@@ -101,13 +103,14 @@ describe('persistArtistBio', () => {
         expect(values).not.toHaveBeenCalled();
     });
     it('includes publish confirmation in the same transaction, even when the bio already matches', async () => {
-        const { persistArtistBio, tx, set } = await setup();
+        const { persistArtistBio, tx, set, values } = await setup();
         const confirmation = jest.fn().mockResolvedValue(undefined);
         const confirmValues = jest.fn(() => ({ onConflictDoNothing: confirmation }));
         tx.insert.mockReturnValueOnce({ values: confirmValues });
         await persistArtistBio('a1', 'Artist edited bio', { generated: true, expectedBio: 'Artist edited bio', confirmSteps: ['publish'] });
         expect(confirmValues).toHaveBeenCalledWith({ artistId: 'a1', step: 'publish' });
-        expect(set).not.toHaveBeenCalled();
+        expect(set).toHaveBeenCalledWith({ bio: 'Artist edited bio' });
+        expect(values).toHaveBeenCalledWith({artistId:'a1',provenance:expect.objectContaining({kind:'unknown'})});
     });
     it('aborts publication if confirmation cannot be persisted', async () => {
         const { persistArtistBio, tx, set, values } = await setup();
@@ -121,7 +124,17 @@ describe('persistArtistBio', () => {
         const bio = kind === 'placeholder' ? ` ${ABOUT_EMPTY_STATE} ` : '   ';
         const { persistArtistBio, values } = await setup({ bio });
         await persistArtistBio('a1', 'Real artist bio', { generated: true, expectedBio: bio });
-        expect(values).toHaveBeenCalledTimes(1);
+        expect(values).toHaveBeenCalledTimes(3);
         expect(values).toHaveBeenCalledWith({ artistId: 'a1', bioText: 'Real artist bio', isPinned: false });
     });
+    it('retains exact evidence lineage in old history and derivative manual text', async () => {
+        const provenance = {version:1,kind:'generated',bioHash:createHash('sha256').update('Artist edited bio').digest('hex'),claimId:'claim',sources:[{id:1,kind:'vault',revision:'a'.repeat(64)}]};
+        const {persistArtistBio,values,set} = await setup({bioProvenance:provenance});
+        await persistArtistBio('a1','Manual correction');
+        expect(values).toHaveBeenCalledWith(expect.objectContaining({bioText:'Artist edited bio'}));
+        expect(values).toHaveBeenCalledWith({versionId:'history-id',provenance});
+        expect(values).toHaveBeenCalledWith({artistId:'a1',provenance:{...provenance,bioHash:createHash('sha256').update('Manual correction').digest('hex')}});
+        expect(set).toHaveBeenCalledWith({bio:'Manual correction'});
+    });
+
 });

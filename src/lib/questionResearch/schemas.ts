@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_ORIGINAL_CHARACTERS, MAX_RESEARCH_REFERENCES } from "./limits";
+import { MAX_ORIGINAL_CHARACTERS } from "./limits";
 const revision = z.string().regex(/^[a-f0-9]{64}$/);
 const publicUrl = z
   .string()
@@ -29,107 +29,11 @@ export const referenceSchema = z.object({
   retrievedAt: z.string().nullable(),
   truncated: z.boolean().nullable(),
 });
-export const evidenceFacetSchema = z.object({
-  id: z.string().regex(/^f[1-4]$/),
-  intent: z.string().trim().min(1).max(160),
-}).strict();
-export const evidenceFacetsSchema = z.array(evidenceFacetSchema).min(1).max(4)
-  .superRefine((facets, ctx) => {
-    const normalizedIntents = new Set<string>();
-    facets.forEach((facet, index) => {
-      if (facet.id !== `f${index + 1}`)
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Facet IDs must be ordered and host-canonical" });
-      const normalizedIntent = facet.intent.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
-      if (normalizedIntents.has(normalizedIntent))
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Facet intents must be distinct after normalization" });
-      normalizedIntents.add(normalizedIntent);
-    });
-  });
-export const facetCoverageSchema = z.array(z.object({
-  id: z.string().regex(/^f[1-4]$/),
-  referenceIndexes: z.array(z.number().int().nonnegative()).max(MAX_RESEARCH_REFERENCES).refine(xs => new Set(xs).size === xs.length),
-}).strict()).max(4);
-export const researchStatusSchema = z.object({
-  selection: z.enum(["candidates", "research"]).optional(),
-  status: z.literal("ok"),
-  outsideResearchReason: z.literal("quota").optional(),
-  quotaScope: z.enum(["saved_global", "outside_artist", "outside_global"]).optional(),
-  retryAfterSeconds: z.number().int().nonnegative().max(86400).optional(),
-  resetAt: z.string().datetime().optional(),
-  jobId: z.string().uuid(),
-  stage: z.enum([
-    "checking_saved",
-    "searching",
-    "reading",
-    "transcribing",
-    "waiting_provider",
-    "complete",
-    "unresolved",
-    "failed",
-    "cancelled",
-  ]),
-  provider: z
-    .enum(["web", "page", "instagram", "instagram_reels", "tiktok", "x"])
-    .nullable(),
-  message: z.string().max(2000),
-  updatedAt: z.string(),
-  references: z.array(referenceSchema).max(MAX_RESEARCH_REFERENCES),
-  facetCoverage: facetCoverageSchema.optional(),
-  limitations: z.array(z.string().max(2000)).max(30),
-});
 export const researchReadSchema = z.object({
   status: z.literal("ok"),
   passage: referenceSchema,
   totalChars: z.number().int().nonnegative(),
   nextStart: z.number().int().nonnegative().nullable(),
-});
-export const questionPlanSchema = z
-  .object({
-    topic: z.string().trim().min(3).max(160),
-    evidenceNeed: z.enum([
-      "reporting",
-      "release_date",
-      "credits",
-      "social_caption",
-      "spoken_content",
-    ]),
-    freshness: z.enum(["stored", "recent"]),
-    retrieval: z.enum(["latest", "relevance"]).default("relevance"),
-    answerScope: z.enum(["overview", "focused"]).default("focused"),
-    resolvedQuestion: z.string().trim().min(1).max(500).optional(),
-    targetUrl: publicUrl.nullable(),
-    platform: z.enum(["instagram", "tiktok", "x", "inprocess", "spotify", "deezer"]).nullable(),
-    fromDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .nullable(),
-    toDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .nullable(),
-    evidenceFacets: evidenceFacetsSchema.optional(),
-  })
-  .strict();
-export const answerDraftSchema = z.object({
-  sentences: z
-    .array(
-      z.object({
-        kind: z.enum(["fact", "limitation"]).optional(),
-        text: z.string().trim().min(1).max(700),
-        evidence: z
-          .array(
-            z.object({
-              n: z.number().int().min(1).max(MAX_RESEARCH_REFERENCES),
-              field: z.enum(["text", "publishedAt", "activityDate"]).default("text"),
-              quote: z.string().min(4).max(1800),
-            }),
-          )
-          .min(1)
-          .max(3),
-      }),
-    )
-    .max(4),
-  unanswered: z.string().max(500).nullable(),
 });
 export const discoverySchema = z.object({
   id: z.string().uuid(),
@@ -154,6 +58,4 @@ export const discoveriesSchema = z.object({
   candidates: z.array(discoverySchema).max(50),
   nextCursor: z.string().uuid().nullable(),
 });
-export type ResearchReference = z.infer<typeof referenceSchema>;
-export type ResearchStatus = z.infer<typeof researchStatusSchema>;
 export type ResearchDiscovery = z.infer<typeof discoverySchema>;

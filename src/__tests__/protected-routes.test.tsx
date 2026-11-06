@@ -1,5 +1,11 @@
-jest.mock('@/server/utils/artistLinkReview/getHiddenLinkSourceIds',()=>({getHiddenLinkSourceIds:jest.fn().mockResolvedValue([])}));
 // @ts-nocheck
+jest.mock('@/server/utils/bio/getPublicSavedBio', () => ({ getPublicSavedBio: jest.fn(async () => {
+ const getArtist = jest.requireMock('@/server/utils/queries/artistQueries').getArtistById;
+ const row = await getArtist.mock.results.at(-1)?.value;
+ return row?.bio?.trim() || null;
+}) }));
+jest.mock('@/server/utils/queries/getTrustedLoreSourceIds', () => ({ getTrustedLoreSourceIds: jest.fn().mockResolvedValue(new Set()) }));
+jest.mock('@/server/utils/artistLinkReview/getHiddenLinkSourceIds',()=>({getHiddenLinkSourceIds:jest.fn().mockResolvedValue([])}));
 jest.mock('@/server/utils/bio/getPublicArtistAbout', () => ({ getPublicArtistAbout: jest.fn().mockResolvedValue(null) }));
 
 import React from 'react';
@@ -54,7 +60,6 @@ jest.mock('@/app/add-artist/_components/AddArtistContent', () =>
 
 // Mocks for ArtistProfile child components
 jest.mock('@/app/_components/ArtistLinksGrid', () => function ArtistLinksGrid() { return <div data-testid="artist-links" />; });
-jest.mock('@/app/_components/BookmarkButton', () => function BookmarkButton() { return <div data-testid="bookmark-button" />; });
 jest.mock('@/app/_components/EditModeContext', () => ({
     EditModeProvider: function EditModeProvider({ children }: { children: React.ReactNode }) { return <>{children}</>; },
     // A real context, not a stub: KnowledgeSection and VaultSection both call
@@ -67,7 +72,6 @@ jest.mock('@/app/_components/AutoRefresh', () => function AutoRefresh() { return
 jest.mock('@/app/artist/[id]/_components/BlurbSection', () => function BlurbSection() { return <div data-testid="blurb" />; });
 jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtistData() { return <div data-testid="add-data" />; });
 jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children }: any) { return <div data-testid="hero-section"><h1>{artistName}</h1>{children}</div>; });
-jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return null; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return null; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
 // Same reason as SeoArtistLinks: an async server component that reads the link

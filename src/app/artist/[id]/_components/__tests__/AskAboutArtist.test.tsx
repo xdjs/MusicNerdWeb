@@ -1,289 +1,276 @@
-// @ts-nocheck
 /**
- * What an answer looks like once it is rendered.
- *
- * Every case here came from Pete reading a real answer on his phone: citation
- * markers sitting in the prose at full size doing nothing, "[Artist Doc]"
- * showing an internal label to a reader, records named and not linked, and
- * people named and linked inconsistently.
+ * The artist chat on `useChat`: what it sends to MusicNerdAPI's streaming chat
+ * endpoint and how it renders the streamed parts (text with `[n]` citations,
+ * `source-url` parts, tool steps as a status line). `useChat` is mocked
+ * (src/test/__mocks__/ai-sdk-react.ts); each test sets the chat's state.
  */
-import { jest } from "@jest/globals";
-import React from "react";
-import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
-import "@testing-library/jest-dom";
-
+import { fireEvent, render, screen, within, waitFor } from "@testing-library/react";
+import { useChat } from "@ai-sdk/react";
+import { getAccessToken } from "@privy-io/react-auth";
 import AskAboutArtist from "../AskAboutArtist";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
-const ANSWER = {
-    answer: 'Rango co-produced "crying on the floor (pete rango mix)" with Dame Atlas [Artist Doc, 2, 4] and has produced for Kilo Kish [10].',
-    suggestions: [],
-    sources: [
-        { n: 2, title: "Cast Out Of Hell on Discogs", url: "https://www.discogs.com/release/1" },
-        { n: 4, title: "crying on the floor — Spotify", url: "https://open.spotify.com/album/4Kka" },
-        { n: 10, title: "Pete Rango on Instagram, 2026-03-23", url: "https://www.instagram.com/p/ABC/" },
-    ],
-    mentions: [
-        { name: "Dame Atlas", instagram: "dameatlas", role: "artist" },
-        { name: "Kilo Kish", artistId: "kilo-uuid" },
-    ],
-    songs: [{ title: "crying on the floor (pete rango mix)", spotifyUrl: "https://open.spotify.com/album/4Kka" }],
-    bandcamp: "https://peterango.bandcamp.com",
-    fromOpenWeb: false,
-    webDomains: [],
-};
+const chat = jest.mocked(useChat);
+const sendMessage = jest.fn();
+const stop = jest.fn();
+const regenerate = jest.fn();
 
-function answerWith(overrides = {}) {
-    return { ...ANSWER, ...overrides };
+function state(overrides: Record<string, unknown> = {}) {
+    chat.mockReturnValue({ messages: [], status: "ready", error: undefined, sendMessage, stop, regenerate, ...overrides } as never);
+}
+const user = (text: string, id = "u1") => ({ id, role: "user", parts: [{ type: "text", text }] });
+const assistant = (parts: unknown[], id = "a1") => ({ id, role: "assistant", parts });
+const source = (n: number, url = `https://example.com/${n}`, title = `Source ${n}`) => ({ type: "source-url", sourceId: String(n), url, title });
+
+function renderChat() {
+    return render(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
+}
+function transportOptions() {
+    // The mocked DefaultChatTransport (src/test/__mocks__/ai.ts) keeps its options.
+    const options = chat.mock.calls.at(-1)?.[0] as unknown as { transport: { options: unknown } };
+    return options.transport.options as {
+        api: string; credentials: string;
+        headers: () => Promise<Record<string, string>>;
+        prepareSendMessagesRequest: (input: { messages: unknown[]; id: string; trigger: string }) => unknown;
+    };
 }
 
-/** Ask a question and wait for the answer to land. */
-async function ask(payload = ANSWER, trackLinks = []) {
-    global.fetch = jest.fn(async (url) => {
-        if (String(url).includes("/api/trackLinks")) {
-            return { ok: true, json: async () => ({ links: trackLinks }) };
-        }
-        return { ok: true, json: async () => payload };
+beforeEach(() => { jest.clearAllMocks(); state(); });
+
+describe("sending", () => {
+    it("sends the question through useChat to the artist's chat endpoint on MusicNerdAPI", () => {
+        renderChat();
+        fireEvent.change(screen.getByRole("textbox"), { target: { value: "  Who played drums?  " } });
+        fireEvent.click(screen.getByRole("button", { name: "Submit question" }));
+        expect(sendMessage).toHaveBeenCalledWith({ id: expect.any(String), role: "user", parts: [{ type: "text", text: "Who played drums?" }] });
+        expect(screen.getByRole("textbox")).toHaveValue("");
+        const options = transportOptions();
+        expect(options.api).toBe(musicNerdApiUrl("/api/artist/a1/chat"));
+        expect(options.credentials).toBe("omit");
     });
 
-    const { container } = render(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
-    submit(container);
-    // The answer is deliberately broken across elements — that is the whole
-    // point of the renderer — so assert on the container's text, not on a node.
-    await waitFor(() => expect(container.textContent).toMatch(/co-produced|mixed a record|recently/));
-    return container;
-}
+    it("sends the Privy token when signed in and no Authorization header when signed out", async () => {
+        renderChat();
+        await expect(transportOptions().headers()).resolves.toEqual({ Accept: "text/event-stream; musicnerd-attributed-text=12000", Authorization: "Bearer mock-access-token" });
+        jest.mocked(getAccessToken).mockResolvedValueOnce(null as never);
+        await expect(transportOptions().headers()).resolves.toEqual({ Accept: "text/event-stream; musicnerd-attributed-text=12000" });
+        jest.mocked(getAccessToken).mockRejectedValueOnce(new Error("not ready"));
+        await expect(transportOptions().headers()).resolves.toEqual({ Accept: "text/event-stream; musicnerd-attributed-text=12000" });
+    });
 
-/** The form submits on submit, not on a key press. */
-function submit(container) {
-    const input = screen.getByPlaceholderText(/Ask anything about Pete Rango/i);
-    fireEvent.change(input, { target: { value: "Who has Pete Rango collaborated with?" } });
-    fireEvent.submit(container.querySelector("form"));
-}
+    it("sends only the messages, the body the endpoint accepts", () => {
+        renderChat();
+        const messages = [user("Who played drums?")];
+        expect(transportOptions().prepareSendMessagesRequest({ messages, id: "chat", trigger: "submit-message" }))
+            .toEqual({ body: { messages } });
+    });
+
+    it("sends a suggestion when it is tapped and stops offering it", () => {
+        const { rerender } = renderChat();
+        fireEvent.click(screen.getByRole("button", { name: "How did Pete Rango get started?" }));
+        expect(sendMessage).toHaveBeenCalledWith({ id: expect.any(String), role: "user", parts: [{ type: "text", text: "How did Pete Rango get started?" }] });
+        state({ messages: [user("How did Pete Rango get started?"), assistant([{ type: "text", text: "In a garage." }])] });
+        rerender(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
+        expect(screen.queryByRole("button", { name: "How did Pete Rango get started?" })).not.toBeInTheDocument();
+    });
+
+    it("does not send while an answer is streaming", () => {
+        state({ messages: [user("Q")], status: "submitted" });
+        renderChat();
+        expect(screen.getByRole("button", { name: "Submit question" })).toBeDisabled();
+        expect(screen.queryByRole("button", { name: /get started/ })).not.toBeInTheDocument();
+    });
+});
+
+describe("while the answer streams", () => {
+    it("says what the chat is doing, from the latest tool step", () => {
+        state({ messages: [user("Q")], status: "submitted" });
+        const { rerender } = renderChat();
+        expect(screen.getByRole("status")).toHaveTextContent("Checking Lore…");
+
+        state({ status: "streaming", messages: [user("Q"), assistant([
+            { type: "tool-searchSources", toolCallId: "t1", state: "output-available", input: { query: "drums" },
+                output: { sources: [{ sourceId: "vault:1", title: "Interview on Pitchfork", url: "https://pitchfork.com/a", snippet: "" }] } },
+            { type: "tool-readSource", toolCallId: "t2", state: "input-available", input: { sourceId: "vault:1" } },
+        ])] });
+        rerender(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
+        expect(screen.getByRole("status")).toHaveTextContent("Reading Interview on Pitchfork…");
+        expect(screen.getByRole("log")).toHaveAttribute("aria-busy", "true");
+    });
+
+    it("shows the text as soon as it arrives", () => {
+        state({ status: "streaming", messages: [user("Q"), assistant([source(1), { type: "text", text: "He started in a garage [1" }])] });
+        renderChat();
+        expect(screen.getByTestId("answer")).toHaveTextContent("He started in a garage [1");
+        expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+
+    it("stops the stream with stop() and offers to ask again", async () => {
+        state();
+        const { rerender } = renderChat();
+        fireEvent.change(screen.getByRole("textbox"), { target: { value: "Q" } });
+        fireEvent.click(screen.getByRole("button", { name: "Submit question" }));
+        const sentId = sendMessage.mock.calls[0][0].id;
+        state({ messages: [user("Q", sentId)], status: "submitted" });
+        rerender(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
+        fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+        expect(stop).toHaveBeenCalledTimes(1);
+
+        state({ messages: [user("Q", sentId)], status: "ready" });
+        rerender(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
+        await waitFor(() => expect(screen.getByText("Stopped. You can try again when ready.")).toBeVisible());
+        fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+        expect(regenerate).toHaveBeenCalledTimes(1);
+    });
+});
 
 describe("an answer, rendered", () => {
-    afterEach(() => { jest.restoreAllMocks(); });
+    const ANSWER = "Rango co-produced it with Dame Atlas [Artist Doc, 2, 4] and produced for Kilo Kish [10], on [2026-05-13].";
+    function answered(parts: unknown[] = [source(2, "https://www.discogs.com/release/1"), source(4, "https://open.spotify.com/album/4Kka"),
+        source(10, "https://www.instagram.com/p/ABC/", "Pete Rango on Instagram, 2026-03-23"), source(11)]) {
+        state({ messages: [user("Who has Pete Rango worked with?"), assistant([...parts, { type: "text", text: ANSWER }])] });
+        renderChat();
+        return within(screen.getByTestId("answer"));
+    }
 
-    it('links source-backed handles exactly, including short names, without guessing partial matches', async () => {
-        await ask(answerWith({
-            answer: 'She recently worked with @cxy, @WHOISELI, @liv.corp and @a_b. Not @whoiseli_extra or @madeup.',
-            instagramMentions: ['cxy', 'whoiseli', 'liv.corp', 'a_b'],
-            mentions: [{ name: 'whoiseli', artistId: 'eli' }, { name: 'madeup', instagram: 'madeup' }],
-            songs: [], sources: [],
-        }));
-        const prose = within(screen.getByTestId('answer'));
-        expect(prose.getAllByRole('link')).toHaveLength(4);
-        expect(prose.getByRole('link', { name: '@cxy' })).toHaveAttribute('href', 'https://www.instagram.com/cxy/');
-        expect(prose.getByRole('link', { name: '@WHOISELI' })).toHaveAttribute('href', 'https://www.instagram.com/whoiseli/');
-        expect(prose.getByRole('link', { name: '@liv.corp' })).toHaveAttribute('target', '_blank');
-        expect(prose.queryByRole('link', { name: '@madeup' })).not.toBeInTheDocument();
+    it("turns citation numbers into links to the streamed sources", () => {
+        const prose = answered();
+        expect(prose.getByRole("link", { name: "2" })).toHaveAttribute("href", "https://www.discogs.com/release/1");
+        expect(prose.getByRole("link", { name: "4" })).toHaveAttribute("href", "https://open.spotify.com/album/4Kka");
+        expect(prose.getByRole("link", { name: "10" })).toHaveAttribute("target", "_blank");
     });
 
-    it('keeps malformed handles, emails and URL fragments out of artist and record matching', async () => {
-        await ask(answerWith({ answer: 'She recently mentioned @rush-wrong and rush@example.com and https://example.com/@rush.',
-            instagramMentions: ['rush'], mentions: [{ name: 'rush', instagram: 'rush' }],
-            songs: [{ title: 'rush', spotifyUrl: 'https://open.spotify.com/album/example' }], sources: [] }));
-        const prose = within(screen.getByTestId('answer'));
-        expect(prose.queryByRole('link')).not.toBeInTheDocument();
-        expect(prose.queryByRole('button')).not.toBeInTheDocument();
+    it("drops [Artist Doc] and numbers with no source, and leaves dates alone", () => {
+        const prose = answered([source(2)]);
+        expect(screen.getByTestId("answer").textContent).not.toMatch(/Artist Doc|\[10\]/);
+        expect(prose.getAllByRole("link")).toHaveLength(1);
+        expect(screen.getByTestId("answer")).toHaveTextContent("[2026-05-13]");
+        // The dropped marker takes the space before it, so no " ," is left behind.
+        expect(screen.getByTestId("answer").textContent).toContain("Kilo Kish, on");
     });
 
-    it("turns a citation number into a link to that source", async () => {
-        // They were inert text at body size. Pete: "numbers for the sources
-        // should be so big and should be hyperlinked... better if I could click
-        // the hyperlink to the source where it's mentioned."
-        await ask();
-        // Inside the answer itself, not the summary list underneath — the point
-        // is being able to click the source where the claim is made.
-        const prose = within(screen.getByTestId("answer"));
-        const two = prose.getByTitle("Cast Out Of Hell on Discogs");
-        expect(two).toHaveAttribute("href", "https://www.discogs.com/release/1");
-        expect(two).toHaveTextContent("2");
-        expect(two.closest("sup")).not.toBeNull();   // small, not body size
-        expect(prose.getByTitle("crying on the floor — Spotify")).toHaveAttribute("href", "https://open.spotify.com/album/4Kka");
+    it("lists the cited sources only, dated when they are posts on one site", () => {
+        answered();
+        const pills = screen.getAllByRole("link").filter(a => !within(screen.getByTestId("answer")).queryAllByRole("link").includes(a));
+        expect(pills.map(a => a.textContent)).toEqual(["[2]discogs.com", "[4]open.spotify.com", "[10]instagram.com · Mar 2026"]);
+        expect(screen.getByText("Written by AI from the sources above")).toBeVisible();
     });
 
-    it("drops [Artist Doc] instead of showing an internal label to a reader", async () => {
-        // The artist doc is the one context block handed to the model
-        // unnumbered, so it invents that marker. There is no source behind it
-        // and never can be — the document has no public URL.
-        const container = await ask();
-        expect(container.textContent).not.toMatch(/Artist Doc/);
+    const webSearch = (urls: string[]) => ({ type: "tool-webSearch", toolCallId: "w", state: "output-available", input: { query: "q" },
+        output: { results: urls.map((url, i) => ({ n: i + 1, title: url, url, snippet: "" })) } });
+
+    it("says an answer came from a web search when its sources did", () => {
+        state({ messages: [user("Q"), assistant([webSearch(["https://web.example/1"]), source(1, "https://web.example/1"),
+            { type: "text", text: "On the web [1]." }])] });
+        renderChat();
+        expect(screen.getByText("Written by AI from a web search")).toBeVisible();
     });
 
-    it("drops a citation number we have no source for", async () => {
-        await ask(answerWith({
-            answer: "He mixed a record [2] and another [99].",
-            songs: [], mentions: [],
-        }));
-        const prose = within(screen.getByTestId("answer"));
-        expect(prose.getByTitle("Cast Out Of Hell on Discogs")).toBeInTheDocument();
-        expect(prose.queryByText("99")).not.toBeInTheDocument();
-        // The whole bracket goes, not just the number inside it.
-        expect(screen.getByTestId("answer").textContent).not.toMatch(/\[99\]/);
+    it("says a web search was among the sources when it was one of several", () => {
+        state({ messages: [user("Q"), assistant([source(1), webSearch(["https://web.example/2"]), source(2, "https://web.example/2"),
+            { type: "text", text: "Saved [1] and web [2]." }])] });
+        renderChat();
+        expect(screen.getByText("Written by AI from the sources above, including a web search")).toBeVisible();
     });
 
-    it("preserves bracketed prose and timestamps while linking citations and dropping unknown numbers", async () => {
-        const container = await ask(answerWith({
-            answer: "The note recently says [unverified] and [voice B] on [2026-05-13]; see [2] and [99].",
-            songs: [], mentions: [],
-            sources: [{ n: 2, title: "Source two", url: "https://example.com/source-two" }],
-        }));
-        const prose = within(screen.getByTestId("answer"));
-        expect(container.textContent).toContain("[unverified]");
-        expect(container.textContent).toContain("[voice B]");
-        expect(container.textContent).toContain("[2026-05-13]");
-        expect(prose.getByTitle("Source two")).toHaveAttribute("href", "https://example.com/source-two");
-        expect(container.textContent).not.toContain("[99]");
+    it("does not credit a web search that found nothing", () => {
+        state({ messages: [user("Q"), assistant([webSearch([]), { type: "text", text: "I couldn't find that." }])] });
+        renderChat();
+        expect(screen.getByText("AI-generated response")).toBeVisible();
+        expect(screen.queryByText(/web search/)).not.toBeInTheDocument();
     });
 
-    it("keeps citations in the mixed legacy Artist Doc marker without rendering the private label", async () => {
-        const container = await ask(answerWith({
-            answer: "The credit was recently recorded here [Artist Doc, 2, 4].",
-            songs: [], mentions: [],
-        }));
-        const prose = within(screen.getByTestId("answer"));
-        expect(container.textContent).not.toMatch(/Artist Doc/);
-        expect(prose.getByTitle("Cast Out Of Hell on Discogs")).toHaveTextContent("2");
-        expect(prose.getByTitle("crying on the floor — Spotify")).toHaveTextContent("4");
+    it("shows an error with an explicit retry", () => {
+        state({ messages: [user("Q")], status: "error", error: Object.assign(new Error('{"status":"error","error":"Unknown artist"}'), { statusCode: 404 }) });
+        renderChat();
+        expect(screen.getByRole("alert")).toHaveTextContent("Failed to get an answer. Try again.");
+        fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+        expect(regenerate).toHaveBeenCalledTimes(1);
     });
+});
 
-    it("sends a collaborator already in the directory to their Music Nerd profile", async () => {
-        // Pete: "if we bring up artists that are in our database, it should take
-        // us to their Music Nerd profile."
-        await ask();
-        expect(screen.getByText("Kilo Kish").closest("a")).toHaveAttribute("href", "/artist/kilo-uuid");
-    });
+const typedPassage = (id: string, overrides: Record<string, unknown> = {}) => ({
+    type: "data-attributed-passage",
+    data: { version: 1, id: id.repeat(64), sourceId: `vault:${id}`, revision: "r1", title: "Source", url: "https://example.test/article", text: "QUOTED_CONTENT_NOT_HISTORY", n: 1, coverage: "partial-read", contextIncomplete: true, start: 0, end: "QUOTED_CONTENT_NOT_HISTORY".length, sha256: "e".repeat(64), ...overrides },
+});
+it("follow-up navigation uses only displayed passages without rejected prefixes or quote text", () => {
+    const visible = typedPassage("b");
+    const history = [assistant([
+        typedPassage("a", { url: "javascript:alert(1)", sourceId: "vault:hidden" }),
+        visible,
+        visible,
+        typedPassage("c", { extra: "x".repeat(65536) }),
+    ]), user("What about the first displayed passage?")];
+    const original = JSON.stringify(history);
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: { type: string; data?: Record<string, unknown> }[] }[] } };
+    const navigation = result.body.messages[0].parts.filter(p => p.type === "data-attributed-passage");
+    expect(navigation).toHaveLength(1);
+    expect(navigation[0].data).toMatchObject({ sourceId: "vault:b", displayPosition: 1, start: 0, end: "QUOTED_CONTENT_NOT_HISTORY".length, sha256: "e".repeat(64) });
+    expect(JSON.stringify(result)).not.toMatch(/vault:hidden|QUOTED_CONTENT_NOT_HISTORY|javascript|"extra"|"title"|"url"/);
+    expect(JSON.stringify(history)).toBe(original);
+});
+it("the original PDF-tool privacy strip wins before typed history projection", () => {
+    const history = [assistant([{ type: "tool-readPdfSource", state: "output-available" }, typedPassage("a")]), user("What about that source?")];
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: unknown[] }[] } };
+    expect(result.body.messages[0].parts).toEqual([]);
+});
+it("two physical PDF pages sharing one citation keep their distinct displayed positions and locators", () => {
+    const pdf = {kind:"pdf-page-text",sourceId:"pdf:source",originalSha256:"c".repeat(64),pageSha256:"d".repeat(64),physicalPages:13};
+    const history=[assistant([typedPassage("a",{...pdf,physicalPage:2}),typedPassage("b",{...pdf,physicalPage:10})]),user("What about passage two?")];
+    state({messages:history});renderChat();
+    const result=transportOptions().prepareSendMessagesRequest({messages:history,id:"chat",trigger:"submit-message"}) as {body:{messages:{parts:{type:string;data?:Record<string,unknown>}[]}[]}};
+    const hints=result.body.messages[0].parts.filter(p=>p.type==="data-attributed-passage").map(p=>p.data);
+    expect(hints).toHaveLength(2);expect(hints.map(p=>p?.displayPosition)).toEqual([1,2]);
+    expect(hints.map(p=>p?.physicalPage)).toEqual([2,10]);expect(hints[1]).toMatchObject({sourceId:"pdf:source",originalSha256:pdf.originalSha256,pageSha256:pdf.pageSha256,start:0,end:"QUOTED_CONTENT_NOT_HISTORY".length,sha256:"e".repeat(64)});
+});
 
-    it("sends one who is not to their Instagram, in a new tab", async () => {
-        await ask();
-        const dame = screen.getByText("Dame Atlas").closest("a");
-        expect(dame).toHaveAttribute("href", "https://www.instagram.com/dameatlas/");
-        expect(dame).toHaveAttribute("target", "_blank");
-    });
+it.each([
+    { start: { quote: "PRIVATE_LOCATOR_SENTINEL" } },
+    { end: ["PRIVATE_LOCATOR_SENTINEL"] },
+    { start: "PRIVATE_LOCATOR_SENTINEL" },
+    { sha256: { quote: "PRIVATE_LOCATOR_SENTINEL" } },
+    { sha256: ["PRIVATE_LOCATOR_SENTINEL"] },
+    { sha256: "PRIVATE_LOCATOR_SENTINEL" },
+    { start: -1 },
+    { end: 2401 },
+    { end: 1 },
+])("does not forward or downgrade a malformed supplied locator: %p", overrides => {
+    const history = [assistant([typedPassage("a", overrides)]), user("What about that source?")];
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: { type: string }[] }[] } };
+    expect(result.body.messages[0].parts.filter(p => p.type === "data-attributed-passage")).toEqual([]);
+    expect(JSON.stringify(result)).not.toContain("PRIVATE_LOCATOR_SENTINEL");
+});
 
-    it("does not resolve a song's other services until the title is clicked", async () => {
-        // Two provider lookups per song, on an answer naming three, is most of a
-        // second added to every question for links most readers never open.
-        await ask();
-        const calls = () => (global.fetch as jest.Mock).mock.calls.map(c => String(c[0]));
-        expect(calls().some(u => u.includes("/api/trackLinks"))).toBe(false);
+it.each([false, true])("typed history strips metadata and unknown message fields, including PDF privacy branch=%s", hasPdfTool => {
+    const history = [{ ...assistant([...(hasPdfTool ? [{ type: "tool-readPdfSource" }] : []), typedPassage("a")]), metadata: { private: "PRIVATE_METADATA_SENTINEL" }, unknownField: ["PRIVATE_TOPLEVEL_SENTINEL"] }, user("What about that source?")];
+    const original = JSON.stringify(history);
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: Record<string, unknown>[] } };
+    expect(Object.keys(result.body.messages[0]).sort()).toEqual(["id", "parts", "role"]);
+    expect(JSON.stringify(result)).not.toMatch(/PRIVATE_METADATA_SENTINEL|PRIVATE_TOPLEVEL_SENTINEL|QUOTED_CONTENT_NOT_HISTORY/);
+    expect(JSON.stringify(history)).toBe(original);
+});
 
-        fireEvent.click(screen.getByRole("button", { name: /crying on the floor/i }));
-        await waitFor(() => expect(calls().some(u => u.includes("/api/trackLinks"))).toBe(true));
-    });
+it("omits a PDF navigation record without its locator and retains the next displayed position", () => {
+    const pdf = { kind: "pdf-page-text", sourceId: "pdf:source", originalSha256: "c".repeat(64), pageSha256: "d".repeat(64), physicalPages: 13 };
+    const first = typedPassage("a", { ...pdf, physicalPage: 2 });
+    const withoutLocator = Object.fromEntries(Object.entries(first.data).filter(([key]) => !["start", "end", "sha256"].includes(key)));
+    const history = [assistant([{ ...first, data: withoutLocator }, typedPassage("b", { ...pdf, physicalPage: 10 })]), user("What about passage two?")];
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: { type: string; data?: Record<string, unknown> }[] }[] } };
+    const hints = result.body.messages[0].parts.filter(p => p.type === "data-attributed-passage");
+    expect(hints).toHaveLength(1);
+    expect(hints[0].data).toMatchObject({ displayPosition: 2, physicalPage: 10 });
+});
 
-    it("offers Spotify immediately and the rest once they resolve", async () => {
-        await ask(ANSWER, [{ service: "Apple Music", url: "https://music.apple.com/us/album/x" }]);
-        fireEvent.click(screen.getByRole("button", { name: /crying on the floor/i }));
-
-        expect(screen.getByRole("link", { name: /Spotify/ })).toHaveAttribute("href", "https://open.spotify.com/album/4Kka");
-        await waitFor(() => expect(screen.getByRole("link", { name: /Apple Music/ })).toHaveAttribute("href", "https://music.apple.com/us/album/x"));
-    });
-
-    it("closes on Escape and puts focus back on the title", async () => {
-        // A click-outside handler alone leaves anyone on a keyboard stuck
-        // inside the menu. And closing without restoring focus drops it to
-        // <body>, which is worse than not opening the menu at all.
-        await ask();
-        fireEvent.click(screen.getByRole("button", { name: /crying on the floor/i }));
-        expect(screen.getByRole("group", { name: /where to hear/i })).toBeInTheDocument();
-
-        const title = screen.getByRole("button", { name: /crying on the floor/i });
-        // Pointer clicks do not focus buttons in Safari/macOS. SongLink takes
-        // focus explicitly so Escape still belongs to the menu just opened.
-        expect(title).toHaveFocus();
-        fireEvent.keyDown(title, { key: "Escape" });
-        await waitFor(() => expect(screen.queryByRole("group", { name: /where to hear/i })).not.toBeInTheDocument());
-        expect(title).toHaveFocus();
-    });
-
-    it("Escape closes only the song menu that contains focus", async () => {
-        // Keyboard activation does not fire the mousedown used by the
-        // click-outside path, so two menus can legitimately be open. Their
-        // document listeners must not both handle one Escape press.
-        await ask(answerWith({
-            answer: 'He recently released "First Song" and "Second Song".',
-            sources: [],
-            mentions: [],
-            songs: [
-                { title: "First Song", spotifyUrl: "https://open.spotify.com/album/first" },
-                { title: "Second Song", spotifyUrl: "https://open.spotify.com/album/second" },
-            ],
-        }), [{ service: "Apple Music", url: "https://music.apple.com/us/album/x" }]);
-        const first = screen.getByRole("button", { name: "First Song" });
-        const second = screen.getByRole("button", { name: "Second Song" });
-        fireEvent.click(first);
-        fireEvent.click(second);
-        expect(screen.getByRole("group", { name: /where to hear First Song/i })).toBeInTheDocument();
-        expect(screen.getByRole("group", { name: /where to hear Second Song/i })).toBeInTheDocument();
-        // Let both async provider lookups settle before closing either menu.
-        await waitFor(() => expect(screen.getAllByRole("link", { name: /Apple Music/ })).toHaveLength(2));
-
-        second.focus();
-        fireEvent.keyDown(second, { key: "Escape" });
-        await waitFor(() => expect(screen.queryByRole("group", { name: /where to hear Second Song/i })).not.toBeInTheDocument());
-        expect(screen.getByRole("group", { name: /where to hear First Song/i })).toBeInTheDocument();
-        expect(second).toHaveFocus();
-    });
-
-    it("gives a service with no icon a lettered chip rather than a broken image", async () => {
-        // Apple Music has no file in public/siteIcons. A missing icon must read
-        // as deliberate next to the others, not as a hole or a broken <img>.
-        await ask(ANSWER, [{ service: "Apple Music", url: "https://music.apple.com/us/album/x" }]);
-        fireEvent.click(screen.getByRole("button", { name: /crying on the floor/i }));
-
-        const apple = await screen.findByRole("link", { name: /Apple Music/ });
-        expect(apple.querySelector("img")).toBeNull();
-        expect(apple.textContent).toContain("A");
-    });
-
-    it("still closes on a click elsewhere", async () => {
-        // The mousedown path is untouched by the Escape work, but it is the
-        // way most people close this and nothing was holding it.
-        await ask();
-        fireEvent.click(screen.getByRole("button", { name: /crying on the floor/i }));
-        expect(screen.getByRole("group", { name: /where to hear/i })).toBeInTheDocument();
-
-        fireEvent.mouseDown(document.body);
-        await waitFor(() => expect(screen.queryByRole("group", { name: /where to hear/i })).not.toBeInTheDocument());
-    });
-
-    it("calls Bandcamp the artist's page, because that is all it is", async () => {
-        // Bandcamp has no API. Claiming this link is the RECORD would send a
-        // fan to a store page for a different one.
-        await ask();
-        fireEvent.click(screen.getByRole("button", { name: /crying on the floor/i }));
-        // The caveat is a second line under the icon now rather than one text
-        // node, so assert the ACCESSIBLE NAME — what a reader actually gets —
-        // instead of the markup that happens to carry it.
-        // STRICT ABOUT THE BRACKETS. The old matcher allowed anything between
-        // the two words, so it passed even when the accessible name collapsed
-        // to "Bandcampartist page" with no boundary at all.
-        const link = screen.getByRole("link", { name: /Bandcamp\s*\(artist page\)/i });
-        expect(link).toHaveAttribute("href", "https://peterango.bandcamp.com");
-    });
-
-    it("keeps the song a plain button when the lookup fails", async () => {
-        global.fetch = jest.fn(async (url) => {
-            if (String(url).includes("/api/trackLinks")) throw new Error("offline");
-            return { ok: true, json: async () => ANSWER };
-        });
-        const { container } = render(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
-        submit(container);
-        await waitFor(() => expect(container.textContent).toMatch(/co-produced/));
-
-        fireEvent.click(screen.getByRole("button", { name: /crying on the floor/i }));
-        // A failed lookup must not take away the link we already had.
-        await waitFor(() => expect(screen.getByText("Spotify")).toBeInTheDocument());
-    });
-
-    it("says an answer came from the web when it did", async () => {
-        await ask(answerWith({
-            answer: "He co-produced a record recently.",
-            sources: [], mentions: [], songs: [],
-            fromOpenWeb: true, webDomains: ["stereogum.com"],
-        }));
-        expect(screen.getByText(/answered from the web/i)).toBeInTheDocument();
-        expect(screen.getByText("stereogum.com")).toBeInTheDocument();
-    });
+it("retains intentional legacy text navigation without inventing a locator", () => {
+    const first = typedPassage("a");
+    const withoutLocator = Object.fromEntries(Object.entries(first.data).filter(([key]) => !["start", "end", "sha256"].includes(key)));
+    const history = [assistant([{ ...first, data: withoutLocator }]), user("What about passage one?")];
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: { type: string; data?: Record<string, unknown> }[] }[] } };
+    expect(result.body.messages[0].parts.find(p => p.type === "data-attributed-passage")?.data).toEqual({ version: 1, sourceId: "vault:a", revision: "r1", displayPosition: 1 });
 });

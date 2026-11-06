@@ -2,6 +2,9 @@
 import { jest } from "@jest/globals";
 jest.mock('@/server/utils/activity/recordArtistActivity', () => ({ recordArtistActivity: jest.fn().mockResolvedValue('activity-1') }));
 
+const mockVerifyPair = jest.fn(async () => false);
+jest.mock('@/server/utils/providerIdentity/hasVerifiedDeezerPair', () => ({ hasVerifiedDeezerPair: (...a) => mockVerifyPair(...a) }));
+
 const mockWebSearch = jest.fn();
 jest.mock("@/server/utils/webSearch", () => ({
   webSearch: (...a) => mockWebSearch(...a),
@@ -75,6 +78,7 @@ const hit = (url, title = "A Grimes Interview") => ({ url, title, snippet: "s" }
 describe("searchAndPopulateVault", () => {
   beforeEach(() => {
     jest.resetModules();
+    mockVerifyPair.mockReset(); mockVerifyPair.mockResolvedValue(false);
     mockWebSearch.mockReset();
     mockWebSearch.mockResolvedValue([]);
     // Reset per test: a leaked MusicBrainz result feeds URLs into whatever
@@ -97,6 +101,35 @@ describe("searchAndPopulateVault", () => {
     mockSetLink.mockReset(); mockSetLink.mockResolvedValue({});
     mockJudge.mockReset();
     mockJudge.mockImplementation(async (_anchor, candidates) => new Map(candidates.map(c => [c.url, "undecided"])));
+  });
+
+  it.each(['spotify', 'deezer'])('does not save an uncorroborated %s even when the relevance judge approves', async platform => {
+    const id = platform === 'spotify' ? 'A'.repeat(22) : '87797542';
+    const url = platform === 'spotify' ? `https://open.spotify.com/artist/${id}` : `https://www.deezer.com/artist/${id}`;
+    mockGetArtist.mockResolvedValue({ id: 'a1', name: 'Grimes', spotify: null, deezer: null });
+    mockExtract.mockImplementation(async u => u === url ? { siteName: platform, id } : undefined);
+    mockJudge.mockImplementation(async (_a, candidates) => new Map(candidates.map(c => [c.url, 'about-artist'])));
+    mockWebSearch.mockResolvedValue([hit(url), hit('https://example.com/interview')]);
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await searchAndPopulateVault('a1');
+    expect(mockSetLink.mock.calls.filter(c => c[1] === platform)).toEqual([]);
+    expect(mockInsert.mock.calls.map(c => c[0].url)).toContain('https://example.com/interview');
+  });
+
+  it.each(['spotify', 'deezer'])('passes corroborated %s evidence to the shared writer', async platform => {
+    const spotify = 'A'.repeat(22), deezer = '87797542';
+    const id = platform === 'spotify' ? spotify : deezer;
+    const url = platform === 'spotify' ? `https://open.spotify.com/artist/${id}` : `https://www.deezer.com/artist/${id}`;
+    mockGetArtist.mockResolvedValue({ id: 'a1', name: 'Grimes', spotify: platform === 'spotify' ? null : spotify, deezer: platform === 'deezer' ? null : deezer });
+    mockVerifyPair.mockResolvedValue(true);
+    mockExtract.mockImplementation(async u => u === url ? { siteName: platform, id } : undefined);
+    mockJudge.mockImplementation(async (_a, candidates) => new Map(candidates.map(c => [c.url, 'about-artist'])));
+    mockWebSearch.mockResolvedValue([hit(url), hit('https://example.com/interview')]);
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await searchAndPopulateVault('a1');
+    expect(mockSetLink).toHaveBeenCalledWith('a1', platform, id, undefined, undefined,
+      {spotifyId: spotify, deezerId: deezer, ...(platform === 'spotify' ? {previousSpotifyId: null} : {previousDeezerId: null})});
+    expect(mockInsert.mock.calls.map(c => c[0].url)).toContain('https://example.com/interview');
   });
 
   // ---- Retrieval ---------------------------------------------------------

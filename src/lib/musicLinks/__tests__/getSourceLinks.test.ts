@@ -22,7 +22,7 @@ describe('getSourceLinks', () => {
       ['peterango.com', 'website'], ['Apple Music', 'artist'], ['Beatport', 'artist'],
     ]);
     expect(JSON.stringify(sources)).toBe(original);
-    expect(sources.filter(isDestinationSource)).toHaveLength(3);
+    expect(sources.filter(source => isDestinationSource(source))).toHaveLength(3);
   });
   it('separates support destinations for the support section and onboarding prompt', () => {
     expect(getSourceLinks([...sources, source('support-artist', 'https://peterango.bandcamp.com/')], [], 'support')).toEqual([expect.objectContaining({sourceId: 'support-artist', label: 'Bandcamp'})]);
@@ -30,7 +30,7 @@ describe('getSourceLinks', () => {
   it('keeps Subvert policy and update sources out of Support and artist Listen candidates', () => {
     const information = ['changelog', 'privacy-policy', 'terms-of-use'].map(slug =>
       source(slug, `https://subvert.fm/${slug}/`, 'article'));
-    expect(information.some(isDestinationSource)).toBe(false);
+    expect(information.some(source => isDestinationSource(source))).toBe(false);
     expect(getSourceLinks(information, [], 'support')).toEqual([]);
     expect(getSourceLinks(information)).toEqual([]);
   });
@@ -82,13 +82,13 @@ it.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('keeps explicitly audio
 
 it('keeps accepted HTTP websites and catalog sources visible in Links', () => {
   const records = [source('site', 'http://peterango.com/', 'website'), source('apple', 'http://music.apple.com/us/artist/pete-rango/1513734272', 'profile')];
-  expect(records.every(isDestinationSource)).toBe(true);
+  expect(records.every(source => isDestinationSource(source))).toBe(true);
   expect(getSourceLinks(records).map(link => link.href)).toEqual(records.map(record => record.url));
 });
 
 it('keeps the audited provider information sources out of Links, Support and Listen candidates', () => {
   const records = providerInformationUrls.map((url,id) => source(String(id),url,'article'));
-  expect(records.filter(isDestinationSource)).toEqual([]);
+  expect(records.filter(source => isDestinationSource(source))).toEqual([]);
   expect(getSourceLinks(records)).toEqual([]);
   expect(getSourceLinks(records, [], 'support')).toEqual([]);
 });

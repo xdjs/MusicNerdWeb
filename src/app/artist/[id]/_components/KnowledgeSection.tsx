@@ -5,6 +5,7 @@ import { ChevronDown, Check, Pencil, X, ExternalLink, Undo2, Loader2, RefreshCw,
 import { getAccessToken } from "@privy-io/react-auth";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
+import { downloadKnowledgeDoc } from "@/lib/source/downloadKnowledgeDoc";
 import RevealSection from "./RevealSection";
 import { useResearchPump } from "./onboarding/useResearchPump";
 import { getKnowledgeDoc, correctDocClaim, undoDocCorrection } from "@/app/actions/dashboardActions";
@@ -308,6 +309,16 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
         setRefreshing(false);
     };
 
+    /** The export needs the Privy token on MusicNerdAPI, so it is fetched and saved rather than linked. */
+    const handleDownload = async () => {
+        setError(null);
+        try {
+            await downloadKnowledgeDoc(artistId);
+        } catch (cause) {
+            setError(cause instanceof Error ? cause.message : "Download failed. Please try again.");
+        }
+    };
+
     const shell = (children: React.ReactNode) => (
         <div hidden={!!suspendedEditMode} inert={!!suspendedEditMode}><RevealSection editable className="glass p-4 sm:p-5 space-y-3">
             <details className="group">
@@ -329,14 +340,15 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
                           * structure and its citations intact. The sources are
                           * resolved inside the file, so [7] still means
                           * something wherever it ends up. */}
-                        {hasDoc && <a
-                            href={`/api/artist/${artistId}/knowledge-doc/export`}
+                        {hasDoc && <button
+                            type="button"
+                            onClick={handleDownload}
                             className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border border-black/10 dark:border-white/15 text-gray-600 dark:text-gray-400 hover:border-black/25 dark:hover:border-white/30"
                             title="Download as markdown, with sources — ready to hand to another AI"
                         >
                             <Download size={12} />
                             Download
-                        </a>}
+                        </button>}
                     </div>
             </div>
             {refreshNote && (

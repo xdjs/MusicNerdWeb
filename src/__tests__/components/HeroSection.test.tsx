@@ -3,6 +3,11 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { OnboardingProgressContext } from '@/app/artist/[id]/_components/onboarding/OnboardingProgressContext';
 import HeroSection from '@/app/artist/[id]/_components/HeroSection';
+import { trackEvent } from '@/lib/analytics/trackEvent';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: jest.fn() }));
+const toast = jest.fn();
+jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }));
 const researchNone = { profiles: null, vault: null, interview: null, publish: null };
 const research = (over = {}) => ({ steps: researchNone, currentStep: null, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over });
 
@@ -49,8 +54,19 @@ describe('Museum hero', () => {
     const { container } = renderWith(true, refreshProfile);
     fireEvent.change(container.querySelector('input[type=file]')!, { target: { files: [new File(['image'], 'portrait.png', { type: 'image/png' })] } });
     await waitFor(() => expect(container.querySelector('[data-artist-portrait]')).toBeInTheDocument());
-    expect(fetchMock).toHaveBeenCalledWith('/api/artist/profile-image', expect.objectContaining({ method: 'POST', body: expect.any(FormData) }));
+    expect(fetchMock).toHaveBeenCalledWith(musicNerdApiUrl('/api/artist/profile-image'), expect.objectContaining({ method: 'POST', body: expect.any(FormData), headers: { Authorization: 'Bearer mock-access-token' }, credentials: 'omit' }));
     expect(refreshProfile).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('profile_edit', { action: 'photo', target: null });
+    fetchMock.mockRestore();
+  });
+  it('keeps the current photo and sends no analytics when the upload is refused', async () => {
+    (trackEvent as jest.Mock).mockClear();
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: false, json: async () => ({ status: 'error', error: 'Not authorized for this artist' }) } as Response);
+    const { container } = renderWith(true);
+    fireEvent.change(container.querySelector('input[type=file]')!, { target: { files: [new File(['image'], 'portrait.png', { type: 'image/png' })] } });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'Not authorized for this artist', variant: 'destructive' })));
+    expect(container.querySelector('[data-artist-portrait]')).not.toBeInTheDocument();
+    expect(trackEvent).not.toHaveBeenCalled();
     fetchMock.mockRestore();
   });
 });
@@ -85,7 +101,7 @@ it('refreshes all server-provided portrait consumers after provider selection', 
 describe('Hero About while research writes it', () => {
   it('shows text-line skeletons in place of the About until the publish step is confirmed', () => {
     const steps = { profiles: 't1', vault: 't2', interview: null, publish: null };
-    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'interview' })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="Music from Miami." /></OnboardingProgressContext.Provider>);
+    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'interview' })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" /></OnboardingProgressContext.Provider>);
     const status = screen.getByRole('status', { name: 'writing your about…' });
     expect(status.querySelectorAll('[data-skeleton=line]')).toHaveLength(3);
     expect(screen.queryByText('Music from Miami.')).toBeNull();
@@ -93,14 +109,14 @@ describe('Hero About while research writes it', () => {
 
   it('draws the About skeleton in the portrait hero\'s white text', () => {
     const steps = { profiles: 't1', vault: 't2', interview: null, publish: null };
-    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'interview' })}><HeroSection imageUrl="/portrait.jpg" artistName="Nova" artistId="a1" hasPortrait bio="Music from Miami." /></OnboardingProgressContext.Provider>);
+    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'interview' })}><HeroSection imageUrl="/portrait.jpg" artistName="Nova" artistId="a1" hasPortrait /></OnboardingProgressContext.Provider>);
     expect(screen.getByRole('status', { name: 'writing your about…' }).closest('#mn-about')).toHaveClass('text-white');
   });
 
   it('marks the About as new when it arrives', () => {
     const steps = { profiles: 'a', vault: 'b', interview: 'c', publish: 'c' };
     render(<OnboardingProgressContext.Provider value={research({ steps, fresh: { profiles: false, vault: false, publish: true } })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="Music from Miami." /></OnboardingProgressContext.Provider>);
-    expect(screen.getByText('New About')).toBeInTheDocument();
+    expect(screen.getByText('About ready')).toBeInTheDocument();
     expect(screen.getByText('Music from Miami.')).toBeInTheDocument();
   });
 });
@@ -139,4 +155,15 @@ it('keeps a successfully saved crop on Done before refreshed props arrive', asyn
   rerender(view(false, 70));
   expect(screen.getByAltText('Test')).toHaveStyle({ objectPosition: '50% 70%' });
   fetchMock.mockRestore();
+});
+
+it('keeps the saved About readable throughout setup and completion without claiming a new draft', () => {
+  const view = (complete: boolean) => <OnboardingProgressContext.Provider value={research({ currentStep: complete ? null : 'interview', complete, steps: complete ? { profiles: 'a', vault: 'b', interview: 'c', publish: 'd' } : researchNone, fresh: { profiles: false, vault: false, publish: complete } })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="My saved words." /></OnboardingProgressContext.Provider>;
+  const { rerender } = render(view(false));
+  expect(screen.getByText('My saved words.')).toBeVisible();
+  expect(screen.queryByRole('status', { name: 'writing your about…' })).not.toBeInTheDocument();
+  rerender(view(true));
+  expect(screen.getByText('My saved words.')).toBeVisible();
+  expect(screen.queryByText('New About')).not.toBeInTheDocument();
+  expect(screen.getByText('About ready')).toBeVisible();
 });

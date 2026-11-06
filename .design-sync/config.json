@@ -41,7 +41,6 @@
     "Textarea": "src/components/ui/textarea.tsx",
     "Toast": "src/components/ui/toast.tsx",
     "Tooltip": "src/components/ui/tooltip.tsx",
-    "BookmarkButton": "src/app/_components/BookmarkButton.tsx",
     "EditModeToggle": "src/app/_components/EditModeToggle.tsx",
     "Footer": "src/app/_components/Footer.tsx",
     "LoadingPage": "src/app/_components/LoadingPage.tsx",
@@ -56,7 +55,6 @@
   "docsMap": {
     "AspectRatio": ".design-sync/groups/AspectRatio.md",
     "Badge": ".design-sync/groups/Badge.md",
-    "BookmarkButton": ".design-sync/groups/BookmarkButton.md",
     "Button": ".design-sync/groups/Button.md",
     "Calendar": ".design-sync/groups/Calendar.md",
     "Card": ".design-sync/groups/Card.md",

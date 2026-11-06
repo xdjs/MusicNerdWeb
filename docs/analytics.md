@@ -65,23 +65,22 @@ lower-case tokens; free text appears only where the table says so.
 | `outbound_click` | Any click on an off-site link on an artist page (`OutboundClickTracker`, one delegated listener) | `platform` = from the hostname (`spotify`, `instagram`, `bandcamp`, `inprocess`, …; `vault` for a source file on Supabase storage; else the bare hostname); `surface` = a `data-analytics-surface` on the nearest ancestor (dialogs are portalled out of their section: `latest`, `listen`, `ask`), else the enclosing `mn-*` section id (`about`, `latest`, `links`, `lore`, `sources`, `knowledge`), else `page` | client | Which platforms we send people to, and whether Latest and Ask deliver a listen |
 | `add_link_submit` | A visitor's add-link form resolves (`AddArtistData.tsx`, non-owner path) | `platform` = site name from the response or `null`; `result` = `success` · `invalid` · `error` | client | Are listeners contributing, and where the flow fails |
 | `claim` | Each step of the claim flow (`ClaimButton.tsx`) | `step` = `start` · `login_required` · `submitted` · `already_claimed` · `error` | client | The artist funnel's front door; `start` → `submitted` is the drop-off |
-| `ask_question` | The Ask route returns (`api/askArtist`) | `outcome` = `answered` (from our sources) · `open_web` (Gemini fell back to the open web) · `error`; `sources` = number of cited sources | server | Is Ask used, and does our research answer it? A high `open_web` rate for an artist means their research is thin |
+| `ask_question` | An Ask answer finishes streaming or fails (`AskAboutArtist.tsx`, `useChat` on MusicNerdAPI's `/api/artist/{id}/chat`); a quota notice or a stopped stream sends nothing | `outcome` = `answered` (from our sources) · `open_web` (the answer ran the chat's web search) · `error`; `sources` = number of cited sources | client | Is Ask used, and does our research answer it? A high `open_web` rate for an artist means their research is thin |
 | `latest_card_open` | A Latest card dialog opens (`LatestCards.tsx`) | `kind` = `release` · `instagram` · `interview` · `moment`; `filter` = the active tab | client | Which content kind earns a click |
-| `interview_answer` | An artist saves or skips an interview question (`actions/interviewActions.ts`) | `question` = the question key; `skipped` = true when saved without an answer | server | Are claimed artists producing "In their words" |
 | `profile_edit` | A claimed artist changes their profile | `action` = `link_add` · `link_remove` · `reorder` · `photo` · `vault_upload` · `dismiss`; `target` = platform for link actions, else `null` | server | Do artists maintain their profile after claiming |
 | `login` | A NextAuth session is created after Privy login and the page reloads (`PrivyLogin.tsx`) | `trigger` = which surface asked for login (`nav`, `search_add`, `add_link`, `claim`, `add_artist`, `dashboard`, `please_login`); `new` = Privy's `isNewUser` | client | What converts a visitor into an account; new vs returning |
 | `add_artist` | The nav **+** is clicked, signed in or not (`nav/AddArtist.tsx`), or a search result's "Add to MusicNerd" is chosen, before any login (`nav/SearchBar.tsx`) → `start`; that add resolves → exactly one of `added` · `exists` · `error`, even if the visitor closed the dialog first (a possible duplicate sends nothing until the visitor chooses) | `surface` = `nav` · `search`; `step` = `start` · `added` · `exists` · `error` | client | Do people add artists from search or the **+**, and how many who start an add finish it (`start` minus resolved = abandoned)? |
 | `check_for_updates` | An editor clicks **Update Latest** ("Check for updates") in edit mode (`LatestRefreshControl.tsx`) | `outcome` = `started` (the normal case; a click while a check is running returns that check) · `error` (rare: the session ended, edit rights changed, or the request failed; during the cooldown the button is disabled, so it never sends `error`) | client | How often artists check their sources for new updates |
 
-Fire points for `profile_edit`: `api/directEditLink` (`set` → `link_add`, `clear` → `link_remove`),
-`api/removeArtistData` (`link_remove`), `api/artist/link-order` (`reorder`),
-`api/artist/profile-image` and `api/artist/photo-choice` (`photo`), `api/vault/upload/complete` (`vault_upload`),
+Fire points for `profile_edit`: the browser, after MusicNerdAPI answers 200: `AddArtistData.tsx`
+(`directEditLink` `set` that changed the link → `link_add`), `EditableLinkIcon.tsx` (`directEditLink` `clear` → `link_remove`),
+`EditablePlatformLink.tsx` (`removeArtistData` → `link_remove`), `SortableArtistLinks.tsx` (`artist/link-order` → `reorder`),
+`HeroSection` and `ArtistPhotoChoice` after a photo upload or photo choice (`photo`), `VaultManager` after `vault/upload/complete` (`vault_upload`),
 `actions/dismissLegacyLink` (`dismiss`).
 
 Deviations from the approved table, because of what the code knows at the fire point:
 `ask_question.outcome` distinguishes `open_web` (the route already tracks its fallback);
-`interview_answer` reports the question key and a skipped flag rather than a sitting number,
-which the action hard-codes; `claim` has no `via` because `ClaimButton` is its only caller.
+`claim` has no `via` because `ClaimButton` is its only caller.
 
 What is deliberately **not** sent: the Ask question text, the submitted link URL, any email,
 session or user id, artist source content. `search.query` is the one free-text property and is

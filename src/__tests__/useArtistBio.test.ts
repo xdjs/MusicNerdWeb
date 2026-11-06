@@ -1,6 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useArtistBio } from '@/hooks/useArtistBio';
 
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
+
 // Mock fetch
 global.fetch = jest.fn();
 
@@ -9,6 +11,16 @@ describe('useArtistBio', () => {
     jest.clearAllMocks();
     // Clear localStorage
     localStorage.clear();
+  });
+
+  it('honors an explicitly hidden server bio over cached legacy text without fetching', () => {
+    localStorage.setItem('musicnerd_bio_cache', JSON.stringify({
+      'test-artist-id': { bio: 'PRIVATE LEGACY TEXT', timestamp: Date.now() },
+    }));
+    const { result } = renderHook(() => useArtistBio('test-artist-id', ''));
+    expect(result.current.bio).toBe('');
+    expect(result.current.loading).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('should fetch bio on first call', async () => {
@@ -28,7 +40,7 @@ describe('useArtistBio', () => {
     });
 
     expect(result.current.bio).toBe(mockBio);
-    expect(fetch).toHaveBeenCalledWith('/api/artistBio/test-artist-id');
+    expect(fetch).toHaveBeenCalledWith('https://api-preview.test/api/artistBio/test-artist-id', { credentials: 'omit', cache: 'no-store' });
   });
 
   it('should strip markdown citations from a server-provided bio', () => {

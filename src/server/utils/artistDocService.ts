@@ -522,7 +522,7 @@ export async function synthesizeFallbackAbout(artistId: string, artistName: stri
     return stripCitationMarkers(raw).slice(0, MAX_BIO_LENGTH);
 }
 
-/** Capped doc slice for prompt injection (askArtist / funFacts / bio). Null when no doc. */
+/** Capped doc slice for prompt injection (askArtist / bio). Null when no doc. */
 /**
  * Rebuild the knowledge document from the artist's CURRENT sources.
  *
@@ -578,9 +578,9 @@ export async function generateLoreSummary(artistId: string): Promise<LoreSummary
 export async function getArtistDocContext(artistId: string): Promise<string | null> {
     const doc = await getArtistDoc(artistId);
     if (!doc?.content) return null;
-    // This context feeds funFacts/askArtist prompt injection, whose OUTPUT is
+    // This context feeds askArtist prompt injection, whose OUTPUT is
     // user-facing — a model handed "...influences[14]." has no source list to
-    // resolve [14] against and will just echo the bracket into a fun fact or
+    // resolve [14] against and will just echo the bracket into a
     // chat answer. Citations belong to the doc-as-artifact and the About
     // review UI, not to every downstream consumer of this slice. Strip
     // BEFORE the length cap (not after) — stripping never lengthens text, but

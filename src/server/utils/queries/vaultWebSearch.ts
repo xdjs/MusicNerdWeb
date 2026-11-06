@@ -1,3 +1,4 @@
+import { setAutomaticCatalogLink } from '../providerIdentity/setAutomaticCatalogLink';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { insertVaultSource, getVaultSourcesByArtistId } from "./dashboardQueries";
 import { getArtistById } from "./artistQueries";
@@ -446,7 +447,11 @@ async function writeArtistLink(
      *  ones nobody has hit yet. */
     record?: Record<string, unknown>,
 ): Promise<void> {
-    await setArtistLink(artistId, siteName, value);
+    if (siteName === 'spotify' || siteName === 'deezer') {
+        await setAutomaticCatalogLink(artistId, siteName, value);
+    } else {
+        await setArtistLink(artistId, siteName, value);
+    }
     provisional?.delete(siteName);
     if (record) record[siteName] = value;
 }

@@ -19,6 +19,7 @@ const mockEvents = [
 // Static import of ActivityFeed — no resetModules needed since the component
 // has no module-level side effects that require re-initialization.
 import ActivityFeed from "../ActivityFeed";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 describe("ActivityFeed", () => {
     beforeEach(() => {
@@ -30,7 +31,7 @@ describe("ActivityFeed", () => {
     it("shows empty state before data loads", async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
-            json: async () => [],
+            json: async () => ({ status: "ok", events: [] }),
         });
 
         await act(async () => { render(<ActivityFeed />); });
@@ -41,7 +42,7 @@ describe("ActivityFeed", () => {
     it("renders events after initial fetch", async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
-            json: async () => mockEvents,
+            json: async () => ({ status: "ok", events: mockEvents }),
         });
 
         await act(async () => { render(<ActivityFeed />); });
@@ -51,12 +52,13 @@ describe("ActivityFeed", () => {
             expect(screen.getByText("SENTO")).toBeTruthy();
             expect(screen.getByText("Taylor Swift")).toBeTruthy();
         });
+        expect(global.fetch).toHaveBeenCalledWith(musicNerdApiUrl("/api/activity"), { credentials: "omit" });
     });
 
     it("renders artist names as links to artist pages", async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
-            json: async () => mockEvents,
+            json: async () => ({ status: "ok", events: mockEvents }),
         });
 
         await act(async () => { render(<ActivityFeed />); });
@@ -71,7 +73,7 @@ describe("ActivityFeed", () => {
     it("shows live indicator", async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
-            json: async () => [],
+            json: async () => ({ status: "ok", events: [] }),
         });
 
         await act(async () => { render(<ActivityFeed />); });
@@ -82,7 +84,7 @@ describe("ActivityFeed", () => {
     it("has aria-live region for accessibility", async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
-            json: async () => mockEvents,
+            json: async () => ({ status: "ok", events: mockEvents }),
         });
 
         await act(async () => { render(<ActivityFeed />); });
@@ -97,7 +99,7 @@ describe("ActivityFeed", () => {
     it("has aria-live region even when empty", async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
-            json: async () => [],
+            json: async () => ({ status: "ok", events: [] }),
         });
 
         await act(async () => { render(<ActivityFeed />); });
@@ -128,7 +130,7 @@ describe("ActivityFeed", () => {
 
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
-            json: async () => many,
+            json: async () => ({ status: "ok", events: many }),
         });
 
         await act(async () => { render(<ActivityFeed />); });
@@ -157,7 +159,7 @@ describe("ActivityFeed", () => {
 
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
-            json: async () => four,
+            json: async () => ({ status: "ok", events: four }),
         });
 
         await act(async () => { render(<ActivityFeed />); });
@@ -173,7 +175,7 @@ describe("ActivityFeed", () => {
     it("does not divide by zero when only one row is returned", async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
-            json: async () => [mockEvents[0]],
+            json: async () => ({ status: "ok", events: [mockEvents[0]] }),
         });
 
         await act(async () => { render(<ActivityFeed />); });
@@ -189,10 +191,10 @@ describe("ActivityFeed", () => {
 });
 
 it('identifies claimed-owner additions and updates as self-edits', async () => {
-    global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [
+    global.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'ok', events: [
         { type: 'self_edit_added', artistId: 'owner1', artistName: 'Owner One', platform: 'instagram', createdAt: '2026-09-16T12:00:00Z' },
         { type: 'self_edit_updated', artistId: 'owner2', artistName: 'Owner Two', platform: 'bandcamp', createdAt: '2026-09-16T12:01:00Z' },
-    ] });
+    ] }) });
     await act(async () => { render(<ActivityFeed />); });
     expect(screen.getByRole('link', { name: /Instagram link added by Owner One to their profile/ })).toHaveAttribute('href', '/artist/owner1');
     expect(screen.getByRole('link', { name: /Bandcamp link updated by Owner Two on their profile/ })).toHaveAttribute('href', '/artist/owner2');

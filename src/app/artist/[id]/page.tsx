@@ -1,13 +1,14 @@
+import { getTrustedLoreSourceIds } from '@/server/utils/queries/getTrustedLoreSourceIds';
+import { projectPublicLoreSources } from '@/lib/sources/projectPublicLoreSources';
 import { getPublicArtistAbout } from '@/server/utils/bio/getPublicArtistAbout';
 import DirectoryDiscoveryObserver from "./_components/DirectoryDiscoveryObserver";
 import { publicLinkRevision } from "@/server/utils/directoryDiscovery/publicLinkRevision";
 import { projectUnclaimedProfile } from '@/lib/artist/projectUnclaimedProfile';
-import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { getPublicSavedBio } from '@/server/utils/bio/getPublicSavedBio';
 import { getHiddenLinkSourceIds } from "@/server/utils/artistLinkReview/getHiddenLinkSourceIds";
 import { getConflictingMusicSourceIds } from "@/server/utils/musicLinks/getConflictingMusicSourceIds";
 import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
-import { absoluteImageUrl } from "@/lib/artist/absoluteImageUrl";
 import { customImageUrl } from "@/lib/artist/customImageUrl";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
 import { getServerAuthSession } from "@/server/auth";
@@ -25,21 +26,16 @@ import SeoArtistLinks from "./_components/SeoArtistLinks";
 import ArtistJsonLd from "./_components/ArtistJsonLd";
 import OnboardingGate from "./_components/onboarding/OnboardingGate";
 import ProfileTour from "./_components/onboarding/ProfileTour";
-import { isInterviewPreviewEnabled } from "@/lib/interview/isInterviewPreviewEnabled";
-import InterviewPreview from "@/app/dev/interview-preview/InterviewPreview";
-import InterviewOffer from "./_components/onboarding/InterviewOffer";
 import ApiInterview from "./_components/onboarding/ApiInterview";
-import { MUSICNERD_API_INTERVIEWER_ENABLED } from "@/env";
 import { fetchOnboardingState } from "@/server/utils/onboarding/fetchOnboardingState";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
-import { isRealBio } from "@/lib/bio/bioConstants";
 import { getProfileLinks } from "@/lib/artist/artistProfileLinks";
 import { getSourceLinks } from "@/lib/musicLinks/getSourceLinks";
 import ProfileTourPreview from "./_components/onboarding/ProfileTourPreview";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
-    searchParams?: Promise<{ addLink?: string | string[]; interviewPreview?: string; tourPreview?: string }>;
+    searchParams?: Promise<{ addLink?: string | string[]; tourPreview?: string }>;
 }
 
 function getAddLinkPrefill(addLink: string | string[] | undefined): string | undefined {
@@ -60,11 +56,9 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
         };
     }
 
-    const platformImage = await musicPlatformData.getArtistPortrait(artist);
-    const ownImage = customImageUrl(artist.customImage);
-    const imageUrl = ownImage
-        ? absoluteImageUrl(ownImage)
-        : platformImage || "https://musicnerd.net/default_pfp_pink.png";
+    const imageOrigin = process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}` : 'https://musicnerd.net';
+    const imageUrl = `${imageOrigin}/artist/${encodeURIComponent(id)}/share-image?v=3`;
     const artistName = artist.name ?? "Unknown Artist";
 
     // The artist's own About, when one has been written, rather than the
@@ -73,9 +67,9 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
     // search result shows, what a shared link previews as, and what an
     // assistant quotes, and it says nothing about the artist. The About is
     // right there and is the best 160 characters we have.
-    const publicClaim = await getLoreClaimGeneration(id);
-    const directoryAbout = publicClaim ? null : await getPublicArtistAbout(id);
-    const publicBio = publicClaim && isRealBio(artist.bio) ? artist.bio : directoryAbout?.bio;
+    const savedPublicBio = await getPublicSavedBio(id);
+    const directoryAbout = savedPublicBio ? null : await getPublicArtistAbout(id);
+    const publicBio = savedPublicBio ?? directoryAbout?.bio;
     const description = publicBio
         ? summarize(publicBio)
         : `Discover ${artistName}'s social links and streaming profiles on Music Nerd.`;
@@ -101,9 +95,9 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
             images: [
                 {
                     url: imageUrl,
-                    width: 640,
-                    height: 640,
-                    alt: `${artistName} profile image`,
+                    width: 1200,
+                    height: 630,
+                    alt: `${artistName} on Music Nerd`,
                 },
             ],
         },
@@ -130,7 +124,6 @@ function summarize(bio: string, max = 300): string {
 export default async function ArtistProfile({ params, searchParams }: ArtistProfileProps) {
     const { id } = await params;
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
-    const interviewPreview = isInterviewPreviewEnabled() && resolvedSearchParams?.interviewPreview === "1";
     const tourPreview = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview')
         && resolvedSearchParams?.tourPreview === "1";
     const addLinkPrefill = getAddLinkPrefill(resolvedSearchParams?.addLink);
@@ -142,13 +135,16 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     if (!artist) {
         return notFound();
     }
-    const [platformImage, urlMapList, existingClaim, approvedSources, artistLinks] = await Promise.all([
+    const [platformImage, urlMapList, existingClaim, approvedSourcesRaw, artistLinks, trustedSourceIds] = await Promise.all([
         musicPlatformData.getArtistPortrait(artist),
         getAllLinks(),
         getClaimByArtistId(id),
         getVaultSourcesByArtistId(id, "approved"),
         getArtistLinks(artist),
+        getTrustedLoreSourceIds(id),
     ]);
+
+    const approvedSources = approvedSourcesRaw.map(source => trustedSourceIds.has(source.id) ? {...source, trustedAtSubmission: true} : source);
 
     const [conflictingMusicSourceIds, hiddenLinkSourceIds] = await Promise.all([getConflictingMusicSourceIds(id, approvedSources), getHiddenLinkSourceIds(id)]);
     const blockedMusicSourceIds = [...conflictingMusicSourceIds, ...hiddenLinkSourceIds];
@@ -164,8 +160,14 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const isClaimedByUser = isClaimed && !!session && existingClaim.userId === session.user.id;
     const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
     const canEdit = isClaimedByUser || isAdmin;
-    const directoryAbout = isClaimed ? null : await getPublicArtistAbout(id);
-    const publicProfile = isClaimed ? { artist, sources: approvedSources } : projectUnclaimedProfile(artist, approvedSources, directoryAbout);
+    const savedPublicBio = await getPublicSavedBio(id);
+    const directoryAbout = savedPublicBio || isClaimed ? null : await getPublicArtistAbout(id);
+    // Evidence manifests are server-only, including on authorized client surfaces.
+    const clientArtist = { ...artist, bioProvenance: null };
+    const publicArtist = { ...clientArtist, bio: savedPublicBio ?? directoryAbout?.bio ?? null };
+    const unclaimedProfile = projectUnclaimedProfile(clientArtist, approvedSources, directoryAbout);
+    const publicProfile = isClaimed ? { artist: publicArtist, sources: projectPublicLoreSources(approvedSources, true) }
+        : { ...unclaimedProfile, artist: { ...unclaimedProfile.artist, bio: savedPublicBio ?? unclaimedProfile.artist.bio, bioProvenance: null } };
 
     // Private review data must not delay visitors who cannot use it (#1261).
     const pendingSourcesRaw = canEdit ? await getVaultSourcesByArtistId(id, "pending") : [];
@@ -192,10 +194,10 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const profile = (
         <ArtistProfileContent
             publicAbout={directoryAbout}
-            interviewAction={!interviewPreview && !tourPreview && isClaimedByUser && onboardingState?.complete && MUSICNERD_API_INTERVIEWER_ENABLED
+            interviewAction={!tourPreview && isClaimedByUser && onboardingState?.complete
                 ? <ApiInterview key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 : null}
-            artist={canEdit ? artist : publicProfile.artist}
+            artist={canEdit ? clientArtist : publicProfile.artist}
             claimStatusKnown={existingClaim !== undefined}
             imageUrl={imageUrl}
             platformImage={platformImage}
@@ -211,7 +213,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             isPendingByUser={isPendingByUser}
             canEdit={canEdit}
             autoApprove={isAdmin || !!dbUser?.isWhiteListed}
-            researching={!interviewPreview && !tourPreview && onboardingState?.complete === false}
+            canPublishSources={isAdmin}
+            researching={!tourPreview && onboardingState?.complete === false}
         />
     );
 
@@ -233,17 +236,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     cannot be unmounted out from under the tour. */}
                 {tourPreview ? (
                     <ProfileTourPreview key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
-                ) : !interviewPreview && isClaimedByUser && onboardingState?.complete && (
+                ) : isClaimedByUser && onboardingState?.complete && (
                     <ProfileTour key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
-                )}
-
-                {/* The only part of onboarding where what lands on the page
-                    comes from the artist rather than from research. Gated the
-                    same way the tour is — onboarding finished, and their own
-                    page — and it decides for itself whether there is anything
-                    worth asking about. */}
-                {interviewPreview ? <InterviewPreview key={artist.id} artistId={artist.id} artistName={artist.name ?? "your"} /> : !tourPreview && isClaimedByUser && onboardingState?.complete && !MUSICNERD_API_INTERVIEWER_ENABLED && (
-                    <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 )}
 
                 {/* The artist page. While a fresh claim's onboarding runs, research
@@ -251,10 +245,9 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     gate is rendered for the claimant whatever the state, so a build
                     that completes during the visit keeps its ready card and new-item
                     marks; a page that arrives complete renders just the profile. */}
-                {!interviewPreview && !tourPreview && onboardingState ? (
+                {!tourPreview && onboardingState ? (
                     <OnboardingGate
                         artistId={artist.id}
-                        artistName={artist.name ?? "your profile"}
                         state={onboardingState}
                         researchItems={{
                             links: [...getProfileLinks(artist, artistLinks, 'links'), ...getProfileLinks(artist, artistLinks, 'support')].map(link => link.siteName),
@@ -267,7 +260,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             </div>
             <OutboundClickTracker />
             </EditModeProvider>
-            <SeoArtistLinks artist={artist} />
+            <SeoArtistLinks artist={clientArtist} />
             <ArtistJsonLd
                 artist={publicProfile.artist}
                 imageUrl={imageUrl}

@@ -29,3 +29,10 @@ it('adds eligible public prose without opening private Lore or mutating the stor
  expect(JSON.stringify(projection)).not.toContain('Private');
  expect(artist.bio).toBe('Private old bio');
 });
+
+it('does not expose supporting website pages through the unclaimed destination projection',()=>{
+ const sources=[{url:'https://artist.example/',type:'website',status:'approved'}, {url:'https://artist.example/about',type:'website',status:'approved',title:'Private biography'}];
+ const result=projectUnclaimedProfile({bio:null},sources);
+ expect(result.sources.map(source=>source.url)).toEqual(['https://artist.example/']);
+ expect(JSON.stringify(result)).not.toContain('Private');
+});

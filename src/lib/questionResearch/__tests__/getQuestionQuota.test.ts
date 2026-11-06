@@ -11,14 +11,10 @@ it('uses relative metadata once when an absolute reset is unavailable', () => {
     expect(getQuestionQuota({ code: 'saved_evidence_quota', retryAfterSeconds: 30 }))
         .toEqual({ code: 'saved_evidence_quota', resetAt: '2026-10-15T19:00:30.000Z' });
 });
-it('supports a quota header and HTTP-date fallback without inventing a personal scope', () => {
-    expect(getQuestionQuota({}, new Headers({ 'X-MusicNerd-Quota': 'true', 'Retry-After': 'Thu, 15 Oct 2026 19:01:00 GMT' })))
-        .toEqual({ code: 'unknown_quota', resetAt: '2026-10-15T19:01:00.000Z' });
-});
 it.each([NaN, Infinity, -1, 86401])('keeps a quota with invalid relative reset %s explicit and never invents an early retry', seconds => {
     expect(getQuestionQuota({ code: 'question_planning_quota', resetAt: 'invalid', retryAfterSeconds: seconds }))
         .toEqual({ code: 'question_planning_quota' });
 });
 it('does not misclassify an ordinary provider throttle as a quota', () => {
-    expect(getQuestionQuota({ code: 'provider_busy', error: 'Busy.' }, new Headers({ 'Retry-After': '3' }))).toBeUndefined();
+    expect(getQuestionQuota({ code: 'provider_busy', error: 'Busy.' })).toBeUndefined();
 });

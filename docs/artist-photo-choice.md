@@ -12,7 +12,8 @@ are not accepted. Missing/changed provider imagery leaves the current photo inta
 Selections save that specific provider URL; they do not follow future provider changes.
 The provider still hosts the image; a removed remote image may require reselection.
 
-GET/PATCH `/api/artist/photo-choice` require an approved claimant or live admin.
+GET/PATCH `/api/artist/photo-choice` on MusicNerdAPI require an approved claimant or live admin
+(Privy bearer token).
 PATCH rechecks ownership under the existing artist write lock and compares the saved
 photo and linked provider identity with the dialog's baseline. A stale dialog cannot
 overwrite a newer upload/selection. Changing photos clears the old crop; selecting the

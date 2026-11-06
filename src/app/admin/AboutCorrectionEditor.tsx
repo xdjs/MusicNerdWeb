@@ -4,6 +4,7 @@ import { useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MAX_BIO_LENGTH } from '@/lib/bio/bioConstants';
 import type { CorrectionAbout } from '@/lib/bio/correctionAboutTypes';
+import { requestAdminApi } from '@/lib/admin/requestAdminApi';
 
 export default function AboutCorrectionEditor({ reportId, disabled, onSaved, onEditingChange }: {
   reportId: string; disabled: boolean; onSaved: () => void; onEditingChange: (editing: boolean) => void;
@@ -18,10 +19,10 @@ export default function AboutCorrectionEditor({ reportId, disabled, onSaved, onE
     if (inFlight.current) return;
     inFlight.current = true; setBusy(true); setError(''); onEditingChange(true);
     try {
-      const response = await fetch(`/api/admin/bio-corrections/${reportId}/about`, { cache: 'no-store' });
+      const response = await requestAdminApi(`/api/admin/bio-corrections/${reportId}/about`);
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? 'Could not load the current About.');
-      setContext(result); setBio(result.bio);
+      setContext({ bio: result.bio, revision: result.revision }); setBio(result.bio);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load the current About.'); onEditingChange(false);
     } finally { inFlight.current = false; setBusy(false); }
@@ -31,9 +32,8 @@ export default function AboutCorrectionEditor({ reportId, disabled, onSaved, onE
     if (inFlight.current || !context) return;
     inFlight.current = true; setBusy(true); setError('');
     try {
-      const response = await fetch(`/api/admin/bio-corrections/${reportId}/about`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bio: bio.trim(), revision: context.revision }),
+      const response = await requestAdminApi(`/api/admin/bio-corrections/${reportId}/about`, {
+        method: 'PUT', body: { bio: bio.trim(), revision: context.revision },
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? 'Could not save. Your draft is kept.');

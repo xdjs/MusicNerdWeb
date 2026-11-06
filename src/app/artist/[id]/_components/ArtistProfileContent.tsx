@@ -15,7 +15,6 @@ import ArtistClaimBadge from "./ArtistClaimBadge";
 import HeroSection from "./HeroSection";
 import KnowledgeSection from "./KnowledgeSection";
 import LatestSection from "./LatestSection";
-import OfficialSiteLinks from "./OfficialSiteLinks";
 import ProfileSectionNav from "./ProfileSectionNav";
 import RevealSection from "./RevealSection";
 import ResearchPending from "./onboarding/ResearchPending";
@@ -28,7 +27,7 @@ import VaultSection from "./VaultSection";
  *  loading state until their step is confirmed (docs/research-view.md). */
 export default function ArtistProfileContent({
     interviewAction, artist, publicAbout, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
-    blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true, researching = false,
+    blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, canPublishSources = false, claimStatusKnown = true, researching = false,
 }: {
     interviewAction?: ReactNode;
     artist: Artist;
@@ -50,6 +49,7 @@ export default function ArtistProfileContent({
     /** Admin and whitelisted additions are auto-approved UGC, so they appear in
      *  the feed; claim owners keep direct editing (`isClaimedByUser`). */
     autoApprove: boolean;
+    canPublishSources?: boolean;
     /** Existing server onboarding flag for Ask; editing uses the active build context. */
     researching?: boolean;
 }) {
@@ -100,9 +100,8 @@ export default function ArtistProfileContent({
                         />
                     </div>
                     <ResearchPending step="profiles" skeleton="links" label="finding your profiles…" arrivedLabel="Your links are ready">
-                        <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks).filter(link => link.kind === "artist")} isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                        <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "links", approvedSources)} isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "links", approvedSources).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                     </ResearchPending>
-                    <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} />
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
                         <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
                         <AddArtistData
@@ -114,11 +113,10 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support").filter(link => link.kind === "artist")} isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support").length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
-                    <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} section="support" />
+                    <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support", approvedSources)} isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support", approvedSources).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                 </RevealSection>
                 <div id="mn-lore">
-                    <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />
+                    <VaultSection canPublishSources={canPublishSources} artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
                 <ArtistAskSheet key={`ask:${artist.id}`} artistId={artist.id} artistName={artist.name ?? "this artist"} researching={researching} />

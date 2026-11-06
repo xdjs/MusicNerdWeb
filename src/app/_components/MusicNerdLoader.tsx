@@ -3,9 +3,8 @@
 /** The Music Nerd mark, breathing, as a loading indicator.
  *
  *  The mark is a face — a circle wearing glasses — so spinning it the way a
- *  generic spinner spins looks wrong. It scales and brightens instead, which is
- *  the same "clearly alive rather than mechanical" idea behind the onboarding
- *  progress pill's breathing glow (see .animate-onboarding-progress-breathe).
+ *  generic spinner spins looks wrong. It scales and brightens instead, so it
+ *  reads as clearly alive rather than mechanical.
  *
  *  Uses musicNerdLogo.png, not music_nerd_logo_sm.png: the small asset is a
  *  letterboxed mark on a white field, which renders as a white block in dark

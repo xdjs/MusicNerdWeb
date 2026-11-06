@@ -27,7 +27,7 @@ export const ABOUT_OPENING_RULE =
 export const ABOUT_STOP_RULE =
   'Stop when the facts run out. No closing "significance" flourish.';
 
-/** Cap on the artist-doc slice injected into prompts (askArtist / funFacts / bio). */
+/** Cap on the artist-doc slice injected into prompts (askArtist / bio). */
 export const ARTIST_DOC_CONTEXT_CAP = 8_000;
 
 /**

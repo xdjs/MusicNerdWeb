@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { trackEvent } from '@/lib/analytics/trackEvent';
+import { requestArtistImageApi } from '@/lib/artistImages/requestArtistImageApi';
 
 type Option = { source: 'deezer' | 'spotify'; providerId: string | null; imageUrl: string | null };
 interface Choices { expectedCustomImage: string | null; options: Option[] }
@@ -24,7 +26,7 @@ export default function ArtistPhotoChoice({ artistId, currentImage, onClose, onU
     const [failed, setFailed] = useState<string[]>([]);
     useEffect(() => {
         const controller = new AbortController();
-        void fetch(`/api/artist/photo-choice?artistId=${encodeURIComponent(artistId)}`, { signal: controller.signal })
+        void requestArtistImageApi(`/api/artist/photo-choice?artistId=${encodeURIComponent(artistId)}`, { signal: controller.signal })
             .then(async res => {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Could not load photo choices');
@@ -39,13 +41,14 @@ export default function ArtistPhotoChoice({ artistId, currentImage, onClose, onU
         setSaving(true);
         setError('');
         try {
-            const res = await fetch('/api/artist/photo-choice', {
+            const res = await requestArtistImageApi('/api/artist/photo-choice', {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ artistId, source: selected.source, providerId: selected.providerId,
                     imageUrl: selected.imageUrl, expectedCustomImage: choices.expectedCustomImage }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not save photo');
+            trackEvent('profile_edit', { action: 'photo', target: null });
             onSaved(data.imagePath, data.position);
             onClose();
         } catch (error) {

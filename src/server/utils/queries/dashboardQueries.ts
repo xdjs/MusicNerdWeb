@@ -1,10 +1,17 @@
+import {recordBioSourceUrlReceipts} from '../bio/recordBioSourceUrlReceipts';
+import {preserveRevokedBio} from '../bio/preserveRevokedBio';
+import {writeBioProvenance} from '../bio/writeBioProvenance';
+import { retainEditedBioProvenance } from '../bio/retainEditedBioProvenance';
+import { saveBioHistory } from '../bio/saveBioHistory';
+import { SUPABASE_URL } from '@/env';
+import { classifyRevokedSource } from './classifyRevokedSource';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from "@/server/db/drizzle";
-import { eq, and, sql } from "drizzle-orm";
-import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialRefreshes, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
+import { artistBioProvenance, artistBioVersionProvenance, artistActivityEvents, mcpAuditLog, artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialRefreshes, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
 import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
 import { getActiveArtistOperation } from '../artistOperationContext';
-import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bio/bioConstants';
+import { isRealBio } from '@/lib/bio/bioConstants';
 import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 
 export { getClaimByArtistId } from './getClaimByArtistId';
@@ -132,49 +139,74 @@ export async function deleteClaim(claimId: string) {
     }
 }
 
-/**
- * Revoke an approved claim atomically, wiping all vault sources for the artist
- * inside the same transaction. Storage objects live outside the DB and must be
- * purged separately by the caller.
- *
- * The DELETE itself is guarded on status='approved' so the atomic check happens
- * at the row-lock level, not in a separate SELECT. Under Postgres READ COMMITTED
- * (the default), each statement in a transaction sees the latest committed snapshot
- * independently, so a SELECT-then-DELETE pattern is racy — another transaction
- * could reject the claim between the two statements and the DELETE would still
- * proceed. Putting the status filter on the DELETE makes this race-free.
- *
- * Vault sources are deleted by artist_id, not claim_id, because
- * artist_vault_sources has no claim_id FK and the UNIQUE(artist_id) constraint
- * on artist_claims guarantees one active claim per artist. If a claim_id FK is
- * ever added to artist_vault_sources (e.g. to support multi-claimant history),
- * tighten the WHERE clause here.
+/** Revoke claimant content atomically; retain verified trusted submissions.
+ * Unknown provenance blocks the transaction. Storage deletion requires separate
+ * object-generation fencing and is deliberately deferred, never prefix-purged.
  */
-export async function revokeApprovedClaim(claimId: string) {
+export async function revokeApprovedClaim(claimId: string, adminId: string) {
     try {
         return await db.transaction(async (tx) => {
+            const candidate = await tx.query.artistClaims.findFirst({ where: eq(artistClaims.id, claimId) });
+            if (!candidate || candidate.status !== 'approved') return undefined;
+            // Match upload/review lock order: artist before claim/source rows.
+            await tx.execute(sql`select id from artists where id = ${candidate.artistId}::uuid for update`);
+            const sources = await tx.select().from(artistVaultSources)
+                .where(eq(artistVaultSources.artistId, candidate.artistId)).for('update');
+            const events = await tx.select().from(artistActivityEvents)
+                .where(eq(artistActivityEvents.artistId, candidate.artistId));
+            const byId = new Map(events.map(event => [event.id, event]));
+            const removable = sources.filter(source => {
+                const disposition = classifyRevokedSource(source, byId.get(source.activityId ?? '') ?? null, candidate.userId);
+                if (disposition === 'review') throw new Error('REVOCATION_SOURCE_REVIEW_REQUIRED');
+                return disposition === 'delete';
+            });
             // Atomic: only delete the row if it is still approved right now.
             // Returns 0 rows (→ undefined) if another transaction changed the status.
             const [deleted] = await tx
                 .delete(artistClaims)
                 .where(and(
                     eq(artistClaims.id, claimId),
+                    eq(artistClaims.artistId, candidate.artistId),
+                    eq(artistClaims.userId, candidate.userId),
                     eq(artistClaims.status, "approved"),
                 ))
                 .returning();
             if (!deleted) return undefined;
-            await tx.execute(sql`select id from artists where id = ${deleted.artistId}::uuid for update`);
+
+            // Only this configured storage origin owns managed profile uploads.
+            // Capture the reference before clearing it; retain the object bytes.
+            if (SUPABASE_URL) {
+                const prefix = `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/vault-files/profile-images/${deleted.artistId}_`;
+                const managed = sql`id = ${deleted.artistId}::uuid and starts_with(custom_image, ${prefix})`;
+                await tx.execute(sql`insert into mcp_audit_log (artist_id,field,action,old_value,new_value,api_key_hash)
+                    select id, 'claim_profile_cleanup_deferred', 'delete', custom_image,
+                        'Object retained; generation verification required before cleanup', ${`admin:${adminId}`}
+                    from artists where ${managed}`);
+                await tx.execute(sql`update artists set custom_image = null where ${managed}`);
+            }
             // Removing the job identity invalidates even an already-running model
             // call. Its final guarded write cannot recreate the deleted Lore.
             await tx.delete(artistResearchJobs).where(eq(artistResearchJobs.artistId, deleted.artistId));
             await tx.delete(artistSocialCredits).where(eq(artistSocialCredits.artistId, deleted.artistId));
             await tx.delete(artistDocCorrections).where(eq(artistDocCorrections.artistId, deleted.artistId));
 
-            // Only after we've confirmed we owned the approved claim do we
-            // wipe the vault. Same transaction, so both DELETEs commit together.
-            await tx
-                .delete(artistVaultSources)
-                .where(eq(artistVaultSources.artistId, deleted.artistId));
+            if (removable.length) {
+                await tx.delete(artistVaultSources).where(and(
+                    eq(artistVaultSources.artistId, deleted.artistId),
+                    inArray(artistVaultSources.id, removable.map(source => source.id)),
+                ));
+            }
+            // Durable receipt commits with revocation or neither does. These are
+            // candidates for review, NOT authorization to delete mutable object keys.
+            const retainedPaths = new Set(sources.filter(source => !removable.includes(source)).map(source => source.filePath));
+            await tx.insert(mcpAuditLog).values({
+                artistId: deleted.artistId, field: 'claim_cleanup_deferred', action: 'delete',
+                apiKeyHash: `admin:${adminId}`,
+                oldValue: JSON.stringify({ claimId, sources: removable.map(source => ({
+                    id: source.id, filePath: retainedPaths.has(source.filePath) ? null : source.filePath,
+                })) }),
+                newValue: 'Storage cleanup deferred: object generation cannot be verified; no prefix deletion authorized.',
+            });
 
             // Scraped social data (posts + profile) is the revoked owner's too — a
             // re-claimer must not inherit the previous owner's Instagram history or
@@ -212,12 +244,8 @@ export async function revokeApprovedClaim(claimId: string) {
                 .returning();
             if (deletedDocs.length > 0 || unpinned.length > 0) {
                 // Preserve even a hand-edited bio that never reached version history.
-                await tx.execute(sql`insert into artist_bio_versions (artist_id, bio_text, is_pinned)
-                    select id, bio, false from artists a
-                    where id = ${deleted.artistId}::uuid and bio is not null
-                    and btrim(bio, E' \\t\\n\\r') <> '' and btrim(bio, E' \\t\\n\\r') <> ${ABOUT_EMPTY_STATE}
-                    and not exists (select 1 from artist_bio_versions v
-                        where v.artist_id = a.id and v.bio_text = a.bio)`);
+                await preserveRevokedBio(tx,deleted.artistId);
+                await writeBioProvenance(tx,deleted.artistId,null);
                 await tx
                     .update(artists)
                     .set({ bio: null })
@@ -295,13 +323,6 @@ export async function getVaultSourceByIdAndArtist(sourceId: string, artistId: st
         console.error("[getVaultSourceByIdAndArtist] Error:", e);
         return undefined;
     }
-}
-
-/** Publication reconciliation must distinguish a missing row from a failed read. */
-export async function getVaultUploadByPath(artistId: string, filePath: string) {
-    return db.query.artistVaultSources.findFirst({
-        where: and(eq(artistVaultSources.artistId, artistId), eq(artistVaultSources.filePath, filePath)),
-    });
 }
 
 export async function getVaultSourceById(sourceId: string) {
@@ -431,7 +452,17 @@ export async function saveBioVersion(artistId: string, bioText: string, auth: Ar
                 where: eq(artistBioVersions.artistId, artistId),
                 orderBy: (v, { asc }) => [asc(v.createdAt)],
             });
-            const saved = existing.find(version => version.bioText === bioText);
+            const current = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
+            const currentProvenance = (await tx.query.artistBioProvenance.findFirst({where:eq(artistBioProvenance.artistId,artistId)}))?.provenance ?? null;
+            const historyProvenance = existing.length ? await tx.query.artistBioVersionProvenance.findMany({where:inArray(artistBioVersionProvenance.versionId,existing.map(v=>v.id))}) : [];
+            const provenanceOf = (id:string) => historyProvenance.find(p=>p.versionId===id)?.provenance ?? null;
+            const matching = existing.filter(version => version.bioText === bioText);
+            // A save of known historical text must not relabel it as new manual prose.
+            const bioProvenance = current?.bio === bioText ? currentProvenance
+                : matching.map(version => provenanceOf(version.id)).find(p=>p!=null)
+                    ?? retainEditedBioProvenance(current?.bio ?? null, bioText, currentProvenance);
+            await recordBioSourceUrlReceipts(tx, bioProvenance);
+            const saved = matching.find(version => JSON.stringify(provenanceOf(version.id)) === JSON.stringify(bioProvenance));
             if (saved) return saved;
             if (existing.length >= MAX_BIO_VERSIONS) {
                 throw new Error("Bio version limit reached — delete an unwanted version first");
@@ -441,6 +472,7 @@ export async function saveBioVersion(artistId: string, bioText: string, auth: Ar
                 .insert(artistBioVersions)
                 .values({ artistId, bioText, isPinned: false })
                 .returning();
+            if (version && bioProvenance != null) await tx.insert(artistBioVersionProvenance).values({versionId:version.id,provenance:bioProvenance});
             return version;
         });
     } catch (e) {
@@ -461,12 +493,9 @@ export async function pinBioVersion(versionId: string, artistId: string, auth: A
             });
             if (!selected) return undefined;
             const current = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
-            if (current?.bio && isRealBio(current.bio) && current.bio !== selected.bioText) {
-                const saved = await tx.query.artistBioVersions.findFirst({
-                    where: and(eq(artistBioVersions.artistId, artistId), eq(artistBioVersions.bioText, current.bio)),
-                });
-                if (!saved) await tx.insert(artistBioVersions).values({ artistId, bioText: current.bio, isPinned: false });
-            }
+            const currentProvenance = (await tx.query.artistBioProvenance.findFirst({where:eq(artistBioProvenance.artistId,artistId)}))?.provenance ?? null;
+            const selectedProvenance = (await tx.query.artistBioVersionProvenance.findFirst({where:eq(artistBioVersionProvenance.versionId,selected.id)}))?.provenance ?? null;
+            if (current?.bio) await saveBioHistory(tx, artistId, [{ text: current.bio, provenance: currentProvenance }]);
             await tx
                 .update(artistBioVersions)
                 .set({ isPinned: false })
@@ -479,6 +508,7 @@ export async function pinBioVersion(versionId: string, artistId: string, auth: A
                 .returning();
 
             if (pinned) {
+                await writeBioProvenance(tx,artistId,selectedProvenance);
                 await tx
                     .update(artists)
                     .set({ bio: pinned.bioText })

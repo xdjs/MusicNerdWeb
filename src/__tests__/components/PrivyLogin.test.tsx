@@ -29,7 +29,12 @@ jest.mock('@privy-io/react-auth', () => ({
   },
   useIdentityToken: () => ({ identityToken: 'mock-identity-token' }),
   getIdentityToken: jest.fn().mockResolvedValue('mock-identity-token'),
+  getAccessToken: jest.fn().mockResolvedValue('mock-access-token'),
 }));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api.test${path}` }));
+
+const mockRequestAdminApi = jest.fn();
+jest.mock('@/lib/admin/requestAdminApi', () => ({ requestAdminApi: (...a: unknown[]) => mockRequestAdminApi(...a) }));
 
 const mockReadSession = jest.fn();
 const mockRouterRefresh = jest.fn();
@@ -271,6 +276,17 @@ describe('PrivyLogin', () => {
       expect(screen.getByText('User Profile')).toBeInTheDocument();
     });
 
+    it('asks the API whether the account has a claim and links its artist', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ status: 'ok', hasClaim: true, artistId: 'artist-1' }) });
+      render(<PrivyLogin />);
+
+      expect(await screen.findByText('My Artist Profile')).toBeInTheDocument();
+      expect(screen.getByText('My Artist Profile').closest('a')).toHaveAttribute('href', '/artist/artist-1');
+      expect(global.fetch).toHaveBeenCalledWith('https://api.test/api/user/has-claim', expect.objectContaining({
+        headers: { Authorization: 'Bearer mock-access-token' }, credentials: 'omit',
+      }));
+    });
+
     it('shows Log Out menu item', () => {
       render(<PrivyLogin />);
 
@@ -283,6 +299,23 @@ describe('PrivyLogin', () => {
       render(<PrivyLogin />);
 
       expect(screen.getByText('Admin Panel')).toBeInTheDocument();
+    });
+
+    it('asks MusicNerdAPI for the pending count with the admin token and flags pending work', async () => {
+      mockSessionData.user.isAdmin = true;
+      mockRequestAdminApi.mockResolvedValue({ ok: true, json: () => Promise.resolve({ status: 'ok', count: 2 }) });
+
+      const { container } = render(<PrivyLogin />);
+
+      await waitFor(() => expect(container.querySelector('a[href="/admin"] .bg-red-600')).toBeInTheDocument());
+      expect(mockRequestAdminApi).toHaveBeenCalledWith('/api/pendingUGCCount');
+      expect(global.fetch).not.toHaveBeenCalledWith('/api/pendingUGCCount');
+    });
+
+    it('does not ask for the pending count for non-admin users', () => {
+      render(<PrivyLogin />);
+
+      expect(mockRequestAdminApi).not.toHaveBeenCalled();
     });
 
     it('does not show Admin Panel for non-admin users', () => {

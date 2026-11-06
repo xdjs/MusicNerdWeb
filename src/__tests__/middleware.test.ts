@@ -19,9 +19,6 @@ async function loadMiddleware() {
 beforeEach(() => {
   jest.useFakeTimers();
   delete process.env.RATE_LIMIT_DEFAULT;
-  delete process.env.RATE_LIMIT_ARTIST_IMAGE;
-  delete process.env.RATE_LIMIT_STRICT;
-  delete process.env.RATE_LIMIT_MEDIUM;
   delete process.env.RATE_LIMIT_WINDOW_MS;
 });
 
@@ -47,35 +44,6 @@ describe('middleware rate limiting', () => {
     expect(res.status).toBe(429);
   });
 
-  it('strict paths have lower limits (5/min)', async () => {
-    const { middleware } = await loadMiddleware();
-    for (let i = 0; i < 5; i++) {
-      const res = middleware(makeRequest('/api/funFacts/random'));
-      expect(res.status).not.toBe(429);
-    }
-    const res = middleware(makeRequest('/api/funFacts/random'));
-    expect(res.status).toBe(429);
-  });
-
-  it('strict limit applies to artistBio path', async () => {
-    const { middleware } = await loadMiddleware();
-    for (let i = 0; i < 5; i++) {
-      middleware(makeRequest('/api/artistBio/123'));
-    }
-    const res = middleware(makeRequest('/api/artistBio/123'));
-    expect(res.status).toBe(429);
-  });
-
-  it('medium paths have their own limit (20/min)', async () => {
-    const { middleware } = await loadMiddleware();
-    for (let i = 0; i < 20; i++) {
-      const res = middleware(makeRequest('/api/validateLink'));
-      expect(res.status).not.toBe(429);
-    }
-    const res = middleware(makeRequest('/api/validateLink'));
-    expect(res.status).toBe(429);
-  });
-
   it('window resets after expiry', async () => {
     const { middleware } = await loadMiddleware();
     for (let i = 0; i < 60; i++) {
@@ -90,27 +58,27 @@ describe('middleware rate limiting', () => {
   });
 
   it('env vars override defaults', async () => {
-    process.env.RATE_LIMIT_STRICT = '10';
+    process.env.RATE_LIMIT_DEFAULT = '10';
     const { middleware } = await loadMiddleware();
 
     for (let i = 0; i < 10; i++) {
-      const res = middleware(makeRequest('/api/funFacts/random'));
+      const res = middleware(makeRequest('/api/leaderboard'));
       expect(res.status).not.toBe(429);
     }
-    const res = middleware(makeRequest('/api/funFacts/random'));
+    const res = middleware(makeRequest('/api/leaderboard'));
     expect(res.status).toBe(429);
   });
 
   it('invalid env var values fall back to defaults', async () => {
-    process.env.RATE_LIMIT_STRICT = '0';
+    process.env.RATE_LIMIT_DEFAULT = '0';
     const { middleware } = await loadMiddleware();
 
-    // Should use the default of 5, not 0
-    for (let i = 0; i < 5; i++) {
-      const res = middleware(makeRequest('/api/funFacts/random'));
+    // Should use the default of 60, not 0
+    for (let i = 0; i < 60; i++) {
+      const res = middleware(makeRequest('/api/leaderboard'));
       expect(res.status).not.toBe(429);
     }
-    const res = middleware(makeRequest('/api/funFacts/random'));
+    const res = middleware(makeRequest('/api/leaderboard'));
     expect(res.status).toBe(429);
   });
 
@@ -211,8 +179,8 @@ describe('middleware rate limiting', () => {
       middleware(makeRequest('/api/leaderboard', '99.99.99.99'));
     }
 
-    expect(_rateLimitMap.has('10.0.0.0:default')).toBe(false);
-    expect(_rateLimitMap.has('99.99.99.99:default')).toBe(true);
+    expect(_rateLimitMap.has('10.0.0.0')).toBe(false);
+    expect(_rateLimitMap.has('99.99.99.99')).toBe(true);
   });
 
   it('skips rate limiting when IP cannot be determined', async () => {
@@ -244,8 +212,6 @@ describe('middleware rate limiting', () => {
 
     // Regular API paths should match
     expect(matcher.test('/api/leaderboard')).toBe(true);
-    expect(matcher.test('/api/funFacts/random')).toBe(true);
-    expect(matcher.test('/api/validateLink')).toBe(true);
   });
 
   it('covers the LLM-facing routes, which are not under /api', async () => {
@@ -268,25 +234,4 @@ describe('middleware rate limiting', () => {
     }
     expect(middleware(makeRequest('/artist/abc/llms.txt', ip)).status).toBe(429);
   });
-});
-
-it('isolates artist-image traffic from account API limits while retaining its own cap',async()=>{
- const {middleware}=await loadMiddleware();
- const image='/api/artist/6cb3d81a-3d02-4c57-a711-bb7902a9af1b/image';
- for(let i=0;i<180;i++)expect(middleware(makeRequest(image)).status).not.toBe(429);
- expect(middleware(makeRequest(image)).status).toBe(429);
- expect(middleware(makeRequest('/api/bookmarks')).status).not.toBe(429);
- expect(middleware(makeRequest('/api/profile/summary')).headers.get('X-RateLimit-Remaining')).toBe('58');
-});
-
-it('does not charge saved answer collection to the new-question allowance', async () => {
- const { middleware } = await loadMiddleware();
- const resultPath='/api/artist/11111111-1111-4111-8111-111111111111/questionResearch/22222222-2222-4222-8222-222222222222/answer';
- for(let n=0;n<5;n++)expect(middleware(makeRequest('/api/askArtist')).status).not.toBe(429);
- expect(middleware(makeRequest('/api/askArtist')).status).toBe(429);
- const result=middleware(makeRequest(resultPath));expect(result.status).not.toBe(429);
- expect(result.headers.get('X-RateLimit-Limit')).toBe('60');
- for(let n=1;n<60;n++)expect(middleware(makeRequest(resultPath)).status).not.toBe(429);
- expect(middleware(makeRequest(resultPath)).status).toBe(429);
- expect(middleware(makeRequest('/api/askArtist')).status).toBe(429);
 });

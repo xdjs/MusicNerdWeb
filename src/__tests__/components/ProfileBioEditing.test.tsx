@@ -7,6 +7,8 @@ import BlurbSection from '@/app/artist/[id]/_components/BlurbSection';
 import VaultSection from '@/app/artist/[id]/_components/VaultSection';
 const refresh = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
+jest.mock('@privy-io/react-auth', () => ({ ...jest.requireActual('@privy-io/react-auth'), getAccessToken: jest.fn(async () => 'private-token') }));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
 jest.mock('@/app/artist/[id]/_components/VaultManager', () => function Manager() { return null; });
 jest.mock('@/app/actions/dashboardActions', () => ({ getArtistBioVersions: jest.fn(), unpinBioAction: jest.fn(), saveCurrentBio: jest.fn() }));
 import { getArtistBioVersions, unpinBioAction, saveCurrentBio } from '@/app/actions/dashboardActions';
@@ -64,8 +66,9 @@ test('unpin unlocks the existing bio without fetching or generating another bio'
     expect(screen.getByRole('button', { name: 'Regenerate' })).toBeEnabled();
     // Generation still requires its own explicit click after unpinning.
     fireEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/artistBio/a1', expect.objectContaining({
-        method: 'PUT', body: JSON.stringify({ regenerate: true }),
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('https://api-preview.test/api/artistBio/a1', expect.objectContaining({
+        method: 'PUT', body: JSON.stringify({ regenerate: true }), credentials: 'omit',
+        headers: expect.objectContaining({ Authorization: 'Bearer private-token' }),
     })));
     await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue(original));
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);

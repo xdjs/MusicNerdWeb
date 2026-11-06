@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { login, fetchAsUser } from './helpers/auth';
+import { musicNerdApiUrl } from '../src/lib/musicNerdApi/musicNerdApiUrl';
 
 const REGULAR_USER = { email: 'test-4473@privy.io', otp: '676856' };
-const ADMIN_USER = { email: 'test-3256@privy.io', otp: '207862' };
 
 // ---------------------------------------------------------------------------
 // Unauthenticated tests — no login needed, can run in parallel via `request`
@@ -15,26 +15,23 @@ test.describe('Unauthenticated route behavior', () => {
     expect(data).toEqual({ count: 0 });
   });
 
-  test('GET /api/pendingUGCCount unauthenticated returns { count: 0 }', async ({ request }) => {
-    const res = await request.get('/api/pendingUGCCount');
+  test('GET MusicNerdAPI /api/pendingUGCCount unauthenticated returns { count: 0 }', async ({ request }) => {
+    const res = await request.get(musicNerdApiUrl('/api/pendingUGCCount'));
     expect(res.status()).toBe(200);
     const data = await res.json();
-    expect(data).toEqual({ count: 0 });
+    expect(data).toEqual({ status: 'ok', count: 0 });
   });
 
-  test('GET /api/approvedUGCCount unauthenticated returns { count: 0 }', async ({ request }) => {
-    const res = await request.get('/api/approvedUGCCount');
-    expect(res.status()).toBe(200);
-    const data = await res.json();
-    expect(data).toEqual({ count: 0 });
-  });
-
-  test('POST /api/removeArtistData unauthenticated returns 401', async ({ request }) => {
-    const res = await request.post('/api/removeArtistData', {
-      data: { artistId: 'test-artist-id', siteName: 'spotify' },
+  for (const route of ['removeArtistData', 'directEditLink']) {
+    test(`POST MusicNerdAPI /api/${route} unauthenticated returns 401`, async ({ request }) => {
+      const res = await request.post(musicNerdApiUrl(`/api/${route}`), {
+        data: {},
+        maxRedirects: 0,
+      });
+      expect(res.status()).toBe(401);
+      expect(await res.json()).toEqual({ status: 'error', error: 'Not signed in' });
     });
-    expect(res.status()).toBe(401);
-  });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -53,38 +50,16 @@ test.describe('Regular user route behavior', () => {
     expect(ugcRes.body).toHaveProperty('count');
     expect(typeof ugcRes.body.count).toBe('number');
 
-    // GET /api/pendingUGCCount — non-admin user gets { count: 0 }
+    // GET /api/pendingUGCCount — retired on Web; MusicNerdAPI serves it with a Privy bearer token
     const pendingRes = await fetchAsUser(page, '/api/pendingUGCCount');
-    expect(pendingRes.status).toBe(200);
-    expect(pendingRes.body).toEqual({ count: 0 });
+    expect(pendingRes.status).toBe(404);
 
-    // GET /api/approvedUGCCount — authenticated user gets a numeric count
-    const approvedRes = await fetchAsUser(page, '/api/approvedUGCCount');
-    expect(approvedRes.status).toBe(200);
-    expect(approvedRes.body).toHaveProperty('count');
-    expect(typeof approvedRes.body.count).toBe('number');
-
-    // POST /api/removeArtistData — authenticated user is NOT 401
+    // The Web route is retired. A 404 must not count as successful API auth:
+    // MusicNerdAPI requires a Privy bearer token, not this Web session cookie.
     const removeRes = await fetchAsUser(page, '/api/removeArtistData', {
       method: 'POST',
-      body: JSON.stringify({ artistId: 'test-artist-id', siteName: 'spotify' }),
+      body: JSON.stringify({}),
     });
-    expect(removeRes.status).not.toBe(401);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Authenticated tests — admin user
-// ---------------------------------------------------------------------------
-test.describe('Admin user route behavior', () => {
-  test.setTimeout(60_000);
-
-  test('GET /api/pendingUGCCount returns count >= 0 for admin', async ({ page }) => {
-    await login(page, ADMIN_USER.email, ADMIN_USER.otp);
-    const res = await fetchAsUser(page, '/api/pendingUGCCount');
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('count');
-    expect(typeof res.body.count).toBe('number');
-    expect(res.body.count).toBeGreaterThanOrEqual(0);
+    expect(removeRes.status).toBe(404);
   });
 });

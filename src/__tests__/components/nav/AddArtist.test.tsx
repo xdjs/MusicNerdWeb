@@ -134,6 +134,19 @@ describe('AddArtist', () => {
         capturedDialogOnOpenChange = null;
     });
 
+    it('offers the missing-artist contact without submitting an artist', () => {
+        mockSessionData = { user: { id: 'reviewer' } };
+        mockSessionStatus = 'authenticated';
+        render(<AddArtist />);
+        fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
+        fireEvent.click(screen.getByText('Can’t find your artist?'));
+        expect(screen.getByRole('link', { name: 'Open email draft' })).toHaveAttribute(
+            'href', expect.stringContaining('mailto:info@xdjs.com?'),
+        );
+        expect(screen.getByPlaceholderText('Paste a Spotify or Deezer artist URL')).toBeInTheDocument();
+        expect(mockAddArtist).not.toHaveBeenCalled();
+    });
+
     describe('Button rendering', () => {
         it('renders the + button', () => {
             render(<AddArtist />);
@@ -339,7 +352,7 @@ describe('AddArtist', () => {
                 mockAddArtist.mockResolvedValue({ status: 'error', message: 'Spotify error', artistId: undefined, artistName: undefined });
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
                 await waitFor(() => {
-                    expect(screen.getByText('Spotify error')).toHaveClass('text-red-400');
+                    expect(screen.getByText('Spotify error')).toHaveClass('text-red-700', 'dark:text-red-400');
                 });
             });
 
@@ -548,7 +561,7 @@ describe('AddArtist', () => {
 
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
 
-                expect(await screen.findByText('That Spotify profile belongs to another artist.')).toHaveClass('text-red-400');
+                expect(await screen.findByText('That Spotify profile belongs to another artist.')).toHaveClass('text-red-700', 'dark:text-red-400');
                 expect(screen.queryByRole('button', { name: 'Add different artist' })).not.toBeInTheDocument();
             });
 
