@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
 import { useRouter } from "next/navigation";
 
 /**
@@ -16,7 +16,7 @@ export default function AutoRefresh({
 }: {
   showLoading?: boolean;
 } = {}) {
-  const { status } = useSession();
+  const { status } = useMusicNerdUser();
   const router = useRouter();
   const hasRefreshed = useRef(false);
   const prevStatus = useRef<string | null>(null);

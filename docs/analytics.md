@@ -67,7 +67,7 @@ lower-case tokens; free text appears only where the table says so.
 | `claim` | Each step of the claim flow (`ClaimButton.tsx`) | `step` = `start` · `login_required` · `submitted` · `already_claimed` · `error` | client | The artist funnel's front door; `start` → `submitted` is the drop-off |
 | `ask_question` | An Ask answer finishes streaming or fails (`AskAboutArtist.tsx`, `useChat` on MusicNerdAPI's `/api/artist/{id}/chat`); a quota notice or a stopped stream sends nothing | `outcome` = `answered` (from our sources) · `open_web` (the answer ran the chat's web search) · `error`; `sources` = number of cited sources | client | Is Ask used, and does our research answer it? A high `open_web` rate for an artist means their research is thin |
 | `latest_card_open` | A Latest card dialog opens (`LatestCards.tsx`) | `kind` = `release` · `instagram` · `interview` · `moment`; `filter` = the active tab | client | Which content kind earns a click |
-| `profile_edit` | A claimed artist changes their profile | `action` = `link_add` · `link_remove` · `reorder` · `photo` · `vault_upload` · `dismiss`; `target` = platform for link actions, else `null` | server | Do artists maintain their profile after claiming |
+| `profile_edit` | A claimed artist changes their profile | `action` = `link_add` · `link_remove` · `reorder` · `photo` · `vault_upload` · `dismiss`; `target` = platform for link actions, else `null` | client | Do artists maintain their profile after claiming |
 | `login` | A NextAuth session is created after Privy login and the page reloads (`PrivyLogin.tsx`) | `trigger` = which surface asked for login (`nav`, `search_add`, `add_link`, `claim`, `add_artist`, `dashboard`, `please_login`); `new` = Privy's `isNewUser` | client | What converts a visitor into an account; new vs returning |
 | `add_artist` | The nav **+** is clicked, signed in or not (`nav/AddArtist.tsx`), or a search result's "Add to MusicNerd" is chosen, before any login (`nav/SearchBar.tsx`) → `start`; that add resolves → exactly one of `added` · `exists` · `error`, even if the visitor closed the dialog first (a possible duplicate sends nothing until the visitor chooses) | `surface` = `nav` · `search`; `step` = `start` · `added` · `exists` · `error` | client | Do people add artists from search or the **+**, and how many who start an add finish it (`start` minus resolved = abandoned)? |
 | `check_for_updates` | An editor clicks **Update Latest** ("Check for updates") in edit mode (`LatestRefreshControl.tsx`) | `outcome` = `started` (the normal case; a click while a check is running returns that check) · `error` (rare: the session ended, edit rights changed, or the request failed; during the cooldown the button is disabled, so it never sends `error`) | client | How often artists check their sources for new updates |
@@ -76,7 +76,7 @@ Fire points for `profile_edit`: the browser, after MusicNerdAPI answers 200: `Ad
 (`directEditLink` `set` that changed the link → `link_add`), `EditableLinkIcon.tsx` (`directEditLink` `clear` → `link_remove`),
 `EditablePlatformLink.tsx` (`removeArtistData` → `link_remove`), `SortableArtistLinks.tsx` (`artist/link-order` → `reorder`),
 `HeroSection` and `ArtistPhotoChoice` after a photo upload or photo choice (`photo`), `VaultManager` after `vault/upload/complete` (`vault_upload`),
-`actions/dismissLegacyLink` (`dismiss`).
+`LegacyAccountModal` after `user/{id}/dismiss-legacy-link` (`dismiss`).
 
 Deviations from the approved table, because of what the code knows at the fire point:
 `ask_question.outcome` distinguishes `open_web` (the route already tracks its fallback);
@@ -91,10 +91,6 @@ the point of that event.
 - Client: `trackEvent(name, props)` in `src/lib/analytics/trackEvent.ts` wraps `track` from
   `@vercel/analytics`; it never throws. The Vercel script drops events when
   `navigator.webdriver` is true, so automated checks must mask that (see below).
-- Server: `trackServerEvent(name, props)` in `src/server/utils/analytics/trackServerEvent.ts`
-  wraps `track` from `@vercel/analytics/server`, which reads the request headers and
-  `waitUntil` from Vercel's request context on its own and never fails the request. Outside
-  Vercel (local, tests) it logs and returns.
 - Login needs two steps because the page reloads after `signIn`: `requestLogin(trigger)` stores
   the trigger and opens Privy; after the reload `takeCompletedLogin()` reads it back and fires
   the event once.
@@ -122,8 +118,7 @@ any page script) or no beacon is ever sent.
 2. Each full or client-side navigation sends `POST /<hash>/view` whose body field `o` is the
    page URL and `dp` the route pattern (`/artist/[id]`).
 3. Each client custom event sends `POST /<hash>/event` with `en` = the event name and `ed` =
-   its properties; server events arrive at `/_vercel/insights/event` from the function and show
-   in the dashboard's Events tab, not in the browser's network log.
+   its properties.
 4. No console errors from the script; both viewports, both themes.
 
 The dashboard shows data for production within a day of the release; the MCP query above should

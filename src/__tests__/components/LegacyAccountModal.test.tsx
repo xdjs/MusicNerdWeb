@@ -19,14 +19,16 @@ jest.mock('@privy-io/react-auth', () => ({
   },
 }));
 
-const mockUpdateSession = jest.fn();
-jest.mock('next-auth/react', () => ({
-  useSession: () => ({
-    data: { user: { id: 'test-user' } },
+const mockRefetchAccount = jest.fn();
+jest.mock('@/hooks/useMusicNerdUser', () => ({
+  useMusicNerdUser: () => ({
+    user: { id: 'test-user' },
     status: 'authenticated',
-    update: mockUpdateSession,
+    refetch: mockRefetchAccount,
   }),
 }));
+const mockTrackEvent = jest.fn();
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a) => mockTrackEvent(...a) }));
 
 // Mock the toast hook
 const mockToast = jest.fn();
@@ -34,11 +36,6 @@ jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
-// Mock the dismissLegacyLink server action
-const mockDismissLegacyLink = jest.fn();
-jest.mock('@/app/actions/dismissLegacyLink', () => ({
-  dismissLegacyLink: (...args) => mockDismissLegacyLink(...args),
-}));
 
 // Mock Radix Dialog to render in JSDOM without portals
 jest.mock('@/components/ui/dialog', () => ({
@@ -67,7 +64,7 @@ describe('LegacyAccountModal', () => {
     jest.clearAllMocks();
     linkAccountCallbacks = {};
     global.fetch = jest.fn();
-    mockDismissLegacyLink.mockReset();
+    mockTrackEvent.mockReset();
     mockGetAccessToken.mockResolvedValue('privy-token');
   });
 
@@ -134,7 +131,7 @@ describe('LegacyAccountModal', () => {
           title: 'Wallet Linked!',
         })
       );
-      expect(mockUpdateSession).toHaveBeenCalled();
+      expect(mockRefetchAccount).toHaveBeenCalled();
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
@@ -276,29 +273,35 @@ describe('LegacyAccountModal', () => {
 
   // Dismiss button tests
   describe('dismiss button', () => {
-    it('calls dismissLegacyLink and closes modal on success', async () => {
-      mockDismissLegacyLink.mockResolvedValue({ success: true });
+    it('dismisses the prompt through MusicNerdAPI and closes on success', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: () => Promise.resolve({ status: 'ok' }) });
 
       render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
 
       fireEvent.click(screen.getByText("New user"));
 
       await waitFor(() => {
-        expect(mockDismissLegacyLink).toHaveBeenCalled();
-        expect(mockUpdateSession).toHaveBeenCalled();
+        expect(global.fetch).toHaveBeenCalledWith('https://musicnerd-api-staging.vercel.app/api/user/test-user/dismiss-legacy-link', expect.objectContaining({
+          method: 'POST',
+          headers: { Authorization: 'Bearer privy-token' },
+          credentials: 'omit',
+        }));
+        expect(mockTrackEvent).toHaveBeenCalledWith('profile_edit', { action: 'dismiss', target: null });
+        expect(mockRefetchAccount).toHaveBeenCalled();
         expect(mockOnClose).toHaveBeenCalled();
       });
     });
 
     it('shows error when dismiss fails', async () => {
-      mockDismissLegacyLink.mockResolvedValue({ success: false, error: 'Server error' });
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve({ status: 'error', error: 'Internal server error' }) });
 
       render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
 
       fireEvent.click(screen.getByText("New user"));
 
       await waitFor(() => {
-        expect(mockDismissLegacyLink).toHaveBeenCalled();
+        expect(global.fetch).toHaveBeenCalled();
+        expect(mockTrackEvent).not.toHaveBeenCalled();
         expect(mockOnClose).not.toHaveBeenCalled();
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -311,8 +314,8 @@ describe('LegacyAccountModal', () => {
 
     it('shows loading state during dismiss', async () => {
       // Make the promise hang so we can check loading state
-      let resolvePromise: (value: { success: boolean }) => void;
-      mockDismissLegacyLink.mockReturnValue(new Promise((resolve) => { resolvePromise = resolve; }));
+      let resolvePromise: (value: unknown) => void;
+      (global.fetch as jest.Mock).mockReturnValue(new Promise((resolve) => { resolvePromise = resolve; }));
 
       render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
 
@@ -327,7 +330,7 @@ describe('LegacyAccountModal', () => {
       });
 
       // Resolve to clean up
-      resolvePromise({ success: true });
+      resolvePromise({ ok: true, json: () => Promise.resolve({ status: 'ok' }) });
     });
 
     it('disables all buttons during wallet linking', () => {

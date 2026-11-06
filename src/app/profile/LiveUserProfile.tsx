@@ -2,7 +2,6 @@
 
 import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { useSession } from 'next-auth/react';
 import type { User } from '@/server/db/DbTypes';
 import type { ProfileSummary, ProfileUpdate, ProfileArtistsPage } from '@/lib/profile/types';
 import ProfileConcept from './ProfileConcept';
@@ -10,6 +9,7 @@ import ProfileLoading from './ProfileLoading';
 import { readProfileJson as readJson } from '@/lib/profile/readProfileJson';
 import { Button } from '@/components/ui/button';
 import { requestUserApi } from '@/lib/user/requestUserApi';
+import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 
 type Account = Pick<User, 'id' | 'username' | 'email' | 'wallet' | 'isAdmin' | 'isWhiteListed' | 'isHidden'> & { usernameNeedsConfirmation?: boolean };
 type FeedPage = { items: ProfileUpdate[]; next: number | null; checked: number; unavailable: boolean; unavailableProviders?: Array<'spotify' | 'deezer' | 'inprocess'> | null };
@@ -17,8 +17,8 @@ const providerLabels = { spotify: 'Spotify', deezer: 'Deezer', inprocess: 'In Pr
 
 export default function LiveUserProfile({ user }: { user: Account }) {
   const queryClient = useQueryClient();
-  const { update, data: session, status } = useSession();
-  const accountReady = status === 'authenticated' && session.user.id === user.id;
+  const { user: caller, status, refetch } = useMusicNerdUser();
+  const accountReady = status === 'authenticated' && caller?.id === user.id;
   const [artistSearch, setArtistSearch] = useState('');
   const [debouncedArtistSearch, setDebouncedArtistSearch] = useState('');
   const searchPending = !!artistSearch.trim() && artistSearch.trim() !== debouncedArtistSearch;
@@ -104,7 +104,7 @@ export default function LiveUserProfile({ user }: { user: Account }) {
         }
         const response = await requestUserApi(`/api/user/${user.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: name})});
         if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Could not save your name.'); }
-        await update();
+        await refetch();
         return {name, photo: next.url};
       },
     }} />

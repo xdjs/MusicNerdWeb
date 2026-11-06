@@ -20,10 +20,6 @@ jest.mock('@/hooks/use-toast', () => ({
     useToast: () => ({ toast: mockToast }),
 }));
 
-jest.mock('next-auth/react', () => ({
-    useSession: jest.fn(() => ({ data: null })),
-}));
-
 jest.mock('@privy-io/react-auth', () => ({
     useLogin: () => ({ login: mockLogin }),
 }));
@@ -37,7 +33,7 @@ jest.mock('use-debounce', () => ({
 }));
 
 import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
+import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 
 import SearchBar from '@/app/_components/nav/components/SearchBar';
 import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
@@ -81,7 +77,7 @@ describe('SearchBar Add Artist Flow', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        (useSession as jest.Mock).mockReturnValue({ data: null });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: null });
         // Mock sessionStorage
         mockSessionStorage = {};
         jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => mockSessionStorage[key] ?? null);
@@ -172,7 +168,7 @@ describe('SearchBar Add Artist Flow', () => {
         [{ status: 'exists', artistId: '42', artistName: 'New Artist' }, 'exists'],
         [{ status: 'error', message: 'Platform API down' }, 'error'],
     ])('tracks how a search add resolved (%o)', async (resp, step) => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockAddArtist.mockResolvedValue(resp);
         await renderAndSearch([externalResult]);
         fireEvent.click(screen.getByText('New Artist'));
@@ -180,7 +176,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('completes pending add on mount when session exists and pending ID is fresh', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockSessionStorage['pendingAddArtistPlatformId'] = 'dz123';
         mockSessionStorage['pendingAddArtistPlatform'] = 'deezer';
         mockSessionStorage['pendingAddArtistTimestamp'] = String(Date.now());
@@ -201,7 +197,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('discards stale pending add (older than 5 minutes)', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockSessionStorage['pendingAddArtistPlatformId'] = 'dz123';
         mockSessionStorage['pendingAddArtistPlatform'] = 'deezer';
         mockSessionStorage['pendingAddArtistTimestamp'] = String(Date.now() - 6 * 60 * 1000);
@@ -232,7 +228,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('calls addArtist with platform args and navigates on success when authenticated', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockAddArtist.mockResolvedValue({ status: 'success', artistId: '99', artistName: 'New Artist' });
 
         await renderAndSearch([externalResult]);
@@ -245,7 +241,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('handles "exists" status by navigating to existing artist', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockAddArtist.mockResolvedValue({ status: 'exists', artistId: '42', artistName: 'New Artist' });
 
         await renderAndSearch([externalResult]);
@@ -257,7 +253,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('uses the action identity to build a canonical existing-artist handoff URL', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         const trackedExternalResult = {
             ...externalResult,
             platformId: '123',
@@ -288,7 +284,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('carries both search images into comparison and returns to results without another add', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockAddArtist.mockResolvedValue({
             status: 'possible_duplicate', platform: 'deezer', platformId: '123',
             candidates: [{ id: dbResult.id, name: dbResult.name, spotify: '2yvguoW65iZdUhca8yIfIo', deezer: null }],
@@ -307,7 +303,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('force-creates a separate artist after duplicate confirmation', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockAddArtist
             .mockResolvedValueOnce({
                 status: 'possible_duplicate',
@@ -342,7 +338,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('blocks candidate navigation and search edits while force creation is pending', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         let resolveCreate!: (value: unknown) => void;
         mockAddArtist
             .mockResolvedValueOnce({
@@ -378,7 +374,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('shows a blocking conflict without offering force creation', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockAddArtist.mockResolvedValue({
             status: 'conflict',
             message: 'This platform profile is already owned by another artist.',
@@ -397,7 +393,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('shows error toast when addArtist fails and keeps dropdown open', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockAddArtist.mockResolvedValue({ status: 'error', message: 'Platform API down' });
 
         await renderAndSearch([externalResult]);
@@ -414,7 +410,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('shows error toast when addArtist throws and keeps dropdown open', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockAddArtist.mockRejectedValue(new Error('Network error'));
 
         await renderAndSearch([externalResult]);
@@ -439,7 +435,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('disables every search result while an artist add is in flight', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         let resolveAdd!: (val: unknown) => void;
         mockAddArtist.mockReturnValue(new Promise(r => { resolveAdd = r; }));
 
@@ -468,7 +464,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('keeps an adding status visible after the search field loses focus', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         let resolveAdd!: (value: unknown) => void;
         mockAddArtist.mockReturnValue(new Promise(resolve => { resolveAdd = resolve; }));
         await renderAndSearch([externalResult]);
@@ -483,7 +479,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('ignores an add response after the user changes the search', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         let resolveAdd!: (val: unknown) => void;
         mockAddArtist.mockReturnValue(new Promise(r => { resolveAdd = r; }));
 
@@ -508,7 +504,7 @@ describe('SearchBar Add Artist Flow', () => {
     });
 
     it('closes dropdown only on success, not during add', async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: '1' } });
         mockAddArtist.mockResolvedValue({ status: 'success', artistId: '99', artistName: 'New Artist' });
 
         await renderAndSearch([externalResult]);
