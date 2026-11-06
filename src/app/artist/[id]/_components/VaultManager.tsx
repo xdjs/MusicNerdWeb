@@ -11,14 +11,8 @@ import SourceCard from "./SourceCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import {
-  updateSourceStatus,
-  updateSourceType,
-  removeVaultSource,
-  removeVaultSources,
-  searchWebForSources,
-} from "@/app/actions/dashboardActions";
-import { addVaultSource } from "@/app/actions/addVaultSource";
+import { searchWebForSources } from "@/app/actions/dashboardActions";
+import { requestArtistSources } from "@/lib/source/requestArtistSources";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL } from '@/lib/vaultUpload';
@@ -114,7 +108,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   if (!isEditing) return null;
 
   async function handleApprove(id: string) {
-    const res = await updateSourceStatus(id, "approved");
+    const res = await requestArtistSources(artistId, { method: "PATCH", sourceId: id, body: { status: "approved" } });
     if (res.success) {
       const moved = pending.find(s => s.id === id);
       setPending(prev => prev.filter(s => s.id !== id));
@@ -126,7 +120,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   }
 
   async function handleReject(id: string) {
-    const res = await updateSourceStatus(id, "rejected");
+    const res = await requestArtistSources(artistId, { method: "PATCH", sourceId: id, body: { status: "rejected" } });
     if (res.success) {
       setPending(prev => prev.filter(s => s.id !== id));
       router.refresh();
@@ -136,7 +130,9 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   }
 
   async function handleDelete(id: string) {
-    const res = reviewOnly ? await updateSourceStatus(id, "rejected") : await removeVaultSource(id);
+    const res = reviewOnly
+      ? await requestArtistSources(artistId, { method: "PATCH", sourceId: id, body: { status: "rejected" } })
+      : await requestArtistSources(artistId, { method: "DELETE", sourceId: id });
     if (res.success) {
       setPending(prev => prev.filter(s => s.id !== id));
       setApproved(prev => prev.filter(s => s.id !== id));
@@ -156,7 +152,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
     const ids = Array.from(selectedIds);
     setDeleting(true);
     try {
-      const res = await removeVaultSources(ids);
+      const res = await requestArtistSources(artistId, { method: "DELETE", body: { sourceIds: ids } });
       if (res.success) {
         const idSet = new Set(ids);
         setApproved(prev => prev.filter(s => !idSet.has(s.id)));
@@ -189,7 +185,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   }
 
   async function handleTypeChange(id: string, type: string) {
-    const res = await updateSourceType(id, type);
+    const res = await requestArtistSources(artistId, { method: "PATCH", sourceId: id, body: { type } });
     if (!res.success) {
       toast({ title: "Couldn't update type", description: res.error ?? "Please try again", variant: "destructive" });
     } else {
@@ -208,7 +204,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
     setNewUrl(url);
     setAddingUrl(true);
     try {
-      const res = await addVaultSource(artistId, url);
+      const res = await requestArtistSources(artistId, { method: "POST", body: { url } });
       if (res.success) {
         setNewUrl("");
         if (res.source) {
