@@ -59,7 +59,7 @@ describe('persistArtistBio', () => {
     it('preserves old and new bios in history before an authorized update', async () => {
         const { persistArtistBio, set, values, tx } = await setup();
         await persistArtistBio('a1', 'New artist bio');
-        expect(tx.execute).toHaveBeenCalledTimes(1);
+        expect(tx.execute).toHaveBeenCalledTimes(2);
         expect(values).toHaveBeenNthCalledWith(1, { artistId: 'a1', bioText: 'Artist edited bio', isPinned: false });
         expect(values).toHaveBeenNthCalledWith(2, { artistId: 'a1', bioText: 'New artist bio', isPinned: false });
         expect(set).toHaveBeenCalledWith({ bio: 'New artist bio' });
