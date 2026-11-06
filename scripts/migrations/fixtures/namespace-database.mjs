@@ -18,7 +18,7 @@ export async function namespaceDatabase(){
  const wrap=connection=>({exec:text=>connection.unsafe(text),query:async text=>({rows:[...await connection.unsafe(text)]})});
  return {...wrap(sql),transaction:fn=>sql.begin(tx=>fn(wrap(tx))),close:async()=>{
   await sql.end();await admin.unsafe(`drop database ${name}`);
-  for(const role of ['mnweb','anon','authenticated','unexpected_reader','inherited_reader'])await admin.unsafe(`drop role if exists ${role}`);
+  for(const role of ['cli_login_postgres','supabase_admin','mnweb','anon','authenticated','unexpected_reader','inherited_reader','postgres'])if(role!==userInfo().username)await admin.unsafe(`drop role if exists ${role}`);
   await admin.end();
  }};
 }

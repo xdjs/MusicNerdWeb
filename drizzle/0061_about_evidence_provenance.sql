@@ -7,15 +7,41 @@ END $$;
 --> statement-breakpoint
 CREATE SCHEMA IF NOT EXISTS mn_private;
 --> statement-breakpoint
--- USAGE is shared with existing publishing/moderation callers. It grants no
--- access to the new About objects; only their ACLs are changed below.
-DO $$ BEGIN
+-- Schema USAGE is shared; never revoke unrelated consumers. The only owner-role
+-- membership exception is the audited Supabase-managed CLI identity. Attribute
+-- or membership drift fails closed; this does not grant or change any role.
+DO $$
+DECLARE managed_cli oid;
+BEGIN
+ SELECT r.oid INTO managed_cli
+ FROM pg_roles r
+ JOIN pg_namespace n ON n.nspname='mn_private'
+ JOIN pg_roles owner_role ON owner_role.oid=n.nspowner
+ JOIN pg_auth_members m ON m.member=r.oid AND m.roleid=n.nspowner
+ JOIN pg_roles grantor_role ON grantor_role.oid=m.grantor
+ WHERE current_user='postgres' AND owner_role.rolname='postgres'
+  AND r.rolname='cli_login_postgres'
+  AND NOT r.rolsuper AND NOT r.rolinherit AND NOT r.rolcreaterole
+  AND NOT r.rolcreatedb AND r.rolcanlogin AND NOT r.rolreplication
+  AND NOT r.rolbypassrls AND r.rolconnlimit=-1
+  AND grantor_role.rolname='supabase_admin'
+  AND grantor_role.rolsuper AND grantor_role.rolinherit AND grantor_role.rolcreaterole
+  AND grantor_role.rolcreatedb AND grantor_role.rolcanlogin AND grantor_role.rolreplication
+  AND grantor_role.rolbypassrls AND grantor_role.rolconnlimit=-1
+  AND NOT m.admin_option AND NOT m.inherit_option AND m.set_option
+  AND (SELECT count(*) FROM pg_auth_members WHERE member=r.oid)=1
+  AND NOT EXISTS (SELECT 1 FROM pg_auth_members WHERE roleid=r.oid)
+  AND NOT has_schema_privilege(r.oid,n.oid,'CREATE');
+ IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='cli_login_postgres'
+   AND (managed_cli IS NULL OR oid<>managed_cli))
+ THEN RAISE EXCEPTION 'Unexpected managed CLI role attributes or membership'; END IF;
  IF current_user IN ('mnweb','anon','authenticated') OR NOT EXISTS (
   SELECT 1 FROM pg_namespace WHERE nspname='mn_private'
    AND nspowner=(SELECT oid FROM pg_roles WHERE rolname=current_user)
  ) OR EXISTS (
   SELECT 1 FROM pg_roles r JOIN pg_namespace n ON n.nspname='mn_private'
   WHERE NOT r.rolsuper AND r.oid<>n.nspowner
+   AND (managed_cli IS NULL OR r.oid<>managed_cli)
    AND (has_schema_privilege(r.oid,n.oid,'CREATE')
     OR pg_has_role(r.oid,n.nspowner,'MEMBER')
     OR (r.rolname<>'mnweb' AND pg_has_role(r.oid,'mnweb','MEMBER')))

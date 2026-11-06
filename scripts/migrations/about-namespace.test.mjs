@@ -98,3 +98,53 @@ for(const mutation of [
  const pg=await legacyFixture();try{await pg.exec(mutation);await assert.rejects(pg.transaction(tx=>tx.exec(preflight)));}
  finally{await pg.close()}
 });
+
+// Provider-role compatibility is deliberately exact; these are synthetic roles.
+async function managedCliFixture(){
+ const pg=await fixture();
+ await pg.exec(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='postgres') THEN CREATE ROLE postgres NOLOGIN NOSUPERUSER BYPASSRLS; END IF; END $$;
+ CREATE ROLE supabase_admin LOGIN SUPERUSER INHERIT CREATEROLE CREATEDB REPLICATION BYPASSRLS CONNECTION LIMIT -1;
+ CREATE ROLE cli_login_postgres LOGIN NOSUPERUSER NOINHERIT NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS CONNECTION LIMIT -1;
+ ALTER SCHEMA mn_private OWNER TO postgres;
+ GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;
+ DO $$ BEGIN EXECUTE format('GRANT CREATE ON DATABASE %I TO postgres',current_database()); END $$;
+ GRANT postgres TO supabase_admin WITH ADMIN TRUE;
+ SET ROLE supabase_admin;
+ GRANT postgres TO cli_login_postgres WITH ADMIN FALSE, INHERIT FALSE, SET TRUE GRANTED BY supabase_admin;
+ RESET ROLE;`);
+ return pg;
+}
+const managedRoleSnapshot=pg=>pg.query(`select member,roleid,grantor,admin_option,inherit_option,set_option from pg_auth_members where member=(select oid from pg_roles where rolname='cli_login_postgres') or roleid=(select oid from pg_roles where rolname='cli_login_postgres') order by member,roleid,grantor`);
+test('accepts only exact managed CLI owner membership without changing roles or namespace ACL',async()=>{
+ const pg=await managedCliFixture();try{
+ const before=await snapshot(pg);const memberships=await managedRoleSnapshot(pg);
+ await pg.exec('set role postgres');await apply(pg);await pg.exec('reset role');
+ assert.deepEqual(await snapshot(pg),before);assert.deepEqual(await managedRoleSnapshot(pg),memberships);
+ await pg.exec('set role mnweb');await assert.rejects(pg.exec('create table mn_private.forbidden(id int)'),{code:'42501'});await pg.exec('reset role');
+ }finally{await pg.close()}
+});
+for(const mutation of [
+ 'alter role cli_login_postgres superuser',
+ 'alter role cli_login_postgres inherit',
+ 'alter role cli_login_postgres createrole',
+ 'alter role cli_login_postgres createdb',
+ 'alter role cli_login_postgres nologin',
+ 'alter role cli_login_postgres replication',
+ 'alter role cli_login_postgres bypassrls',
+ 'alter role cli_login_postgres connection limit 1',
+ 'set role supabase_admin;grant postgres to cli_login_postgres with admin true granted by supabase_admin;reset role',
+ 'set role supabase_admin;grant postgres to cli_login_postgres with inherit true granted by supabase_admin;reset role',
+ 'set role supabase_admin;grant postgres to cli_login_postgres with set false granted by supabase_admin;reset role',
+ 'set role supabase_admin;revoke postgres from cli_login_postgres granted by supabase_admin;reset role;grant postgres to cli_login_postgres with admin false,inherit false,set true',
+ 'grant unexpected_reader to cli_login_postgres',
+ 'grant cli_login_postgres to unexpected_reader with inherit false,set true',
+ 'grant create on schema mn_private to cli_login_postgres',
+ 'alter role supabase_admin nologin',
+])test(`refuses managed CLI drift atomically: ${mutation}`,async()=>{
+ const pg=await managedCliFixture();try{
+ await pg.exec(mutation);const before=await snapshot(pg);
+ await pg.exec('set role postgres');await assert.rejects(apply(pg));await pg.exec('reset role');
+ assert.equal((await pg.query("select to_regclass('mn_private.artist_bio_provenance') as relation")).rows[0].relation,null);
+ assert.deepEqual(await snapshot(pg),before);
+ }finally{await pg.close()}
+});
