@@ -91,10 +91,10 @@ describe("ResearchPending", () => {
         window.IntersectionObserver = original;
     });
 
-    it("labels a fresh About as new", () => {
+    it("labels completed About without claiming it was newly written", () => {
         inBuild(researchContext({ steps: { profiles: "a", vault: "b", interview: "c", publish: "c" }, fresh: { profiles: false, vault: false, publish: true } }),
             <ResearchPending step="publish" skeleton="about" label="writing…" arrivedLabel="Your About is ready"><p>about</p></ResearchPending>);
-        expect(screen.getByText("New About")).toBeInTheDocument();
+        expect(screen.getByText("About ready")).toBeInTheDocument();
         expect(screen.getByText("about")).toBeInTheDocument();
     });
 

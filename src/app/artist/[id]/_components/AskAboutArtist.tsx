@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport, generateId, type UIMessage } from "ai";
 import { getAccessToken } from "@privy-io/react-auth";
 import QuestionQuotaNotice from './QuestionQuotaNotice';
 import { trackEvent } from '@/lib/analytics/trackEvent';
@@ -14,6 +14,10 @@ import { getChatSources, type ChatSource } from "@/lib/artistChat/getChatSources
 import { getMessageText } from "@/lib/artistChat/getMessageText";
 import { getWebSearchUrls } from "@/lib/artistChat/getWebSearchUrls";
 import { removeUnresolvedCitations } from "@/lib/artistChat/removeUnresolvedCitations";
+import { getAttributedAnswer } from './getAttributedAnswer';
+import { prepareArtistChatMessages } from './prepareArtistChatMessages';
+import { AttributedPassages } from './AttributedPassages';
+import { useTurnLifecycle, type TurnOutcome } from './useTurnLifecycle';
 
 interface AskAboutArtistProps {
     artistId: string;
@@ -93,7 +97,13 @@ function searchedWeb(message: UIMessage): boolean {
     return message.parts.some(part => part.type === "tool-webSearch");
 }
 
-function ConversationAnswer({ message }: { message: UIMessage }) {
+function ConversationAnswer({ message, outcome }: { message: UIMessage; outcome?: TurnOutcome }) {
+    const stopped = outcome === "stopped";
+    const failed = outcome === "failed";
+    const attributed = getAttributedAnswer(message);
+    // A clean EOF without the selection terminal chunk is still incomplete.
+    if (attributed?.state === "selecting" && outcome === "finished") attributed.state = "partial";
+    if (attributed) return <AttributedPassages answer={attributed} stopped={stopped} failed={failed} />;
     const sources = getChatSources(message);
     const answer = removeUnresolvedCitations(getMessageText(message), new Set(sources.map(s => s.n)));
     const webUrls = getWebSearchUrls(message);
@@ -150,7 +160,7 @@ function ConversationAnswer({ message }: { message: UIMessage }) {
  */
 export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistProps) {
     const [question, setQuestion] = useState("");
-    const [stopped, setStopped] = useState(false);
+    const lifecycle = useTurnLifecycle();
     const [quotaNow, setQuotaNow] = useState(Date.now);
     const scrollRef = useRef<HTMLDivElement>(null);
     const transport = useMemo(() => new DefaultChatTransport({
@@ -158,24 +168,32 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         credentials: "omit",
         headers: async (): Promise<Record<string, string>> => {
             const token = await getAccessToken().catch(() => null);
-            return token ? { Authorization: `Bearer ${token}` } : {};
+            return {
+                Accept: "text/event-stream; musicnerd-attributed-text=12000",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            };
         },
         // The endpoint takes `{ messages }` and nothing else.
-        prepareSendMessagesRequest: ({ messages }) => ({ body: { messages } }),
+        prepareSendMessagesRequest: ({ messages }) => ({ body: { messages: prepareArtistChatMessages(messages) } }),
     }), [artistId]);
     const { messages, sendMessage, status, stop, error, regenerate } = useChat({
         transport,
         onFinish: ({ message, isAbort, isError }) => {
+            if (isAbort) lifecycle.record("stopped");
+            else if (isError) lifecycle.record("failed");
             // A stopped stream is not an answer; a failed one is onError's.
             if (isAbort || isError) return;
+            // A completed selection transport is not an ordinary generated-answer success.
+            if (getAttributedAnswer(message)) return;
             trackEvent('ask_question', { outcome: searchedWeb(message) ? 'open_web' : 'answered', sources: getChatSources(message).length });
         },
         onError: failure => {
+            lifecycle.record("failed");
             // A quota notice is not an answer either.
             if (!getChatQuota(failure)) trackEvent('ask_question', { outcome: 'error', sources: 0 });
         },
     });
-    const busy = status === "submitted" || status === "streaming";
+    const busy = lifecycle.pending || status === "submitted" || status === "streaming";
     const quota = getChatQuota(error);
     const turns = messages.flatMap((message, index) => message.role === "user"
         ? [{ question: message, answer: messages[index + 1]?.role === "assistant" ? messages[index + 1] : undefined }]
@@ -211,12 +229,18 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
 
     const ask = (value: string) => {
         const trimmed = value.trim();
-        if (!trimmed || busy || isQuotaBlocked(trimmed, Date.now())) return;
-        setStopped(false);
+        if (!trimmed || busy || lifecycle.isPending() || isQuotaBlocked(trimmed, Date.now())) return;
         setQuestion("");
-        void sendMessage({ text: trimmed });
+        const id = generateId();
+        void lifecycle.run(id, () => sendMessage({ id, role: "user", parts: [{ type: "text", text: trimmed }] }));
     };
-    const retry = () => { setStopped(false); void regenerate(); };
+    const retry = () => {
+        const turn = turns.at(-1);
+        if (!turn || busy || lifecycle.isPending() || isQuotaBlocked(getMessageText(turn.question), Date.now())) return;
+        // Regenerate from the user message: AI SDK removes the previous answer
+        // synchronously, so old complete/passages cannot masquerade as this attempt.
+        void lifecycle.run(turn.question.id, () => regenerate({ messageId: turn.question.id }));
+    };
 
     return (
         <div className="flex min-h-0 flex-col">
@@ -225,24 +249,36 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                 {turns.length === 0 && <p className="mb-3 text-sm leading-relaxed text-white/75">What would you like to know about {artistName}?</p>}
                 {turns.map((turn, index) => {
                     const last = index === turns.length - 1;
+                    const outcome = lifecycle.turns[turn.question.id]?.outcome;
+                    const stopped = outcome === "stopped";
+                    const failed = outcome === "failed";
+                    const attributed = getAttributedAnswer(turn.answer);
+                    const retrySelection = stopped || failed || (attributed && (
+                        ["failed", "partial", "stopped"].includes(attributed.state) ||
+                        (attributed.state === "selecting" && outcome === "finished")
+                    ));
                     return (
                         <div key={turn.question.id} data-conversation-turn className="mb-5 space-y-4 last:mb-0">
                             <p className="ml-auto w-fit max-w-[90%] [overflow-wrap:anywhere] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{getMessageText(turn.question)}</p>
                             {last && quota
                                 ? <QuestionQuotaNotice quota={quota} now={quotaNow}
                                     disabled={busy || isQuotaBlocked(lastQuestion, quotaNow)} onRetry={retry} />
-                                : last && error
-                                ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">Failed to get an answer. Try again.</p><button type="button" disabled={busy} onClick={retry} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
+                                : turn.answer && attributed
+                                ? <div className="space-y-2"><ConversationAnswer message={turn.answer} outcome={outcome} />
+                                    {last && retrySelection && <button type="button" disabled={busy} onClick={retry} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button>}
+                                </div>
+                                : (last && error) || failed
+                                ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">Failed to get an answer. Try again.</p>{last && <button type="button" disabled={busy} onClick={retry} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button>}</div>
                                 : turn.answer && getMessageText(turn.answer) ? <ConversationAnswer message={turn.answer} />
                                 : last && busy
                                 ? <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{getChatProgress(turn.answer)}</p>
-                                : last && stopped
-                                ? <div className="space-y-2 px-1"><p className="text-sm text-white/70">Stopped. You can try again when ready.</p><button type="button" onClick={retry} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
+                                : stopped
+                                ? <div className="space-y-2 px-1"><p className="text-sm text-white/70">Stopped. You can try again when ready.</p>{last && <button type="button" disabled={busy} onClick={retry} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button>}</div>
                                 : null}
                         </div>
                     );
                 })}
-                {busy && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => { setStopped(true); void stop(); }}>Stop</button>}
+                {busy && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => { lifecycle.record("stopped"); void stop(); }}>Stop</button>}
                 {!busy && (
                     <div className="mt-3 flex flex-wrap gap-2">
                         {DEFAULT_SUGGESTIONS(artistName).filter(s => !asked.has(s.toLowerCase())).slice(0, 2).map(suggestion => (

@@ -4,7 +4,7 @@
  * `source-url` parts, tool steps as a status line). `useChat` is mocked
  * (src/test/__mocks__/ai-sdk-react.ts); each test sets the chat's state.
  */
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { useChat } from "@ai-sdk/react";
 import { getAccessToken } from "@privy-io/react-auth";
 import AskAboutArtist from "../AskAboutArtist";
@@ -42,7 +42,7 @@ describe("sending", () => {
         renderChat();
         fireEvent.change(screen.getByRole("textbox"), { target: { value: "  Who played drums?  " } });
         fireEvent.click(screen.getByRole("button", { name: "Submit question" }));
-        expect(sendMessage).toHaveBeenCalledWith({ text: "Who played drums?" });
+        expect(sendMessage).toHaveBeenCalledWith({ id: expect.any(String), role: "user", parts: [{ type: "text", text: "Who played drums?" }] });
         expect(screen.getByRole("textbox")).toHaveValue("");
         const options = transportOptions();
         expect(options.api).toBe(musicNerdApiUrl("/api/artist/a1/chat"));
@@ -51,11 +51,11 @@ describe("sending", () => {
 
     it("sends the Privy token when signed in and no Authorization header when signed out", async () => {
         renderChat();
-        await expect(transportOptions().headers()).resolves.toEqual({ Authorization: "Bearer mock-access-token" });
+        await expect(transportOptions().headers()).resolves.toEqual({ Accept: "text/event-stream; musicnerd-attributed-text=12000", Authorization: "Bearer mock-access-token" });
         jest.mocked(getAccessToken).mockResolvedValueOnce(null as never);
-        await expect(transportOptions().headers()).resolves.toEqual({});
+        await expect(transportOptions().headers()).resolves.toEqual({ Accept: "text/event-stream; musicnerd-attributed-text=12000" });
         jest.mocked(getAccessToken).mockRejectedValueOnce(new Error("not ready"));
-        await expect(transportOptions().headers()).resolves.toEqual({});
+        await expect(transportOptions().headers()).resolves.toEqual({ Accept: "text/event-stream; musicnerd-attributed-text=12000" });
     });
 
     it("sends only the messages, the body the endpoint accepts", () => {
@@ -68,7 +68,7 @@ describe("sending", () => {
     it("sends a suggestion when it is tapped and stops offering it", () => {
         const { rerender } = renderChat();
         fireEvent.click(screen.getByRole("button", { name: "How did Pete Rango get started?" }));
-        expect(sendMessage).toHaveBeenCalledWith({ text: "How did Pete Rango get started?" });
+        expect(sendMessage).toHaveBeenCalledWith({ id: expect.any(String), role: "user", parts: [{ type: "text", text: "How did Pete Rango get started?" }] });
         state({ messages: [user("How did Pete Rango get started?"), assistant([{ type: "text", text: "In a garage." }])] });
         rerender(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
         expect(screen.queryByRole("button", { name: "How did Pete Rango get started?" })).not.toBeInTheDocument();
@@ -105,15 +105,20 @@ describe("while the answer streams", () => {
         expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
 
-    it("stops the stream with stop() and offers to ask again", () => {
-        state({ messages: [user("Q")], status: "submitted" });
+    it("stops the stream with stop() and offers to ask again", async () => {
+        state();
         const { rerender } = renderChat();
+        fireEvent.change(screen.getByRole("textbox"), { target: { value: "Q" } });
+        fireEvent.click(screen.getByRole("button", { name: "Submit question" }));
+        const sentId = sendMessage.mock.calls[0][0].id;
+        state({ messages: [user("Q", sentId)], status: "submitted" });
+        rerender(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
         fireEvent.click(screen.getByRole("button", { name: "Stop" }));
         expect(stop).toHaveBeenCalledTimes(1);
 
-        state({ messages: [user("Q")], status: "ready" });
+        state({ messages: [user("Q", sentId)], status: "ready" });
         rerender(<AskAboutArtist artistId="a1" artistName="Pete Rango" />);
-        expect(screen.getByText("Stopped. You can try again when ready.")).toBeVisible();
+        await waitFor(() => expect(screen.getByText("Stopped. You can try again when ready.")).toBeVisible());
         fireEvent.click(screen.getByRole("button", { name: "Try again" }));
         expect(regenerate).toHaveBeenCalledTimes(1);
     });
@@ -182,4 +187,90 @@ describe("an answer, rendered", () => {
         fireEvent.click(screen.getByRole("button", { name: "Try again" }));
         expect(regenerate).toHaveBeenCalledTimes(1);
     });
+});
+
+const typedPassage = (id: string, overrides: Record<string, unknown> = {}) => ({
+    type: "data-attributed-passage",
+    data: { version: 1, id: id.repeat(64), sourceId: `vault:${id}`, revision: "r1", title: "Source", url: "https://example.test/article", text: "QUOTED_CONTENT_NOT_HISTORY", n: 1, coverage: "partial-read", contextIncomplete: true, start: 0, end: "QUOTED_CONTENT_NOT_HISTORY".length, sha256: "e".repeat(64), ...overrides },
+});
+it("follow-up navigation uses only displayed passages without rejected prefixes or quote text", () => {
+    const visible = typedPassage("b");
+    const history = [assistant([
+        typedPassage("a", { url: "javascript:alert(1)", sourceId: "vault:hidden" }),
+        visible,
+        visible,
+        typedPassage("c", { extra: "x".repeat(65536) }),
+    ]), user("What about the first displayed passage?")];
+    const original = JSON.stringify(history);
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: { type: string; data?: Record<string, unknown> }[] }[] } };
+    const navigation = result.body.messages[0].parts.filter(p => p.type === "data-attributed-passage");
+    expect(navigation).toHaveLength(1);
+    expect(navigation[0].data).toMatchObject({ sourceId: "vault:b", displayPosition: 1, start: 0, end: "QUOTED_CONTENT_NOT_HISTORY".length, sha256: "e".repeat(64) });
+    expect(JSON.stringify(result)).not.toMatch(/vault:hidden|QUOTED_CONTENT_NOT_HISTORY|javascript|"extra"|"title"|"url"/);
+    expect(JSON.stringify(history)).toBe(original);
+});
+it("the original PDF-tool privacy strip wins before typed history projection", () => {
+    const history = [assistant([{ type: "tool-readPdfSource", state: "output-available" }, typedPassage("a")]), user("What about that source?")];
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: unknown[] }[] } };
+    expect(result.body.messages[0].parts).toEqual([]);
+});
+it("two physical PDF pages sharing one citation keep their distinct displayed positions and locators", () => {
+    const pdf = {kind:"pdf-page-text",sourceId:"pdf:source",originalSha256:"c".repeat(64),pageSha256:"d".repeat(64),physicalPages:13};
+    const history=[assistant([typedPassage("a",{...pdf,physicalPage:2}),typedPassage("b",{...pdf,physicalPage:10})]),user("What about passage two?")];
+    state({messages:history});renderChat();
+    const result=transportOptions().prepareSendMessagesRequest({messages:history,id:"chat",trigger:"submit-message"}) as {body:{messages:{parts:{type:string;data?:Record<string,unknown>}[]}[]}};
+    const hints=result.body.messages[0].parts.filter(p=>p.type==="data-attributed-passage").map(p=>p.data);
+    expect(hints).toHaveLength(2);expect(hints.map(p=>p?.displayPosition)).toEqual([1,2]);
+    expect(hints.map(p=>p?.physicalPage)).toEqual([2,10]);expect(hints[1]).toMatchObject({sourceId:"pdf:source",originalSha256:pdf.originalSha256,pageSha256:pdf.pageSha256,start:0,end:"QUOTED_CONTENT_NOT_HISTORY".length,sha256:"e".repeat(64)});
+});
+
+it.each([
+    { start: { quote: "PRIVATE_LOCATOR_SENTINEL" } },
+    { end: ["PRIVATE_LOCATOR_SENTINEL"] },
+    { start: "PRIVATE_LOCATOR_SENTINEL" },
+    { sha256: { quote: "PRIVATE_LOCATOR_SENTINEL" } },
+    { sha256: ["PRIVATE_LOCATOR_SENTINEL"] },
+    { sha256: "PRIVATE_LOCATOR_SENTINEL" },
+    { start: -1 },
+    { end: 2401 },
+    { end: 1 },
+])("does not forward or downgrade a malformed supplied locator: %p", overrides => {
+    const history = [assistant([typedPassage("a", overrides)]), user("What about that source?")];
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: { type: string }[] }[] } };
+    expect(result.body.messages[0].parts.filter(p => p.type === "data-attributed-passage")).toEqual([]);
+    expect(JSON.stringify(result)).not.toContain("PRIVATE_LOCATOR_SENTINEL");
+});
+
+it.each([false, true])("typed history strips metadata and unknown message fields, including PDF privacy branch=%s", hasPdfTool => {
+    const history = [{ ...assistant([...(hasPdfTool ? [{ type: "tool-readPdfSource" }] : []), typedPassage("a")]), metadata: { private: "PRIVATE_METADATA_SENTINEL" }, unknownField: ["PRIVATE_TOPLEVEL_SENTINEL"] }, user("What about that source?")];
+    const original = JSON.stringify(history);
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: Record<string, unknown>[] } };
+    expect(Object.keys(result.body.messages[0]).sort()).toEqual(["id", "parts", "role"]);
+    expect(JSON.stringify(result)).not.toMatch(/PRIVATE_METADATA_SENTINEL|PRIVATE_TOPLEVEL_SENTINEL|QUOTED_CONTENT_NOT_HISTORY/);
+    expect(JSON.stringify(history)).toBe(original);
+});
+
+it("omits a PDF navigation record without its locator and retains the next displayed position", () => {
+    const pdf = { kind: "pdf-page-text", sourceId: "pdf:source", originalSha256: "c".repeat(64), pageSha256: "d".repeat(64), physicalPages: 13 };
+    const first = typedPassage("a", { ...pdf, physicalPage: 2 });
+    const withoutLocator = Object.fromEntries(Object.entries(first.data).filter(([key]) => !["start", "end", "sha256"].includes(key)));
+    const history = [assistant([{ ...first, data: withoutLocator }, typedPassage("b", { ...pdf, physicalPage: 10 })]), user("What about passage two?")];
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: { type: string; data?: Record<string, unknown> }[] }[] } };
+    const hints = result.body.messages[0].parts.filter(p => p.type === "data-attributed-passage");
+    expect(hints).toHaveLength(1);
+    expect(hints[0].data).toMatchObject({ displayPosition: 2, physicalPage: 10 });
+});
+
+it("retains intentional legacy text navigation without inventing a locator", () => {
+    const first = typedPassage("a");
+    const withoutLocator = Object.fromEntries(Object.entries(first.data).filter(([key]) => !["start", "end", "sha256"].includes(key)));
+    const history = [assistant([{ ...first, data: withoutLocator }]), user("What about passage one?")];
+    state({ messages: history }); renderChat();
+    const result = transportOptions().prepareSendMessagesRequest({ messages: history, id: "chat", trigger: "submit-message" }) as { body: { messages: { parts: { type: string; data?: Record<string, unknown> }[] }[] } };
+    expect(result.body.messages[0].parts.find(p => p.type === "data-attributed-passage")?.data).toEqual({ version: 1, sourceId: "vault:a", revision: "r1", displayPosition: 1 });
 });

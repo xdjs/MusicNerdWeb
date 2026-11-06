@@ -18,8 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     try {
         const artist = await getArtistById(id);
         if (!artist) return new Response('Artist not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
-        let bioLookupFailed = false;
-        const publicBio = proposal ? await getSharePublicBio(artist).catch(() => { bioLookupFailed = true; return null; }) : null;
+        const publicBio = proposal ? await getSharePublicBio(artist).catch(() => null) : null;
         const portraitUrl = await musicPlatformData.getArtistPortrait(artist).catch(() => null);
         const portrait = await loadSharePortrait(portraitUrl, id, !proposal);
         // Finish rendering before returning so a failed render cannot stream a broken card.
@@ -33,7 +32,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
         return new Response(bytes, { headers: {
             'Content-Type': 'image/png',
-            'Cache-Control': bioLookupFailed ? 'no-store' : 'public, max-age=3600, s-maxage=3600',
+            'Cache-Control': proposal ? 'private, no-store' : 'public, max-age=3600, s-maxage=3600',
             'X-Content-Type-Options': 'nosniff',
         } });
     } catch {

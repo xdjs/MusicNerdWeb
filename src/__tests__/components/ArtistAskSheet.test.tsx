@@ -23,7 +23,7 @@ it('opens existing suggested questions, sends one, renders real citation links, 
     fireEvent.click(trigger);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'How did Nova get started?' }));
-    expect(sendMessage).toHaveBeenCalledWith({ text: 'How did Nova get started?' });
+    expect(sendMessage).toHaveBeenCalledWith({ id: expect.any(String), role: 'user', parts: [{ type: 'text', text: 'How did Nova get started?' }] });
     state({ messages: ANSWERED });
     rerender(<ArtistAskSheet artistId="nova-id" artistName="Nova" />);
     expect(screen.getByText(/Nova started recording/)).toBeInTheDocument();

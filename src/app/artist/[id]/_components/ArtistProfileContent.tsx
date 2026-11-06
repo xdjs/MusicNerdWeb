@@ -27,7 +27,7 @@ import VaultSection from "./VaultSection";
  *  loading state until their step is confirmed (docs/research-view.md). */
 export default function ArtistProfileContent({
     interviewAction, artist, publicAbout, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
-    blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true, researching = false,
+    blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, canPublishSources = false, claimStatusKnown = true, researching = false,
 }: {
     interviewAction?: ReactNode;
     artist: Artist;
@@ -49,6 +49,7 @@ export default function ArtistProfileContent({
     /** Admin and whitelisted additions are auto-approved UGC, so they appear in
      *  the feed; claim owners keep direct editing (`isClaimedByUser`). */
     autoApprove: boolean;
+    canPublishSources?: boolean;
     /** Existing server onboarding flag for Ask; editing uses the active build context. */
     researching?: boolean;
 }) {
@@ -115,7 +116,7 @@ export default function ArtistProfileContent({
                     <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support", approvedSources)} isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support", approvedSources).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                 </RevealSection>
                 <div id="mn-lore">
-                    <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />
+                    <VaultSection canPublishSources={canPublishSources} artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
                 <ArtistAskSheet key={`ask:${artist.id}`} artistId={artist.id} artistName={artist.name ?? "this artist"} researching={researching} />

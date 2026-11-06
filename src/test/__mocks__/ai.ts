@@ -12,3 +12,7 @@ export const Output = {
 export class DefaultChatTransport {
     constructor(public options: Record<string, unknown>) {}
 }
+
+/** Deterministic request identity for existing chat entrypoint tests. */
+let questionSequence = 0;
+export const generateId = jest.fn(() => `mock-question-${++questionSequence}`);
