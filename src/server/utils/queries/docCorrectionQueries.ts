@@ -1,7 +1,6 @@
 import { db } from "@/server/db/drizzle";
 import { artistDocCorrections } from "@/server/db/schema";
-import { eq, and, sql } from "drizzle-orm";
-import { withArtistUploadWrite, type WriteDb } from './ownershipWrites';
+import { eq } from "drizzle-orm";
 
 export type DocCorrection = {
     id: string;
@@ -24,32 +23,4 @@ export async function getDocCorrections(artistId: string): Promise<DocCorrection
         console.error("[getDocCorrections] Error:", e);
         return [];
     }
-}
-
-/** Upsert on (artist, claim) — correcting the same claim twice replaces the
- *  earlier correction rather than stacking two contradictory instructions into
- *  the next rebuild. */
-export async function upsertDocCorrection(
-    artistId: string,
-    claim: string,
-    kind: "wrong" | "fix",
-    correction: string | null,
-    authorization?: { userId: string; expectedClaimId: string | null },
-): Promise<void> {
-    const write = async (tx: WriteDb) => { await tx
-        .insert(artistDocCorrections)
-        .values({ artistId, claim, kind, correction })
-        .onConflictDoUpdate({
-            // Matches the unique index on (artist_id, claim) from 0016.
-            target: [artistDocCorrections.artistId, artistDocCorrections.claim],
-            set: { kind, correction, updatedAt: sql`(now() AT TIME ZONE 'utc'::text)` },
-        }); };
-    if (authorization) await withArtistUploadWrite(artistId, authorization.userId, authorization.expectedClaimId, write); else await write(db);
-}
-
-export async function deleteDocCorrection(artistId: string, id: string, authorization?: { userId: string; expectedClaimId: string | null }): Promise<void> {
-    const write = async (tx: WriteDb) => { await tx
-        .delete(artistDocCorrections)
-        .where(and(eq(artistDocCorrections.id, id), eq(artistDocCorrections.artistId, artistId))); };
-    if (authorization) await withArtistUploadWrite(artistId, authorization.userId, authorization.expectedClaimId, write); else await write(db);
 }
