@@ -12,7 +12,7 @@ Feature branches retain Vercel Preview deployments. A merge is not production ap
    URL against the independently configured expected URL hash, then reads the existing
    staging `vault-files` bucket metadata. A mismatch or failed read fails the build before
    Vercel can assign its domain. It verifies deployment project, source SHA and environment, then checks the
-   immutable deployment URL's health and homepage. It records the deployment ID, SHA, URL
+   immutable deployment URL's homepage and MusicNerdAPI's staging health. It records the deployment ID, SHA, URL
    and Actions run. Vercel assigns `staging.musicnerd.net` when the staging build becomes Ready; CI verifies
    that alias points to the recorded deployment. A staging smoke failure blocks production.
 3. `production-release` waits for approval from any one of Carl (`clt`), Pete (`p3t3rango`)
@@ -156,8 +156,11 @@ The release workflow remains separate and production still requires its own appr
 
 The Actions job summary and `release-<environment>-<run>-<attempt>` artifact contain only
 release metadata. Inspect the exact deployment and SHA, not merely a reachable stable alias.
-Built-in smoke checks are read-only: `/api/health` verifies the app-role DB ping and storage
-configuration, and `/` must return HTML. They do **not** establish real login, storage CRUD,
+Built-in smoke checks are read-only: the Web candidate's `/` must return 200 with HTML, and
+MusicNerdAPI's own health for that environment must report `{"status":"ok"}`
+(`https://musicnerd-api-staging.vercel.app/api/health` for staging,
+`https://api.musicnerd.net/api/health` for production). Web serves no API routes of its own.
+They do **not** establish real login, storage CRUD,
 worker behavior, schema compatibility or external integrations. Add feature-specific evidence
 before approval; never run fixture-writing production tests as a generic smoke suite.
 
