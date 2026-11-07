@@ -1,11 +1,11 @@
-import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { getPublicSavedBio } from '@/server/utils/bio/getPublicSavedBio';
 import { getPublicArtistAbout } from '@/server/utils/bio/getPublicArtistAbout';
 import { isRealBio } from '@/lib/bio/bioConstants';
 
-/** Matches artist-page metadata's public gate; never reads private Lore or sources. */
+/** Same evidence-aware public projection used by profile content and metadata. */
 export async function getSharePublicBio(artist: { id: string; bio?: string | null }): Promise<string | null> {
-    const claim = await getLoreClaimGeneration(artist.id);
-    if (claim) return isRealBio(artist.bio) ? artist.bio! : null;
+    const bio = await getPublicSavedBio(artist.id);
+    if (bio) return bio;
     const about = await getPublicArtistAbout(artist.id);
     return about && isRealBio(about.bio) ? about.bio : null;
 }
