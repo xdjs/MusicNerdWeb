@@ -13,6 +13,8 @@ import {
     refreshSpotifyToken,
     type SpotifyArtist,
 } from '@/server/utils/queries/externalApiQueries';
+import { SpotifyCooldownError } from '@/server/utils/spotify/SpotifyCooldownError';
+import { getSpotifyOEmbedImage } from '@/server/utils/spotify/getSpotifyOEmbedImage';
 import { spotifyGet } from '@/server/utils/spotify/spotifyGet';
 
 type SpotifyHeaderType = Awaited<ReturnType<typeof getSpotifyHeaders>>;
@@ -77,33 +79,15 @@ export class SpotifyProvider implements MusicPlatformProvider {
 
     async getArtistImage(id: string): Promise<string | null> {
         try {
-            const headers = await getSpotifyHeaders();
-            const result = await getSpotifyImage(id, undefined, headers);
+            const result = await getSpotifyImage(id);
             if (result.artistImage) return result.artistImage;
         } catch (error) {
-            console.error('SpotifyProvider.getArtistImage Web API failed:', error);
+            if (!(error instanceof SpotifyCooldownError)) {
+                console.error('SpotifyProvider.getArtistImage Web API failed:', error);
+            }
         }
 
-        // Spotify's public oEmbed endpoint supplies an artist thumbnail even when
-        // the authenticated Web API is unavailable. The request host is fixed;
-        // never fetch a URL supplied by the artist record directly.
-        try {
-            const artistUrl = `https://open.spotify.com/artist/${encodeURIComponent(id)}`;
-            const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(artistUrl)}`, {
-                signal: AbortSignal.timeout(2500),
-                next: { revalidate: 60 * 60 * 24 },
-            });
-            if (!response.ok) return null;
-            const data: unknown = await response.json();
-            const thumbnail = (data as { thumbnail_url?: unknown })?.thumbnail_url;
-            if (typeof thumbnail !== 'string') return null;
-            const url = new URL(thumbnail);
-            if (url.protocol !== 'https:' || (url.hostname !== 'i.scdn.co' && !url.hostname.endsWith('.spotifycdn.com'))) return null;
-            return url.href;
-        } catch (error) {
-            console.error('SpotifyProvider.getArtistImage oEmbed failed:', error);
-            return null;
-        }
+        return getSpotifyOEmbedImage(id);
     }
 
     async getTopTrackName(id: string): Promise<string | null> {
