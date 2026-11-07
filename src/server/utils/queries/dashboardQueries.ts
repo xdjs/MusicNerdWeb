@@ -1,3 +1,4 @@
+import { markAboutWriter } from '../bio/markAboutWriter';
 import {recordBioSourceUrlReceipts} from '../bio/recordBioSourceUrlReceipts';
 import {preserveRevokedBio} from '../bio/preserveRevokedBio';
 import {writeBioProvenance} from '../bio/writeBioProvenance';
@@ -246,6 +247,7 @@ export async function revokeApprovedClaim(claimId: string, adminId: string) {
                 // Preserve even a hand-edited bio that never reached version history.
                 await preserveRevokedBio(tx,deleted.artistId);
                 await writeBioProvenance(tx,deleted.artistId,null);
+                await markAboutWriter(tx);
                 await tx
                     .update(artists)
                     .set({ bio: null })
@@ -509,6 +511,7 @@ export async function pinBioVersion(versionId: string, artistId: string, auth: A
 
             if (pinned) {
                 await writeBioProvenance(tx,artistId,selectedProvenance);
+                await markAboutWriter(tx);
                 await tx
                     .update(artists)
                     .set({ bio: pinned.bioText })

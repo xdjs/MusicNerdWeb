@@ -1,3 +1,4 @@
+import { markAboutWriter } from '../bio/markAboutWriter';
 import {recordBioSourceUrlReceipts} from '../bio/recordBioSourceUrlReceipts';
 import {writeBioProvenance} from '../bio/writeBioProvenance';
 import { createHash } from 'node:crypto';
@@ -76,6 +77,7 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
             { text: bio, provenance: bioProvenance },
         ]);
         await writeBioProvenance(tx,artistId,bioProvenance);
+        await markAboutWriter(tx);
         await tx.update(artists).set({ bio }).where(eq(artists.id, artistId));
         const automatic = options.generated && !options.ownership.userId && !options.document;
         await recordArtistActivity(artistId, options.generated ? 'about_generated' : 'about_edited', {

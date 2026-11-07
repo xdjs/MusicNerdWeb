@@ -71,7 +71,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         // A doc was deleted → the (doc-derived or hand-edited) bio is the revoked owner's content
         expect(updatedTables).toEqual([schema.artistBioVersions, schema.artists]);
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
-        expect(tx.execute).toHaveBeenCalledTimes(5); // locking + read lineage + preserve current bio
+        expect(tx.execute).toHaveBeenCalledTimes(6); // locking + read lineage + preserve current bio
         const { PgDialect } = require('drizzle-orm/pg-core');
         const { ABOUT_EMPTY_STATE } = require('@/lib/bio/bioConstants');
         const preservation = new PgDialect().sqlToQuery(tx.execute.mock.calls[4][0]);
@@ -114,6 +114,6 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
         expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null } });
         expect(deletedTables).not.toContain(schema.artistBioVersions);
-        expect(tx.execute).toHaveBeenCalledTimes(5);
+        expect(tx.execute).toHaveBeenCalledTimes(6);
     });
 });

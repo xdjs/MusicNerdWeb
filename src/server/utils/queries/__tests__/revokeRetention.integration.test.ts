@@ -1,16 +1,30 @@
 /** @jest-environment node */
 // @ts-nocheck
+import { readFileSync } from 'node:fs';
+import { userInfo } from 'node:os';
+import postgres from 'postgres';
+import { drizzle as nativeDrizzle } from 'drizzle-orm/postgres-js';
 import { drizzle } from 'drizzle-orm/pglite';
 import { getTableColumns, getTableName } from 'drizzle-orm';
 import * as schema from '@/server/db/schema';
 import { db } from '@/server/db/drizzle';
-import { revokeApprovedClaim } from '../dashboardQueries';
+import { persistArtistBio } from '../bioPersistence';
+import { revokeApprovedClaim, pinBioVersion } from '../dashboardQueries';
 import { getTrustedLoreSourceIds } from '../getTrustedLoreSourceIds';
 jest.mock('@/server/db/drizzle', () => ({ db: {} }));
 jest.mock('@/env', () => ({ SUPABASE_URL: 'https://example.supabase.co' }));
 const { PGlite } = process.getBuiltinModule('module').createRequire(__filename)('@electric-sql/pglite');
-const client = new PGlite();
-const database = drizzle(client, { schema });
+const socket = process.env.MN_1655_WEB_FENCE_SOCKET;
+if (socket && !/^\/tmp\/mn-1655-web-fence\.[A-Za-z0-9]+$/.test(socket)) throw new Error('Unsafe native fixture socket');
+const nativeOptions={host:socket,port:55466,database:'mn_1655_web_fence',prepare:false,connection:{statement_timeout:6000}};
+const nativeAdmin=socket ? postgres({...nativeOptions,user:userInfo().username,max:1}) : null;
+const nativeRuntime=socket ? postgres({...nativeOptions,user:'mnweb',max:1}) : null;
+const client = nativeAdmin ? {
+    exec: text => nativeAdmin.unsafe(text),
+    query: async (text,values=[]) => ({rows:await nativeAdmin.unsafe(text,values)}),
+    close: async () => {await nativeRuntime.end();await nativeAdmin.end();},
+} : new PGlite();
+const database = nativeRuntime ? nativeDrizzle(nativeRuntime,{schema}) : drizzle(client, { schema });
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const artist = id(1), claim = id(2), owner = id(3), source = id(4), activity = id(5);
 const tables = [schema.artists, schema.artistClaims, schema.artistVaultSources, schema.artistActivityEvents,
@@ -18,6 +32,10 @@ const tables = [schema.artists, schema.artistClaims, schema.artistVaultSources, 
     schema.artistSocialPosts, schema.artistSocialRefreshes, schema.artistSocialProfiles,
     schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs, schema.artistBioVersions];
 beforeAll(async () => {
+    if (nativeAdmin) {
+        const [identity]=await nativeAdmin`select current_database() as name, current_setting('listen_addresses') as addresses, shobj_description(oid,'pg_database') as purpose from pg_database where datname=current_database()`;
+        if (identity.name!=='mn_1655_web_fence' || identity.addresses!=='' || identity.purpose!=='mn-1655-web-fence-synthetic-only') throw new Error('Unsafe native fixture identity');
+    }
     // Local in-memory SQL only: derive column types so production queries are exercised.
     const enums = new Map();
     for (const table of tables) for (const column of Object.values(getTableColumns(table))) {
@@ -33,11 +51,19 @@ beforeAll(async () => {
         await client.exec(`CREATE TABLE "${getTableName(table)}" (${columns.join(',')})`);
     }
     await client.exec('CREATE TABLE retained_versions(source_id uuid REFERENCES artist_vault_sources(id) ON DELETE CASCADE, body text)');
+    await client.exec('CREATE SCHEMA mn_private; CREATE TABLE mn_private.artist_bio_provenance(artist_id uuid PRIMARY KEY,provenance jsonb); CREATE TABLE mn_private.artist_bio_version_provenance(version_id uuid PRIMARY KEY,provenance jsonb)');
+    await client.exec(readFileSync('drizzle/0065_about_writer_fence.sql', 'utf8'));
+    if (nativeAdmin) {
+        await client.exec("GRANT USAGE ON SCHEMA public,mn_private TO mnweb; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public,mn_private TO mnweb");
+        expect((await nativeRuntime`select current_user as role`)[0].role).toBe('mnweb');
+        await expect(nativeRuntime`alter table artists add column unauthorized text`).rejects.toMatchObject({code:'42501'});
+    }
     db.transaction = callback => database.transaction(callback);
-    db.execute = async query => (await database.execute(query)).rows;
+    db.execute = async query => {const result=await database.execute(query);return nativeRuntime ? result : result.rows;};
 }, 30000);
 afterAll(() => client.close());
 beforeEach(async () => {
+    await client.exec("TRUNCATE mn_private.artist_bio_provenance,mn_private.artist_bio_version_provenance");
     await client.exec(`TRUNCATE ${tables.map(getTableName).join(',')},retained_versions CASCADE`);
     await client.query('INSERT INTO artists(id) VALUES($1)', [artist]);
     await client.query('INSERT INTO artist_claims(id,artist_id,user_id,status) VALUES($1,$2,$3,$4)', [claim,artist,owner,'approved']);
@@ -101,4 +127,27 @@ it('does not infer public trust from mismatched or missing original evidence',as
  expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set());
  await expect(revokeApprovedClaim(claim,'admin')).rejects.toThrow('REVOCATION_SOURCE_REVIEW_REQUIRED');
  expect((await client.query('select * from artist_claims')).rows).toHaveLength(1);
+});
+
+it('fenced revocation clears the bio while retaining saved history', async () => {
+    await client.exec("SELECT set_config('musicnerd.about_writer_version','1655-v1',false)");
+    await client.query('UPDATE artists SET bio=$1', ['Original']);
+    await client.exec("SELECT set_config('musicnerd.about_writer_version','',false)");
+    await client.query('INSERT INTO artist_bio_versions(artist_id,bio_text,is_pinned) VALUES($1,$2,true)',[artist,'Original']);
+    await revokeApprovedClaim(claim,'admin');
+    expect((await client.query('SELECT bio FROM artists')).rows).toEqual([{bio:null}]);
+    expect((await client.query('SELECT bio_text,is_pinned FROM artist_bio_versions')).rows).toEqual([{bio_text:'Original',is_pinned:false}]);
+    await expect(client.query('UPDATE artists SET bio=$1',['Old writer'])).rejects.toMatchObject({code:'55000'});
+});
+
+it('fenced real save and pin preserve history and enforce claim authorization', async () => {
+    const auth={userId:owner,expectedClaimId:claim};
+    await persistArtistBio(artist,'Saved edit',{ownership:auth});
+    const saved=(await client.query('SELECT id FROM artist_bio_versions WHERE bio_text=$1',['Saved edit'])).rows[0];
+    await persistArtistBio(artist,'Second edit',{ownership:auth});
+    await pinBioVersion(saved.id,artist,auth);
+    expect((await client.query('SELECT bio FROM artists')).rows).toEqual([{bio:'Saved edit'}]);
+    await expect(persistArtistBio(artist,'Bad',{ownership:{...auth,expectedClaimId:id(99)}})).rejects.toThrow('ownership changed');
+    expect((await client.query('SELECT bio FROM artists')).rows).toEqual([{bio:'Saved edit'}]);
+    await expect(client.query('UPDATE artists SET bio=$1',['Old writer'])).rejects.toMatchObject({code:'55000'});
 });
