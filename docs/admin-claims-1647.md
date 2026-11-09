@@ -57,5 +57,7 @@ When integrating either migration:
    retain the routing, reload, filter and denied-access assertions and run the migration's
    AdminView tests. The current tests intentionally cover main's current server boundary.
 
-Work remains local on `codex/1647-admin-claims`; no push, PR, merge or deployment.
-Issue closure and real authenticated deployment verification remain outstanding.
+Branch: `codex/1647-admin-claims`. Pete authorized submission and conditional merge
+after Codex GitHub review and passing checks on 2026-11-09. Track current submission,
+merge and deployment state on the issue and PR. Issue-owner acceptance and real
+authenticated deployment verification remain separate from local validation.
