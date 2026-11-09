@@ -2,14 +2,15 @@
 import { useState, useRef } from 'react';
 import { useDebounce } from 'use-debounce';
 import { QueryClient, QueryClientProvider, useQuery } from 'react-query'
-import { searchForUsersByWalletAction as searchForUsersByWallet } from '@/app/actions/serverActions';
+import { searchAdminUsers, type AdminUserMatch } from '@/lib/admin/searchAdminUsers';
+import { adminUserLabel } from '@/lib/admin/adminUserLabel';
 
 const queryClient = new QueryClient()
 
-export default function wrapper({setUsers, query, setQuery}: {setUsers: (users: string) => void, query: string, setQuery: (query: string) => void}) {
+export default function wrapper({setUsers, query, setQuery}: {setUsers: (user: AdminUserMatch) => void, query: string, setQuery: (query: string) => void}) {
     return (
         <QueryClientProvider client={queryClient}>
-                <SearchBar setUsers={(user:string) => setUsers(user)} query={query} setQuery={setQuery} />
+                <SearchBar setUsers={setUsers} query={query} setQuery={setQuery} />
         </QueryClientProvider>
     )
 }
@@ -26,13 +27,13 @@ export function Skeleton() {
     )
 }
 
-function Users({users, setUsers}: {users: string[], setUsers: (users: string) => void}) {
+function Users({users, setUsers}: {users: AdminUserMatch[], setUsers: (user: AdminUserMatch) => void}) {
     return (
         <ul>
             {users && users.map(u => {
                 return (
-                    <li className="cursor-pointer px-2 py-1" onMouseDown={() => setUsers(u)} key={u} >
-                        {u}
+                    <li className="cursor-pointer px-2 py-1" onMouseDown={() => setUsers(u)} key={u.id} >
+                        {adminUserLabel(u)}
                     </li>
                 )
             })}
@@ -40,7 +41,7 @@ function Users({users, setUsers}: {users: string[], setUsers: (users: string) =>
     )
 }
 
-const SearchBar = ({setUsers, query, setQuery}: {setUsers: (users: string) => void, query: string, setQuery: (query: string) => void}) => {
+const SearchBar = ({setUsers, query, setQuery}: {setUsers: (user: AdminUserMatch) => void, query: string, setQuery: (query: string) => void}) => {
     const [showResults, setShowResults] = useState(false);
     const [debouncedQuery] = useDebounce(query, 200);
     const resultsContainer = useRef(null);
@@ -49,14 +50,13 @@ const SearchBar = ({setUsers, query, setQuery}: {setUsers: (users: string) => vo
         queryKey: ['userSearchResults', debouncedQuery],
         queryFn: async () => {
             if (!debouncedQuery || debouncedQuery.length < 3) return null;
-            const data = await searchForUsersByWallet(debouncedQuery ?? "")
-            return data
+            return searchAdminUsers(debouncedQuery);
         },
     })
 
-    function handleUserClick(user: string) {
+    function handleUserClick(user: AdminUserMatch) {
         setUsers(user);
-        setQuery(user);
+        setQuery(adminUserLabel(user));
         setShowResults(false);
     }
 
@@ -76,7 +76,7 @@ const SearchBar = ({setUsers, query, setQuery}: {setUsers: (users: string) => vo
                     {isLoading ? <Skeleton /> :
                         <>
                             {data &&
-                                <Users users={data.filter((u): u is string => u !== null)} setUsers={(user:string) => handleUserClick(user)}/>
+                                <Users users={data} setUsers={handleUserClick}/>
                             }
                         </>
                     }
