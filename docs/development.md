@@ -32,7 +32,7 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | `AI_GATEWAY_API_KEY` | Every model call (Ask, About, research, interview, onboarding, fun facts) through Vercel AI Gateway; see [llm.md](llm.md). Locally, the OIDC token from `vercel env pull` also works |
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
 | `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Optional profile-discovery web search |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage and its health checks; service key stays server-side |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage; service key stays server-side |
 | `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL` | Optional email and UGC notifications |
 
 Model ids live in `src/server/lib/ai/models.ts`; per-call temperature, thinking budget and timeout
@@ -205,9 +205,9 @@ acceptance requires an explicitly approved disposable fixture and remains separa
 `npm run eval` runs an LLM eval suite against real data and spends model tokens; it is not part
 of `npm run ci` and runs on demand, from the Evals workflow. See the [evals contract](evals.md).
 
-`npm run test:smoke` uses the separate smoke config without global mocks.
-`SMOKE_BASE_URL` checks deployed health. Storage integration tests may write and clean up
-fixtures when storage credentials are available; don't run them against production casually.
+`npm run test:smoke` uses the separate smoke config without global mocks. Storage integration
+tests may write and clean up fixtures when storage credentials are available; don't run them
+against production casually.
 
 ## CI and release verification
 
@@ -219,7 +219,7 @@ After both pass on main, the gated release jobs build the exact SHA in custom st
 its immutable URL, and wait for production approval. Production builds the same SHA again with
 production configuration before checks and promotion. See [releases](releases.md) for setup,
 resource isolation, concurrency, migration approval, evidence and rollback. Feature previews
-continue through Vercel Git integration. The separate post-deploy smoke is supplementary.
+continue through Vercel Git integration.
 
 Check required reviews and checks on the **current head SHA**. For failed checks, read logs
 and separate defects from service outages before retrying. After authorized release, verify
