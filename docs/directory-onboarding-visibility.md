@@ -92,9 +92,10 @@ or automatically repair older records whose artist destination was never found.
 
 ### Live directory discovery after add (#1524)
 
-Only a successful new-artist commit schedules an artist-scoped `source_search`
-wake through Next `after`. The awaited, time-bounded wake uses the existing API
-worker and lease; notification delivery runs independently. Wake failure cannot
+Artists are added through MusicNerdAPI's `POST /api/artist` (#1628). Only a
+successful new-artist commit schedules an artist-scoped `source_search` wake
+through Next `after` in the API. The awaited, time-bounded wake uses the API's
+own research worker and lease; notification delivery runs independently. Wake failure cannot
 undo artist creation, create another job, or hide its usable profile. Production
 cron remains the durable recovery path. Vercel preview/custom staging deployments
 do not receive cron invocations, so preview downstream execution needs an explicit,

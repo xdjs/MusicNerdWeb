@@ -5,9 +5,6 @@
 
 import {
   approveUgcAdmin as approveUgcAdminQuery,
-  addArtistData as addArtistDataQuery,
-  AddArtistDataResp,
-  AddArtistResp,
 } from "@/server/utils/queries/artistQueries";
 
 import {
@@ -23,15 +20,11 @@ import {
 import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
 
 // ---- Types re-exported for client files ----
-export type { AddArtistDataResp, AddArtistResp, LeaderboardEntry };
+export type { LeaderboardEntry };
 
 // ---- Wrapped functions (actions) ----
 export async function approveUgcAdminAction(ugcIds: string[]) {
   return approveUgcAdminQuery(ugcIds);
-}
-
-export async function addArtistDataAction(url: string, artist: Parameters<typeof addArtistDataQuery>[1]) {
-  return addArtistDataQuery(url, artist);
 }
 
 export async function searchForUsersByWalletAction(wallet: string) {
