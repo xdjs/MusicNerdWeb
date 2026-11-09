@@ -2,9 +2,9 @@ import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from "@/server/db/drizzle";
 import { eq, and, sql } from "drizzle-orm";
 import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialRefreshes, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
-import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
+import { withScopedArtistWrite, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
 import { getActiveArtistOperation } from '../artistOperationContext';
-import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bio/bioConstants';
+import { ABOUT_EMPTY_STATE } from '@/lib/bio/bioConstants';
 import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 
 export { getClaimByArtistId } from './getClaimByArtistId';
@@ -410,111 +410,3 @@ export async function getBioVersionsByArtistId(artistId: string) {
     }
 }
 
-const MAX_BIO_VERSIONS = 50;
-
-export async function saveBioVersion(artistId: string, bioText: string, auth: ArtistWriteAuth) {
-    try {
-        if (!isRealBio(bioText)) throw new Error('Write a bio before saving a version.');
-        // All operations in a single transaction to prevent TOCTOU race on version cap
-        return await db.transaction(async (tx) => {
-            await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
-            await authorizeLockedArtistWrite(tx, artistId, auth);
-            // Never discard an artist's saved history automatically.
-            const existing = await tx.query.artistBioVersions.findMany({
-                where: eq(artistBioVersions.artistId, artistId),
-                orderBy: (v, { asc }) => [asc(v.createdAt)],
-            });
-            const saved = existing.find(version => version.bioText === bioText);
-            if (saved) return saved;
-            if (existing.length >= MAX_BIO_VERSIONS) {
-                throw new Error("Bio version limit reached — delete an unwanted version first");
-            }
-
-            const [version] = await tx
-                .insert(artistBioVersions)
-                .values({ artistId, bioText, isPinned: false })
-                .returning();
-            return version;
-        });
-    } catch (e) {
-        console.error("[saveBioVersion] Error:", e);
-        throw e;
-    }
-}
-
-export async function pinBioVersion(versionId: string, artistId: string, auth: ArtistWriteAuth) {
-    try {
-        // Atomic: unpin all → pin selected → update artist bio
-        // Reauthorize under the same lock; artistId matching alone is not ownership.
-        return await db.transaction(async (tx) => {
-            await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
-            await authorizeLockedArtistWrite(tx, artistId, auth);
-            const selected = await tx.query.artistBioVersions.findFirst({
-                where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
-            });
-            if (!selected) return undefined;
-            const current = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
-            if (current?.bio && isRealBio(current.bio) && current.bio !== selected.bioText) {
-                const saved = await tx.query.artistBioVersions.findFirst({
-                    where: and(eq(artistBioVersions.artistId, artistId), eq(artistBioVersions.bioText, current.bio)),
-                });
-                if (!saved) await tx.insert(artistBioVersions).values({ artistId, bioText: current.bio, isPinned: false });
-            }
-            await tx
-                .update(artistBioVersions)
-                .set({ isPinned: false })
-                .where(eq(artistBioVersions.artistId, artistId));
-
-            const [pinned] = await tx
-                .update(artistBioVersions)
-                .set({ isPinned: true })
-                .where(and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)))
-                .returning();
-
-            if (pinned) {
-                await tx
-                    .update(artists)
-                    .set({ bio: pinned.bioText })
-                    .where(eq(artists.id, artistId));
-            }
-
-            return pinned;
-        });
-    } catch (e) {
-        console.error("[pinBioVersion] Error:", e);
-        throw e;
-    }
-}
-
-export async function deleteBioVersion(versionId: string, artistId: string, auth: ArtistWriteAuth) {
-    try {
-        // Atomic check + delete to prevent TOCTOU race with concurrent pin
-        return await db.transaction(async (tx) => {
-            await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
-            await authorizeLockedArtistWrite(tx, artistId, auth);
-            const version = await tx.query.artistBioVersions.findFirst({
-                where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
-            });
-            if (!version) return undefined;
-            if (version.isPinned) throw new Error("Cannot delete a pinned bio version");
-
-            const [deleted] = await tx
-                .delete(artistBioVersions)
-                .where(and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)))
-                .returning();
-            return deleted;
-        });
-    } catch (e) {
-        console.error("[deleteBioVersion] Error:", e);
-        throw e;
-    }
-}
-
-export async function unpinArtistBio(artistId: string, auth: ArtistWriteAuth) {
-    await db.transaction(async tx => {
-        await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
-        await authorizeLockedArtistWrite(tx, artistId, auth);
-        await tx.update(artistBioVersions).set({ isPinned: false })
-            .where(eq(artistBioVersions.artistId, artistId));
-    });
-}

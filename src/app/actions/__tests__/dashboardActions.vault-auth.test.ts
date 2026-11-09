@@ -19,10 +19,6 @@ jest.mock('@/server/utils/queries/dashboardQueries', () => ({
   getClaimByArtistId: jest.fn(),
   createClaim: jest.fn(),
   deleteClaim: jest.fn(),
-  getBioVersionsByArtistId: jest.fn(),
-  saveBioVersion: jest.fn(),
-  pinBioVersion: jest.fn(),
-  deleteBioVersion: jest.fn(),
 }));
 jest.mock('@/server/utils/queries/vaultWebSearch', () => ({ searchAndPopulateVault: jest.fn() }));
 jest.mock('@/server/utils/queries/artistBioQuery', () => ({ generateArtistBio: jest.fn() }));
