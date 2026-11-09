@@ -221,6 +221,10 @@ production configuration before checks and promotion. See [releases](releases.md
 resource isolation, concurrency, migration approval, evidence and rollback. Feature previews
 continue through Vercel Git integration.
 
+While Web still reads its own database (#1627/#1628), the release smoke must include
+the candidate's uncached `/api/health` read-only database probe. A healthy MusicNerdAPI
+and a rendered static homepage do not validate Web's runtime database connection.
+
 Check required reviews and checks on the **current head SHA**. For failed checks, read logs
 and separate defects from service outages before retrying. After authorized release, verify
 the deployment record and smoke for the merged SHA, not a reachable old deployment.
