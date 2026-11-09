@@ -137,13 +137,19 @@ describe('SearchBar Add Artist Flow', () => {
         expect(mockAddArtist).not.toHaveBeenCalled();
     });
 
-    it('recovers after explicit retry and opens a saved result without adding', async () => {
+    it.each(['home', 'nav'] as const)('keeps fast %s retry results selectable after input blur', async appearance => {
         global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503 })
             .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [dbResult] }) });
-        render(<SearchBar appearance="home" />);
-        fireEvent.change(screen.getByRole('textbox', { name: 'Search for an artist' }), { target: { value: 'spotify:artist:7DRT8Nq9pZ9HuwZTSS7L8v' } });
-        fireEvent.click(await screen.findByRole('button', { name: 'Try search again' }));
-        fireEvent.click(await screen.findByText('Existing Artist'));
+        render(<SearchBar appearance={appearance} />);
+        const input = screen.getByRole('textbox', { name: 'Search for an artist' });
+        fireEvent.change(input, { target: { value: 'spotify:artist:7DRT8Nq9pZ9HuwZTSS7L8v' } });
+        fireEvent.focus(input);
+        const retry = await screen.findByRole('button', { name: 'Try search again' });
+        fireEvent.blur(input, { relatedTarget: retry });
+        fireEvent.click(retry);
+        await screen.findByText('Existing Artist');
+        await act(async () => { await new Promise(resolve => setTimeout(resolve, 250)); });
+        fireEvent.click(screen.getByText('Existing Artist'));
         expect(mockPush).toHaveBeenCalledWith('/artist/42');
         expect(mockAddArtist).not.toHaveBeenCalled();
         expect(global.fetch).toHaveBeenCalledTimes(2);

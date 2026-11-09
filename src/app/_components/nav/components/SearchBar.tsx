@@ -507,7 +507,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             {!duplicateChoice && isError && query.trim() !== "" && query === debouncedQuery && (
                 <div role="alert" className={styles.searchEmpty}>
                     <span>{error instanceof Error ? error.message : 'Search failed. Please try again.'}</span>
-                    <button type="button" onClick={() => void refetch()} disabled={isFetching}
+                    <button type="button" onClick={() => { handleFocus(); void refetch(); }} disabled={isFetching}
                         aria-label="Try search again" className="underline underline-offset-4">
                         Try again
                     </button>
