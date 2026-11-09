@@ -21,7 +21,7 @@ type Props = {
   allUsers: Awaited<ReturnType<typeof getAllUsers>>;
   mcpKeys: Awaited<ReturnType<typeof getAllMcpKeys>>;
   allClaims: ClaimRow[];
-  initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections";
+  initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections" | "claims";
   activityContent?: React.ReactNode;
   artistDataUrl?: string; agentWorkUrl?: string;
 };
