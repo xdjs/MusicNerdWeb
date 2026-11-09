@@ -122,6 +122,44 @@ describe('SearchBar Add Artist Flow', () => {
         expect(screen.queryByText('No artists found.')).not.toBeInTheDocument();
     });
 
+    it.each([
+        [400, 'Use a Spotify or Deezer artist link or ID.'],
+        [409, 'This artist ID has conflicting saved profiles. Please try searching by name.'],
+        [503, 'Artist lookup is temporarily unavailable. Please try again later.'],
+    ])('shows status %s as retryable feedback rather than an empty result', async (status, message) => {
+        global.fetch = jest.fn().mockResolvedValue({ ok: false, status });
+        render(<SearchBar appearance="home" />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'Search for an artist' }), { target: { value: `provider-${status}` } });
+        expect(await screen.findByRole('alert')).toHaveTextContent(message);
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(screen.queryByText('No artists found.')).not.toBeInTheDocument();
+        expect(mockTrackEvent).not.toHaveBeenCalledWith('search', expect.objectContaining({ outcome: 'none' }));
+        expect(mockAddArtist).not.toHaveBeenCalled();
+    });
+
+    it('recovers after explicit retry and opens a saved result without adding', async () => {
+        global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503 })
+            .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [dbResult] }) });
+        render(<SearchBar appearance="home" />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'Search for an artist' }), { target: { value: 'spotify:artist:7DRT8Nq9pZ9HuwZTSS7L8v' } });
+        fireEvent.click(await screen.findByRole('button', { name: 'Try search again' }));
+        fireEvent.click(await screen.findByText('Existing Artist'));
+        expect(mockPush).toHaveBeenCalledWith('/artist/42');
+        expect(mockAddArtist).not.toHaveBeenCalled();
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('clears the error when the query is cleared', async () => {
+        global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 400 });
+        render(<SearchBar />);
+        const input = screen.getByRole('textbox', { name: 'Search for an artist' });
+        fireEvent.change(input, { target: { value: 'invalid-link' } });
+        await screen.findByRole('alert');
+        fireEvent.change(input, { target: { value: '' } });
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
     it('shows "Add to MusicNerd | View on Deezer" for external results', async () => {
         await renderAndSearch([externalResult]);
 
