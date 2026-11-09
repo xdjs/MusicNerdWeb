@@ -18,15 +18,11 @@ const artist = '00000000-0000-4000-8000-000000000001';
 const admin = '00000000-0000-4000-8000-000000000002';
 const contributor = '00000000-0000-4000-8000-000000000003';
 const claim = '00000000-0000-4000-8000-000000000004';
-let withArtistOperation: typeof import('@/server/utils/artistOperationContext').withArtistOperation;
 let add: typeof import('../../queries/insertVaultSource').insertVaultSource;
-let review: typeof import('../../queries/updateVaultSourceStatus').updateVaultSourceStatus;
 let approve: typeof import('../../contributions/approvePendingLoreSource').approvePendingLoreSource;
 beforeAll(async () => {
   jest.resetModules();
-  ({ withArtistOperation } = await import('@/server/utils/artistOperationContext'));
   ({ insertVaultSource: add } = await import('../../queries/insertVaultSource'));
-  ({ updateVaultSourceStatus: review } = await import('../../queries/updateVaultSourceStatus'));
   ({ approvePendingLoreSource: approve } = await import('../../contributions/approvePendingLoreSource'));
   await client.exec(`
     CREATE FUNCTION uuid_generate_v4() RETURNS uuid LANGUAGE SQL AS 'SELECT gen_random_uuid()';
@@ -65,7 +61,7 @@ it('does not lose the twenty-first source while another extraction is running', 
 it('deduplicates concurrent canonical additions and repeated approval', async () => {
   const sources = await Promise.all(['','#fragment'].map(fragment=>insert(`https://example.test/duplicate${fragment}`)));
   const source = sources.find(Boolean)!;
-  await withArtistOperation(artist,{userId:admin,expectedClaimId:claim},()=>review(source.id,'approved'));
+  expect(await approve(admin,source.id)).toBeNull();
   expect(sources.filter(Boolean)).toHaveLength(1);
   expect(await jobs()).toHaveLength(1);
 });
@@ -79,7 +75,7 @@ it('excludes pending, rejected, private uploads and existing originals', async (
 it('queues individual and bulk approval with approval attribution', async () => {
   const one = (await add({artistId:artist,url:'https://example.test/one'}))!;
   const two = (await add({artistId:artist,url:'https://example.test/two'}))!;
-  await withArtistOperation(artist,{userId:admin,expectedClaimId:claim},()=>review(one.id,'approved','pending'));
+  await approve(admin,one.id);
   await approve(admin,two.id);
   expect(await jobs()).toHaveLength(2);
   expect((await client.query("select e.action,e.actor_user_id from artist_research_jobs j join artist_activity_events e on e.id=j.activity_id")).rows).toEqual([{action:'source_approved',actor_user_id:admin},{action:'source_approved',actor_user_id:admin}]);
