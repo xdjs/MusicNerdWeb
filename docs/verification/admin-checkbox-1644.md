@@ -24,10 +24,16 @@ No live account, database or external service is used.
 - Scoped Jest: 3 suites / 6 tests pass (PeopleSelectionLayout, PeopleFilters,
   filterPeople). The CSS structural guard complements browser hit-testing;
   JSDOM alone cannot detect overlapping grid cells.
+- Fresh aggregate `npm run ci` passed on Node 24.21.0 / npm 11.19.0 after
+  installing the exact lockfile: type checking, lint (warnings only), 418 Jest
+  suites (3,648 passed, 6 skipped), and optimized production build. Stub service
+  values prove compilation, not live integrations. The storage guard was skipped
+  for this local non-release build. Browser checks also passed again with the
+  locked dependencies.
 - Before and after screenshots and the reproducible fixture are retained with
   the private local verification artifacts.
 
 This is local synthetic UI proof, not authenticated `/admin` staging or
-production acceptance. Full aggregate CI, production build and hosted preview
-verification are still required before publication/review readiness. No PR,
+production acceptance. Authenticated hosted preview verification remains required before review
+readiness; draft publication awaits permission. No PR,
 remote push, merge, deployment, or role mutation was performed.
