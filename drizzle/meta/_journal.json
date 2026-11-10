@@ -421,6 +421,48 @@
       "when": 1793209283097,
       "tag": "0059_catalog_counterpart_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793664000000,
+      "tag": "0060_source_publication",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793750400000,
+      "tag": "0061_about_evidence_provenance",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793836800000,
+      "tag": "0062_public_url_receipts",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793923200000,
+      "tag": "0063_legacy_bio_publications",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1794009600000,
+      "tag": "0064_lore_activity_lock",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1794096000000,
+      "tag": "0065_about_writer_fence",
+      "breakpoints": true
     }
   ]
 }

@@ -12,7 +12,6 @@ import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { sendClaimApprovedEmail } from "@/server/utils/email";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { logMcpAudit } from "@/server/utils/logMcpAudit";
-import { getSupabaseAdmin, VAULT_BUCKET } from "@/server/lib/supabase";
 
 async function requireAdminSession() {
     const session = await getServerAuthSession();
@@ -131,10 +130,8 @@ export async function rejectClaimAction(claimId: string): Promise<{ success: boo
     }
 }
 
-/** Hard-deletes the claim row and wipes the artist's vault (DB rows + Storage objects).
- *  Intentional — allows the artist to be re-claimed by someone else without inheriting
- *  the previous owner's uploaded files or press links. Audit persisted + Discord. */
-export async function revokeClaimAction(claimId: string): Promise<{ success: boolean; error?: string }> {
+/** Revoke claimant content while preserving verified trusted contributions. */
+export async function revokeClaimAction(claimId: string): Promise<{ success: boolean; error?: string; warning?: string }> {
     const session = await requireAdminSession();
     if (!session) return { success: false, error: "Not authorized" };
 
@@ -147,103 +144,12 @@ export async function revokeClaimAction(claimId: string): Promise<{ success: boo
         if (existing.status !== "approved") return { success: false, error: "Can only revoke approved claims" };
 
         // Atomic: delete vault sources + claim in one transaction.
-        const claim = await revokeApprovedClaim(claimId);
+        const claim = await revokeApprovedClaim(claimId, session.user.id);
         if (!claim) return { success: false, error: "Claim is no longer approved" };
 
-        // Best-effort: purge uploaded files from Supabase Storage. Runs after the DB tx
-        // commits — orphaned storage objects beat a failed revoke. Two prefixes to clean:
-        //   1. `${artistId}/...`              — vault uploads (MusicNerdAPI vault/upload)
-        //   2. `profile-images/${artistId}_*` — claim profile image (artist/profile-image route)
-        // Paginated so artists with >100 files (supabase-js list default limit) are fully purged.
-        try {
-            const supa = getSupabaseAdmin();
-            const PAGE_SIZE = 1000;
-            const MAX_ITERATIONS = 100; // safety ceiling — 100k files would be absurd
-
-            // Pass 1: vault folder (everything under `${artistId}/`)
-            let vaultRemoved = 0;
-            for (let i = 0; i < MAX_ITERATIONS; i++) {
-                const { data: files, error: listError } = await supa.storage
-                    .from(VAULT_BUCKET)
-                    .list(claim.artistId, { limit: PAGE_SIZE, offset: 0 });
-                if (listError) {
-                    console.error("[revokeClaimAction] Vault list failed:", listError);
-                    break;
-                }
-                if (!files || files.length === 0) break;
-
-                const paths = files.map(f => `${claim.artistId}/${f.name}`);
-                const { error: removeError } = await supa.storage
-                    .from(VAULT_BUCKET)
-                    .remove(paths);
-                if (removeError) {
-                    console.error("[revokeClaimAction] Vault remove failed:", removeError);
-                    break;
-                }
-                vaultRemoved += files.length;
-
-                // Short page → no more results. remove() shifted the listing, so we
-                // always re-read from offset 0; no offset advance needed.
-                if (files.length < PAGE_SIZE) break;
-
-                if (i === MAX_ITERATIONS - 1) {
-                    console.error(`[revokeClaimAction] Vault purge hit iteration ceiling (${MAX_ITERATIONS}) for artist ${claim.artistId} — remaining files orphaned`);
-                }
-            }
-
-            // Pass 2: profile-images folder, filtered to this artist's prefix only
-            // (profile-images/ is shared across all artists — must NOT remove others').
-            const profilePrefix = `${claim.artistId}_`;
-            let profileRemoved = 0;
-            for (let i = 0; i < MAX_ITERATIONS; i++) {
-                const { data: files, error: listError } = await supa.storage
-                    .from(VAULT_BUCKET)
-                    .list("profile-images", { limit: PAGE_SIZE, offset: 0, search: profilePrefix });
-                if (listError) {
-                    console.error("[revokeClaimAction] Profile-images list failed:", listError);
-                    break;
-                }
-                if (!files || files.length === 0) break;
-
-                // Defense in depth: `search` is a substring match — re-filter on the prefix
-                // so an artist whose UUID happens to appear inside another file's name can't
-                // cross-delete. (UUID collisions in mid-name are vanishingly unlikely, but cheap.)
-                const ownFiles = files.filter(f => f.name.startsWith(profilePrefix));
-                if (ownFiles.length === 0) {
-                    // All search hits were substring-collisions, not real matches. Bail out —
-                    // if there really is an own-prefix file on a later page, we won't find it
-                    // here (we'd need to advance offset past this page), but that scenario
-                    // would require 1000+ unrelated names embedding this artist's UUID, which
-                    // is effectively impossible. Logged for observability if it ever happens.
-                    if (files.length === PAGE_SIZE) {
-                        console.warn(`[revokeClaimAction] Profile-images search page had ${files.length} substring-only hits for ${claim.artistId} — bailing without checking subsequent pages`);
-                    }
-                    break;
-                }
-
-                const paths = ownFiles.map(f => `profile-images/${f.name}`);
-                const { error: removeError } = await supa.storage
-                    .from(VAULT_BUCKET)
-                    .remove(paths);
-                if (removeError) {
-                    console.error("[revokeClaimAction] Profile-images remove failed:", removeError);
-                    break;
-                }
-                profileRemoved += ownFiles.length;
-
-                if (files.length < PAGE_SIZE) break;
-
-                if (i === MAX_ITERATIONS - 1) {
-                    console.error(`[revokeClaimAction] Profile-images purge hit iteration ceiling (${MAX_ITERATIONS}) for artist ${claim.artistId} — remaining files orphaned`);
-                }
-            }
-
-            if (vaultRemoved + profileRemoved > 0) {
-                console.log(`[revokeClaimAction] Purged ${vaultRemoved} vault + ${profileRemoved} profile-image objects for artist ${claim.artistId}`);
-            }
-        } catch (e) {
-            console.error("[revokeClaimAction] Storage cleanup error:", e);
-        }
+        // Storage keys can be reused by in-flight completion. Even exact-path
+        // deletion is unsafe until the API fences object generations. The DB
+        // transaction records deferred cleanup; never list/purge artist prefixes.
 
         // Persist audit before Discord (DB is more reliable than webhook)
         // apiKeyHash uses "admin:<userId>" convention for admin-initiated actions
@@ -261,9 +167,11 @@ export async function revokeClaimAction(claimId: string): Promise<{ success: boo
             `Claim REVOKED: ${claim.referenceCode} | Artist ID: ${claim.artistId} | Revoked by: ${session.user.email ?? session.user.id}`
         ).catch(e => console.error("[revokeClaimAction] Discord notify failed:", e));
 
-        return { success: true };
+        return { success: true, warning: "Claim revoked. Uploaded files were retained; safe storage cleanup requires separate review." };
     } catch (error) {
         console.error("[revokeClaimAction] Error:", error);
-        return { success: false, error: "Failed to revoke claim" };
+        return { success: false, error: error instanceof Error && error.message === "REVOCATION_SOURCE_REVIEW_REQUIRED"
+            ? "Revocation needs source-retention review because some Lore provenance is unknown. No changes were made."
+            : "Could not confirm claim revocation. Refresh and check the claim status before retrying." };
     }
 }

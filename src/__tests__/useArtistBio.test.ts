@@ -13,6 +13,16 @@ describe('useArtistBio', () => {
     localStorage.clear();
   });
 
+  it('honors an explicitly hidden server bio over cached legacy text without fetching', () => {
+    localStorage.setItem('musicnerd_bio_cache', JSON.stringify({
+      'test-artist-id': { bio: 'PRIVATE LEGACY TEXT', timestamp: Date.now() },
+    }));
+    const { result } = renderHook(() => useArtistBio('test-artist-id', ''));
+    expect(result.current.bio).toBe('');
+    expect(result.current.loading).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('should fetch bio on first call', async () => {
     const mockBio = 'Test artist bio';
     (fetch as jest.Mock).mockResolvedValueOnce({

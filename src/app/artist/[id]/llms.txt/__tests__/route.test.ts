@@ -10,10 +10,10 @@ import { jest } from '@jest/globals';
 
 const getLoreClaimGeneration = jest.fn();
 jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: (...a) => getLoreClaimGeneration(...a) }));
-const getArtistDocStrict = jest.fn();
+const getPublicArtistDoc = jest.fn();
 const getArtistById = jest.fn();
 
-jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDocStrict: (...a) => getArtistDocStrict(...a) }));
+jest.mock('@/server/utils/artistDoc/getPublicArtistDoc', () => ({ getPublicArtistDoc: (...a) => getPublicArtistDoc(...a) }));
 jest.mock('@/server/utils/queries/artistQueries', () => ({ getArtistById: (...a) => getArtistById(...a) }));
 
 const ID = '11111111-1111-1111-1111-111111111111';
@@ -27,13 +27,13 @@ describe('GET /artist/[id]/llms.txt', () => {
     beforeEach(() => {
         jest.resetModules();
         getLoreClaimGeneration.mockResolvedValue('approved-claim');
-        getArtistDocStrict.mockReset();
+        getPublicArtistDoc.mockReset();
         getArtistById.mockReset();
         getArtistById.mockResolvedValue({ id: ID, name: 'Tom Vek' });
     });
 
     it('serves the document to nobody in particular — no session required', async () => {
-        getArtistDocStrict.mockResolvedValue({
+        getPublicArtistDoc.mockResolvedValue({
             content: 'He self-releases everything[1].',
             sources: [{ id: 1, kind: 'vault', label: 'Interview', url: 'https://example.com/i', publishedAt: '2024-03-02T00:00:00Z' }],
             updatedAt: '2026-09-03T10:00:00Z',
@@ -54,13 +54,13 @@ describe('GET /artist/[id]/llms.txt', () => {
     });
 
     it('says how stale it is, because a crawler cannot tell', async () => {
-        getArtistDocStrict.mockResolvedValue({ content: 'x', sources: [], updatedAt: '2026-09-03T10:00:00Z' });
+        getPublicArtistDoc.mockResolvedValue({ content: 'x', sources: [], updatedAt: '2026-09-03T10:00:00Z' });
         expect(await (await get()).text()).toContain('last updated 2026-09-03');
     });
 
     it('404s rather than serving an empty document', async () => {
         // A crawler that caches a blank page does not come back for the real one.
-        getArtistDocStrict.mockResolvedValue({ content: '', sources: [] });
+        getPublicArtistDoc.mockResolvedValue({ content: '', sources: [] });
         const res = await get();
         expect(res.status).toBe(404);
         expect(await res.text()).toContain('No knowledge document');
@@ -84,16 +84,23 @@ describe('GET /artist/[id]/llms.txt', () => {
         // The distinction matters: 404 tells a crawler to stop asking. This
         // uses the STRICT read precisely so a database blip cannot be mistaken
         // for "this artist has no document".
-        getArtistDocStrict.mockRejectedValue(new Error('db down'));
+        getPublicArtistDoc.mockRejectedValue(new Error('db down'));
         expect((await get()).status).toBe(503);
     });
 });
 
 it('hides prepared documents before claim and does not cache across claim transitions', async () => {
   getLoreClaimGeneration.mockResolvedValueOnce(null);
-  getArtistDocStrict.mockClear();
+  getPublicArtistDoc.mockClear();
   const res = await get();
   expect(res.status).toBe(404);
   expect(res.headers.get('Cache-Control')).toBe('private, no-store');
-  expect(getArtistDocStrict).not.toHaveBeenCalled();
+  expect(getPublicArtistDoc).not.toHaveBeenCalled();
+});
+
+it('does not serve a saved document the public reader found stale or private', async () => {
+  getLoreClaimGeneration.mockResolvedValue('approved-claim');
+  getArtistById.mockResolvedValue({id:ID,name:'Artist'});
+  getPublicArtistDoc.mockResolvedValue(null);
+  expect((await get()).status).toBe(404);
 });

@@ -158,6 +158,7 @@ export async function claimResearchJob(opts?: { artistId?: string; excludeIds?: 
         const res = await db.execute(sql`
             update artist_research_jobs
                set status = 'running',
+                   state = case when kind='lore_refresh' then state - 'aboutOnly' else state end,
                    claimed_at = now(),
                    updated_at = now()
              where id = (
