@@ -2,6 +2,7 @@
 import { getSpotifyArtist, getSpotifyImage, getSpotifyCatalogNames } from '@/server/utils/queries/externalApiQueries';
 import { spotifyGet } from '../spotifyGet';
 import { SpotifyCooldownError } from '../SpotifyCooldownError';
+jest.mock('axios');
 jest.mock('../spotifyGet', () => ({ spotifyGet: jest.fn() }));
 jest.mock('@/env', () => ({ SPOTIFY_WEB_CLIENT_ID: 'client', SPOTIFY_WEB_CLIENT_SECRET: 'secret' }));
 jest.mock('next/cache', () => {
@@ -62,4 +63,24 @@ it.each([new Error('network timeout'), {response:{status:503}}])('does not cache
  expect((await getSpotifyArtist(id,headers)).data).toBeNull();
  jest.mocked(spotifyGet).mockResolvedValue({data:{id,name:'Recovered'}} as never);
  expect(await getSpotifyArtist(id,headers)).toMatchObject({data:{name:'Recovered'}});
+});
+
+it('reuses a successful image across token rotation and unavailable headers', async () => {
+ jest.mocked(spotifyGet).mockResolvedValue({data:{images:[{url:'https://i.scdn.co/warm.jpg'}]}} as never);
+ expect(await getSpotifyImage('warm-portrait','first',headers)).toEqual({artistImage:'https://i.scdn.co/warm.jpg',artistId:'first'});
+ jest.mocked(spotifyGet).mockRejectedValue(new SpotifyCooldownError(Date.now() + 60_000));
+ const calls = jest.mocked(spotifyGet).mock.calls.length;
+ const rotated = {headers:{Authorization:'Bearer rotated','x-token-expiry':String(Date.now() + 7_200_000)}};
+ expect(await getSpotifyImage('warm-portrait','second',rotated)).toEqual({artistImage:'https://i.scdn.co/warm.jpg',artistId:'second'});
+ expect(await getSpotifyImage('warm-portrait')).toEqual({artistImage:'https://i.scdn.co/warm.jpg',artistId:''});
+ expect(jest.mocked(spotifyGet).mock.calls.length).toBe(calls);
+});
+it('treats an image cooldown as expected without caching the empty fallback or logging an error', async () => {
+ const errors = jest.spyOn(console,'error').mockImplementation(() => undefined);
+ jest.mocked(spotifyGet).mockRejectedValue(new SpotifyCooldownError(Date.now() + 60_000));
+ expect(await getSpotifyImage('quiet-cooldown','',headers)).toEqual({artistImage:'',artistId:''});
+ expect(errors).not.toHaveBeenCalled();
+ jest.mocked(spotifyGet).mockResolvedValue({data:{images:[{url:'https://i.scdn.co/recovered.jpg'}]}} as never);
+ expect((await getSpotifyImage('quiet-cooldown','',headers)).artistImage).toBe('https://i.scdn.co/recovered.jpg');
+ errors.mockRestore();
 });

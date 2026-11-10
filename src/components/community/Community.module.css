@@ -189,9 +189,11 @@
  .panel .mobileRecords button:not([role="checkbox"]), .panel .mobileRecords select { min-height: 44px; height: auto; }
  .panel .peopleActions { grid-template-columns: repeat(2,minmax(0,1fr)); }
  .panel .peopleActions button { white-space: normal; line-height: 1.35; min-width: 0; }
- .panel .peopleRecords td[data-column="username"] { grid-row: 1; font-size: 17px; font-weight: 600; padding-right: 32px; }
- .panel .peopleRecords td[data-column="select"] { grid-row: 1; grid-column: 1; justify-self: end; }
- .panel .peopleRecords td[data-column="username"], .panel .peopleRecords td[data-column="select"] { grid-column: 1; }
+ /* Keep identity and selection in separate tracks so text never intercepts checkbox clicks. */
+ .panel .peopleRecords tbody tr { grid-template-columns: minmax(0,1fr) auto; }
+ .panel .peopleRecords td { grid-column: 1 / -1; }
+ .panel .peopleRecords td[data-column="username"] { grid-row: 1; grid-column: 1; font-size: 17px; font-weight: 600; }
+ .panel .peopleRecords td[data-column="select"] { grid-row: 1; grid-column: 2; justify-self: end; align-self: start; }
  .panel .peopleRecords td[data-column="actions"] { display: none; }
  .panel .peopleRecords td[data-column="select"] .recordLabel { display: none; }
 }
