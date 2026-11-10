@@ -48,6 +48,10 @@ function harness(options = {}) {
       return json({ status: options.apiStatus || (options.unhealthy ? 'error' : 'ok') }, options.unhealthy ? 503 : 200);
     }
     if (parsed.hostname.endsWith('.vercel.app')) {
+      if (parsed.pathname === '/api/health') {
+        const healthy = parsed.hostname === options.unhealthyWebHost ? false : true;
+        return json(Object.hasOwn(options, 'webHealth') ? options.webHealth : { ok: healthy, checks: { database: healthy } }, healthy ? 200 : 503);
+      }
       assert.equal(parsed.pathname, '/');
       return new Response(options.home || '<html>Music Nerd</html>', { headers: { 'content-type': 'text/html' } });
     }
@@ -81,6 +85,10 @@ test('staging builds exact SHA, checks immutable URL and verifies staging alias,
     h.calls.findIndex(c => c.url.includes('/v4/aliases/')));
   assert(h.calls.findIndex(c => c.url === 'https://music-nerd-candidate.vercel.app/') <
     h.calls.findIndex(c => c.url.includes('/v4/aliases/')));
+  const databaseProbe = h.calls.find(c => c.url === 'https://music-nerd-candidate.vercel.app/api/health');
+  assert(databaseProbe);
+  assert.equal(databaseProbe.headers['x-vercel-protection-bypass'], 'private-bypass');
+  assert(h.calls.indexOf(databaseProbe) < h.calls.findIndex(c => c.url.includes('/v4/aliases/')));
   assert(!h.calls.some(c => c.url.includes('api.musicnerd.net')));
   assert(!JSON.stringify(h.records).includes('private'));
   for (const call of h.calls.filter(c => c.headers['x-vercel-protection-bypass'])) {
@@ -99,7 +107,33 @@ test('production revalidates staged deployment and builds separate production ca
   assert(h.calls.findIndex(c => c.url === 'https://musicnerd-api-staging.vercel.app/api/health') < h.calls.indexOf(writes[0]));
   assert(h.calls.findIndex(c => c.url === 'https://music-nerd-candidate.vercel.app/') < h.calls.indexOf(writes[1]));
   assert(h.calls.findIndex(c => c.url === 'https://api.musicnerd.net/api/health') < h.calls.indexOf(writes[1]));
+  for (const [host, write] of [['music-nerd-stage.vercel.app', writes[0]], ['music-nerd-candidate.vercel.app', writes[1]]]) {
+    const databaseProbe = h.calls.find(c => c.url === `https://${host}/api/health`);
+    assert(databaseProbe);
+    assert(h.calls.indexOf(databaseProbe) < h.calls.indexOf(write));
+  }
+  for (const call of h.calls.filter(c => ['api.musicnerd.net', 'musicnerd-api-staging.vercel.app'].includes(new URL(c.url).hostname))) {
+    assert.equal(call.headers['x-vercel-protection-bypass'], undefined);
+  }
 });
+
+for (const [host, maximumWrites] of [['music-nerd-stage.vercel.app', 0], ['music-nerd-candidate.vercel.app', 1]])
+  test(`production is not promoted when Web database health fails on ${host}`, async () => {
+    const h = harness({ env: { RELEASE_ENVIRONMENT: 'production' }, unhealthyWebHost: host });
+    await assert.rejects(h.run(), /HTTP 503/);
+    assert.equal(mutations(h).length, maximumWrites);
+    assert(!h.calls.some(c => c.url.includes('/promote/')));
+    assert(!h.records.some(r => r.phase === 'validated' || r.phase === 'assigned'));
+  });
+
+for (const webHealth of [{ ok: false, checks: { database: false } }, { ok: true },
+  { ok: true, checks: { database: false } }, { ok: 'true', checks: { database: true } },
+  { ok: true, checks: { database: 'true' } }, null])
+  test(`requires explicit Web database success: ${JSON.stringify(webHealth)}`, async () => {
+    const h = harness({ webHealth });
+    await assert.rejects(h.run(), /Web database health check failed/);
+    assert(!h.records.some(r => r.phase === 'validated' || r.phase === 'assigned'));
+  });
 
 for (const promotionStatus of [201, 202]) test(`accepts bodyless promotion ${promotionStatus} and verifies completion`, async () => {
   const h = harness({ env: { RELEASE_ENVIRONMENT: 'production' }, promotionStatus,

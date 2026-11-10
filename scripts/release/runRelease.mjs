@@ -81,8 +81,8 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
         !/^[a-z0-9-]+\.vercel\.app$/.test(deployment.url))
       throw new Error('Invalid immutable deployment URL or ID');
   };
-  // Web serves no API routes; its data comes from MusicNerdAPI, so the smoke checks that
-  // environment's MusicNerdAPI health alongside the Web candidate's homepage.
+  // MusicNerdAPI and Web still have separate runtime database connections until
+  // #1627/#1628 finish. The static Web homepage cannot prove its database works.
   const apiHealthUrl = {
     staging: 'https://musicnerd-api-staging.vercel.app/api/health',
     production: 'https://api.musicnerd.net/api/health',
@@ -93,6 +93,9 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
       { 'x-vercel-protection-bypass': env.VERCEL_AUTOMATION_BYPASS_SECRET } : {};
     const health = await json(await request(apiHealthUrl[target]));
     if (health.status !== 'ok') throw new Error('MusicNerdAPI health check failed');
+    const webHealth = await json(await request(`https://${deployment.url}/api/health`, { headers }));
+    if (webHealth?.ok !== true || webHealth.checks?.database !== true)
+      throw new Error('Web database health check failed');
     const home = await request(`https://${deployment.url}/`, { headers });
     if (!home.headers.get('content-type')?.includes('text/html') || !(await home.text()).includes('<html'))
       throw new Error('Homepage HTML check failed');
