@@ -5,10 +5,10 @@ import AddArtist from "./nav/components/AddArtist";
 import styles from "./HomePageSplash.module.css";
 
 const MANIFESTO = [
-    { action: "listen", rest: "with intent" },
+    { action: "listen", rest: "with intention" },
     { action: "follow", rest: "with curiosity" },
-    { action: "care", rest: "when artists let us in" },
-    { action: "act", rest: "with purpose" },
+    { action: "care", rest: "about artists" },
+    { action: "support", rest: "the culture" },
 ];
 
 export default function HomePageSplash() {
