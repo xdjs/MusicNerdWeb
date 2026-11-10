@@ -358,3 +358,28 @@ only; authentication, routes, persistence, jobs and external services are unchan
 `text-destructive` uses `--destructive-text` (red-700 light / red-400 dark),
 independent of destructive button backgrounds. The shared FormMessage and
 photo/user-name errors therefore keep readable contrast on both dialog surfaces.
+
+## Spotify portraits during provider cooldowns
+
+Artist portraits keep the existing preference: saved custom image, Spotify, linked
+Deezer, then the default image. Successful Spotify Web API images use an artist-ID
+cache key, independent of token rotation. Header refresh stays outside the image
+cache so distinct cache misses can share the existing token cache. When headers
+are blocked by a known cooldown, a cached success remains usable, including an
+older image without background revalidation; daily revalidation resumes at expiry.
+Provider failures stay outside the success cache, so cooldown recovery cannot
+leave a cached empty portrait.
+
+Each warm process remembers only observed future Spotify credential cooldowns
+and shares concurrent deadline reads. At expiry it reads the durable row again,
+including extensions made by MusicNerdAPI. An allowed result is never cached;
+cold starts and database failures still fail closed. Portrait reads with a known deadline also skip
+repeated stale-token cache revalidation. Expected cooldowns do not produce
+portrait/token error logs.
+
+The separate public oEmbed fallback retains its 2.5-second timeout and one-day
+successful-response cache. Concurrent requests for the same artist share one
+attempt. Failures back off for 30 seconds per artist in a bounded 1,000-entry
+process-local map, then retry; they are not stored as one-day empty portraits.
+This does not bypass the authenticated Spotify cooldown or introduce database
+writes, research jobs, migrations, or image-preference changes.
