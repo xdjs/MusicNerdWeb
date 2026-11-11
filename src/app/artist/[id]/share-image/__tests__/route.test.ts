@@ -89,6 +89,7 @@ describe('preview proposal selection', () => {
         const response = await GET(new Request('https://example.com?layout=editorial&palette=logo&cta=meet'), { params: Promise.resolve({ id }) });
         expect(response.status).toBe(200);
         if (environment === 'preview') {
+            expect(response.headers.get('cache-control')).toBe('private, no-store');
             expect(renderArtistShareProposal).toHaveBeenCalledWith('Pete Rango', null, 'Eligible public bio.', 'editorial', 'logo', 'meet');
             expect(renderArtistShareImage).not.toHaveBeenCalled();
         } else {

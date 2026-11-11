@@ -11,6 +11,7 @@ describe('bio history ownership fencing', () => {
             where: jest.fn(() => ({ returning: jest.fn().mockResolvedValue([version]) })),
         }));
         const tx = { execute: jest.fn().mockResolvedValue([]), insert: mutation, update: mutation, delete: mutation, query: {
+            artistBioProvenance:{findFirst:jest.fn().mockResolvedValue(undefined)},artistBioVersionProvenance:{findFirst:jest.fn().mockResolvedValue(undefined),findMany:jest.fn().mockResolvedValue([])},
             artistClaims: { findFirst: jest.fn().mockResolvedValue(claim) },
             users: { findFirst: jest.fn().mockResolvedValue({ isAdmin: admin }) },
             artists: { findFirst: jest.fn().mockResolvedValue({ bio: 'Saved bio' }) },

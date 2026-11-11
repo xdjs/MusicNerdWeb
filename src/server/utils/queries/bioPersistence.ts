@@ -1,8 +1,13 @@
+import { markAboutWriter } from '../bio/markAboutWriter';
+import {recordBioSourceUrlReceipts} from '../bio/recordBioSourceUrlReceipts';
+import {writeBioProvenance} from '../bio/writeBioProvenance';
+import { createHash } from 'node:crypto';
+import { retainEditedBioProvenance } from '../bio/retainEditedBioProvenance';
+import { saveBioHistory } from '../bio/saveBioHistory';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from '@/server/db/drizzle';
-import { artists, artistBioVersions, artistDocs, artistOnboardingSteps, artistClaims } from '@/server/db/schema';
+import { artists, artistBioVersions, artistDocs, artistOnboardingSteps, artistClaims, artistBioProvenance, artistBioVersionProvenance } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
-import { isRealBio } from '@/lib/bio/bioConstants';
 import { BioConflictError } from '@/lib/bio/bioConflict';
 import { authorizeLockedArtistWrite, OwnershipChangedError } from './ownershipWrites';
 
@@ -37,6 +42,10 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
             if (!options.generated && bio !== pinned.bioText) {
                 throw new Error('Unpin your bio before editing it. Your saved version will be kept.');
             }
+            const currentLineage = (await tx.query.artistBioProvenance.findFirst({where:eq(artistBioProvenance.artistId,artistId)}))?.provenance;
+            const pinnedLineage = (await tx.query.artistBioVersionProvenance.findFirst({where:eq(artistBioVersionProvenance.versionId,pinned.id)}))?.provenance;
+            await recordBioSourceUrlReceipts(tx, currentLineage);
+            await recordBioSourceUrlReceipts(tx, pinnedLineage);
             return artist.bio;
         }
         if (options.generated && artist.bio !== options.expectedBio) throw new BioConflictError();
@@ -55,14 +64,20 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
                 set: { content, sources, updatedAt: sql`(now() AT TIME ZONE 'utc'::text)` },
             });
         }
-        if (artist.bio === bio) return bio;
-        // Preserve both sides of every edit. History is deleted only explicitly.
-        for (const text of [artist.bio, bio].filter((v): v is string => isRealBio(v))) {
-            const saved = await tx.query.artistBioVersions.findFirst({
-                where: and(eq(artistBioVersions.artistId, artistId), eq(artistBioVersions.bioText, text)),
-            });
-            if (!saved) await tx.insert(artistBioVersions).values({ artistId, bioText: text, isPinned: false });
-        }
+        const previousProvenance = (await tx.query.artistBioProvenance.findFirst({where:eq(artistBioProvenance.artistId,artistId)}))?.provenance ?? null;
+        // This legacy writer has no server-validated generation manifest. Do not
+        // label echoed document sources as trustworthy evidence.
+        const bioProvenance = options.generated
+            ? { version: 1, kind: 'unknown', bioHash: createHash('sha256').update(bio).digest('hex') }
+            : retainEditedBioProvenance(artist.bio, bio, previousProvenance);
+        await recordBioSourceUrlReceipts(tx, bioProvenance);
+        if (artist.bio === bio && JSON.stringify(previousProvenance ?? null) === JSON.stringify(bioProvenance)) return bio;
+        await saveBioHistory(tx, artistId, [
+            { text: artist.bio, provenance: previousProvenance },
+            { text: bio, provenance: bioProvenance },
+        ]);
+        await writeBioProvenance(tx,artistId,bioProvenance);
+        await markAboutWriter(tx);
         await tx.update(artists).set({ bio }).where(eq(artists.id, artistId));
         const automatic = options.generated && !options.ownership.userId && !options.document;
         await recordArtistActivity(artistId, options.generated ? 'about_generated' : 'about_edited', {

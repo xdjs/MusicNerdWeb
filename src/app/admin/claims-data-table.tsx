@@ -52,7 +52,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
             const result = await action();
             if (result.success) {
                 toast(result.warning
-                    ? { title: 'Research needs attention', description: result.warning, duration: 15000 }
+                    ? { title: label === 'revoked' ? 'Claim revoked — cleanup deferred' : 'Research needs attention', description: result.warning, duration: 15000 }
                     : { title: `Claim ${label}` });
                 router.refresh();
             } else {

@@ -101,7 +101,7 @@ it('refreshes all server-provided portrait consumers after provider selection', 
 describe('Hero About while research writes it', () => {
   it('shows text-line skeletons in place of the About until the publish step is confirmed', () => {
     const steps = { profiles: 't1', vault: 't2', interview: null, publish: null };
-    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'interview' })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="Music from Miami." /></OnboardingProgressContext.Provider>);
+    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'interview' })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" /></OnboardingProgressContext.Provider>);
     const status = screen.getByRole('status', { name: 'writing your about…' });
     expect(status.querySelectorAll('[data-skeleton=line]')).toHaveLength(3);
     expect(screen.queryByText('Music from Miami.')).toBeNull();
@@ -109,14 +109,14 @@ describe('Hero About while research writes it', () => {
 
   it('draws the About skeleton in the portrait hero\'s white text', () => {
     const steps = { profiles: 't1', vault: 't2', interview: null, publish: null };
-    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'interview' })}><HeroSection imageUrl="/portrait.jpg" artistName="Nova" artistId="a1" hasPortrait bio="Music from Miami." /></OnboardingProgressContext.Provider>);
+    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'interview' })}><HeroSection imageUrl="/portrait.jpg" artistName="Nova" artistId="a1" hasPortrait /></OnboardingProgressContext.Provider>);
     expect(screen.getByRole('status', { name: 'writing your about…' }).closest('#mn-about')).toHaveClass('text-white');
   });
 
   it('marks the About as new when it arrives', () => {
     const steps = { profiles: 'a', vault: 'b', interview: 'c', publish: 'c' };
     render(<OnboardingProgressContext.Provider value={research({ steps, fresh: { profiles: false, vault: false, publish: true } })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="Music from Miami." /></OnboardingProgressContext.Provider>);
-    expect(screen.getByText('New About')).toBeInTheDocument();
+    expect(screen.getByText('About ready')).toBeInTheDocument();
     expect(screen.getByText('Music from Miami.')).toBeInTheDocument();
   });
 });
@@ -155,4 +155,15 @@ it('keeps a successfully saved crop on Done before refreshed props arrive', asyn
   rerender(view(false, 70));
   expect(screen.getByAltText('Test')).toHaveStyle({ objectPosition: '50% 70%' });
   fetchMock.mockRestore();
+});
+
+it('keeps the saved About readable throughout setup and completion without claiming a new draft', () => {
+  const view = (complete: boolean) => <OnboardingProgressContext.Provider value={research({ currentStep: complete ? null : 'interview', complete, steps: complete ? { profiles: 'a', vault: 'b', interview: 'c', publish: 'd' } : researchNone, fresh: { profiles: false, vault: false, publish: complete } })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="My saved words." /></OnboardingProgressContext.Provider>;
+  const { rerender } = render(view(false));
+  expect(screen.getByText('My saved words.')).toBeVisible();
+  expect(screen.queryByRole('status', { name: 'writing your about…' })).not.toBeInTheDocument();
+  rerender(view(true));
+  expect(screen.getByText('My saved words.')).toBeVisible();
+  expect(screen.queryByText('New About')).not.toBeInTheDocument();
+  expect(screen.getByText('About ready')).toBeVisible();
 });

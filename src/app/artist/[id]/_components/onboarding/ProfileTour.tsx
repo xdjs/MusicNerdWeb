@@ -18,8 +18,8 @@ type Stop = {
 const STOPS: Stop[] = [
     {
         anchor: "mn-about",
-        title: "We wrote you a first draft",
-        body: "This draft is based on the sources on your profile. Edit it or write your own.",
+        title: "This is your About",
+        body: "Review your About here. Edit it or write your own.",
     },
     {
         anchor: "mn-ask",
@@ -33,8 +33,8 @@ const STOPS: Stop[] = [
     },
     {
         anchor: "mn-sources",
-        title: "This is what we found written about you",
-        body: "These feed Ask and the About draft. If something here isn't you, remove it once and we won't bring it back.",
+        title: "These are your Lore sources",
+        body: "These can inform Ask and future About updates. If something here isn't you, remove it once and we won't bring it back.",
     },
 ];
 

@@ -1,0 +1,4650 @@
+{
+  "purpose": "Synthetic test compatibility only; not a migration or live schema audit",
+  "tables": [
+    {
+      "name": "account_merge_events",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "source_user_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": null
+        },
+        {
+          "name": "target_user_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "activity_count",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "agent_heartbeats",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "gen_random_uuid()"
+          }
+        },
+        {
+          "name": "worker_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "api_key_hash",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "starting"
+          }
+        },
+        {
+          "name": "current_run",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "batch_platform",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "batch_size",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "message",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "config",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "agent_runs",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "gen_random_uuid()"
+          }
+        },
+        {
+          "name": "worker_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "api_key_hash",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "run_number",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "deezer"
+          }
+        },
+        {
+          "name": "status",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "running"
+          }
+        },
+        {
+          "name": "started_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "ended_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "wall_time_secs",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "claude_time_secs",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "api_time_secs",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "turns",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "batch_size",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "resolved",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "excluded",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "skipped",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "errors",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "high_confidence",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "medium_confidence",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "conflicts",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "name_mismatches",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "too_ambiguous",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "exit_code",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "fail_category",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "fail_reason",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "aiprompts",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "prompt_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "gen_random_uuid()"
+          }
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "prompt_before_name",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "is_active",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "prompt_after_name",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "artist_activity_events",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "actor_user_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "actor_kind",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "action",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "trigger",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "source_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "parent_activity_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_bio_corrections",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "gen_random_uuid()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "details",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "source_url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "bio_snapshot",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "pending"
+          }
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "reviewed_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "reviewed_by",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "artist_bio_versions",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "bio_text",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "is_pinned",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_claims",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "user_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "sqlType": "claim_status",
+          "enumValues": [
+            "pending",
+            "approved",
+            "rejected"
+          ],
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "pending"
+          }
+        },
+        {
+          "name": "reference_code",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_directory_preparations",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": null
+        },
+        {
+          "name": "activity_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "job_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "document",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "about",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "starting_bio",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "public_about",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "manifest",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_doc_corrections",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "claim",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "correction",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "kind",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "wrong"
+          }
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_docs",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "lore_summary",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "sources",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_id_mappings",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "confidence",
+          "sqlType": "confidence_level",
+          "enumValues": [
+            "high",
+            "medium",
+            "low",
+            "manual"
+          ],
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "source",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "reasoning",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "api_key_hash",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "resolved_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_interview_answer_versions",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "answer_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "revision",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "snapshot",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "note",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "actor_user_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "captured_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_interview_answers",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "question_key",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "question",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "answer",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "source",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "sitting",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "offered_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_interview_boundaries",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "request_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "wording",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "scope",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "sitting",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "origin_answer_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "origin_question_key",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "origin_question",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_by",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "activity_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "retracted_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "retracted_by",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "retraction_activity_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "artist_interview_question_evidence",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "answer_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": null
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "ordinal",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "memory_snapshot_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "evidence_references",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_interview_sessions",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "request_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "sitting",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "state",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "active"
+          }
+        },
+        {
+          "name": "created_by",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "closed_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "artist_latest_provider_snapshots",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "items",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "'[]'::jsonb"
+          }
+        },
+        {
+          "name": "checked_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "last_attempt_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "status",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "artist_mapping_exclusions",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "sqlType": "exclusion_reason",
+          "enumValues": [
+            "conflict",
+            "name_mismatch",
+            "too_ambiguous"
+          ],
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "details",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "api_key_hash",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_onboarding_interview_plans",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": null
+        },
+        {
+          "name": "claim_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "questions",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_onboarding_steps",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "step",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "confirmed_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_question_answers",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "job_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "question_hash",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "claim_token",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "claim_until",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "attempts",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "result",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "failure_stage",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "failure_diagnostics",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "'[]'::jsonb"
+          }
+        },
+        {
+          "name": "expires_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_question_requests",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "request_hash",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "token",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "lease_until",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "expires_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "job_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "question_hash",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "reusable",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "answer_intent",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "routing",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": {}
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_research_candidates",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "destination",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "identity",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "unresolved"
+          }
+        },
+        {
+          "name": "curation",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "pending"
+          }
+        },
+        {
+          "name": "source_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "reviewed_by",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "review_activity_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "reviewed_revision",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "current_revision",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_research_evidence",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "candidate_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "revision",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "original_text",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "provenance",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "retrieved_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_research_jobs",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "activity_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "kind",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "pending"
+          }
+        },
+        {
+          "name": "cursor",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "total",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "claimed_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "attempts",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "last_error",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "state",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": {}
+          }
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_self_edits",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "gen_random_uuid()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "site_name",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "old_value",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "new_value",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "submitted_url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "clock_timestamp()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_social_credits",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "instagram"
+          }
+        },
+        {
+          "name": "kind",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "subject",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "is_handle",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "is_self",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "label",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "quote",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "source_url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "posted_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_social_post_versions",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "source_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "fingerprint",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "snapshot",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "captured_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_social_posts",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform_post_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "owner_username",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "is_own_post",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "caption",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "posted_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "like_count",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "comment_count",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "play_count",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "hashtags",
+          "sqlType": "text[]",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "mentions",
+          "sqlType": "text[]",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "coauthors",
+          "sqlType": "text[]",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "music_title",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "music_artist",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "raw",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_social_profiles",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "handle",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "followers_count",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "bio",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "avatar_url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "scraped_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_social_refreshes",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "platform",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "account_handle",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "scope",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "profile"
+          }
+        },
+        {
+          "name": "covered_through",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "checked_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "scan_started_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "item_count",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "run_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "scan_reference",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "'{}'::jsonb"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_source_assessments",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "source_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": null
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "activity_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "snapshot",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "assessed_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_vault_source_versions",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "source_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "fingerprint",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "snapshot",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "captured_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artist_vault_sources",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "publication",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "inherit"
+          }
+        },
+        {
+          "name": "origin",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "unknown"
+          }
+        },
+        {
+          "name": "activity_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "snippet",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "type",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "sqlType": "source_status",
+          "enumValues": [
+            "pending",
+            "approved",
+            "rejected"
+          ],
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "pending"
+          }
+        },
+        {
+          "name": "file_name",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "file_size",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "file_path",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "content_type",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "extracted_text",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "og_image",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "podcast_episode_key",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "podcast_show_title",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "podcast_episode_title",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "published_at",
+          "sqlType": "date",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artists",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "legacy_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "bandcamp",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "facebook",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "x",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "soundcloud",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "notes",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "patreon",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "instagram",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "youtube",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "youtubechannel",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "lcname",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "soundcloudID",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "spotify",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "twitch",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "imdb",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "musicbrainz",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "wikidata",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "mixcloud",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "facebookID",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "discogs",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "tiktok",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "tiktokID",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "jaxsta",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "famousbirthdays",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "songexploder",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "colorsxstudios",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "bandsintown",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "linktree",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "onlyfans",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "wikipedia",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "audius",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "zora",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "catalog",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "opensea",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "foundation",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "lastfm",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "linkedin",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "soundxyz",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "mirror",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "glassnode",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "collectsNFTs",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "spotifyusername",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "bandcampfan",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "tellie",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "wallets",
+          "sqlType": "text[]",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "ens",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "lens",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "added_by",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "cameo",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "farcaster",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "supercollector",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "bio",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "custom_image",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "header_image_position",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "link_order",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "webmapdata",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "node_pfp",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "deezer",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "subvert",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "bluesky",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "inprocess",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "bot_prompts",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "slow",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "moderate",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "busy",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "prompts",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "fun_fact",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "shaming",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "track_fact",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "emoji",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "featured",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "featured_artist",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "featured_collector",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "history",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "guild_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "posted_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "top_artist",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "top_track",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "track_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "mcp_api_keys",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "key_hash",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "label",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "revoked_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "mcp_audit_log",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "field",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "action",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "submitted_url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "old_value",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "new_value",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "api_key_hash",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "provider_request_cooldowns",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "provider_key",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": null
+        },
+        {
+          "name": "blocked_until",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "question_planning_admissions",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "visitor_key",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "admitted_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ugcresearch",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "origin",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "unknown"
+          }
+        },
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "artist_uri",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "accepted",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "ugc_url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "site_name",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "site_username",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "artist_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "date_processed",
+          "sqlType": "timestamp",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "urlmap",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "site_url",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "site_name",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "example",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "app_string_format",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "order",
+          "sqlType": "integer",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "is_iframe_enabled",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "is_embed_enabled",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "card_description",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "card_platform_name",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "is_web3_site",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "site_image",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "regex",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": "\"\""
+          }
+        },
+        {
+          "name": "regex_matcher",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "is_monetized",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "regex_options",
+          "sqlType": "text[]",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "color_hex",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": "#000000"
+          }
+        },
+        {
+          "name": "platform_type_list",
+          "sqlType": "platform_type[]",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": [
+              "social"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "user_tracks",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "guild_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "username",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "tracks",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "top_track",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "top_artist",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "last_updated",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "artists",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "users",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "sqlType": "uuid",
+          "enumValues": null,
+          "notNull": true,
+          "primary": true,
+          "default": {
+            "sql": "uuid_generate_v4()"
+          }
+        },
+        {
+          "name": "email",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "username",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "username_needs_confirmation",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "username_prompted_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "wallet",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "privy_user_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "updated_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "sql": "(now() AT TIME ZONE 'utc'::text)"
+          }
+        },
+        {
+          "name": "legacy_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "is_admin",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "is_white_listed",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "is_super_admin",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "is_hidden",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "legacy_link_dismissed",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "accepted_ugc_count",
+          "sqlType": "bigint",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "wrap_guilds",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "guild_id",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": true,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "sqlType": "timestamp with time zone",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": {
+            "sql": "now()"
+          }
+        },
+        {
+          "name": "local_time",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "posted",
+          "sqlType": "boolean",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "wrap_up",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "shame",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "wrap_tracks",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "wrap_artists",
+          "sqlType": "jsonb",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "interval",
+          "sqlType": "numeric",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        },
+        {
+          "name": "channel",
+          "sqlType": "text",
+          "enumValues": null,
+          "notNull": false,
+          "primary": false,
+          "default": null
+        }
+      ]
+    }
+  ]
+}

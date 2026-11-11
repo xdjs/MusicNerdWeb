@@ -27,6 +27,7 @@ export async function getPublicArtistAbout(artistId: string, reader: Pick<typeof
             left join artist_vault_sources v on v.id=(original->>'id')::uuid and v.artist_id=a.id
             left join artist_source_assessments s on s.source_id=v.id and s.artist_id=a.id and s.activity_id=p.activity_id
             where v.id is null or s.source_id is null or v.status not in ('pending','approved') or v.file_path is not null
+              or coalesce(v.publication,'private') not in ('inherit','public')
               or (public.knowledge_vault_source_snapshot(v)-'status'-'updatedAt')<>(original-'status'-'updatedAt')
               or (s.snapshot-'status'-'updatedAt')<>(original-'status'-'updatedAt'))
           and not exists(select 1 from jsonb_array_elements(p.public_about->'sources') citation
