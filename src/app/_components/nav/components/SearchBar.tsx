@@ -211,7 +211,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         setQuery(search ?? '');
     }, [search]);
 
-    const { data: results = [], isLoading, isFetching, isSuccess } = useQuery<SearchResult[]>({
+    const { data: results = [], isLoading, isFetching, isSuccess, isError, error, refetch } = useQuery<SearchResult[]>({
         queryKey: ['searchArtists', debouncedQuery],
         queryFn: async () => {
             if (!debouncedQuery || debouncedQuery.trim() === '') return [];
@@ -225,12 +225,23 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
                 credentials: 'omit',
             });
             if (!response.ok) {
-                throw new Error('Search failed');
+                const message = response.status === 400
+                    ? 'Use a Spotify or Deezer artist link or ID.'
+                    : response.status === 409
+                        ? 'This artist ID has conflicting saved profiles. Please try searching by name.'
+                    : response.status === 503
+                        ? 'Artist lookup is temporarily unavailable. Please try again later.'
+                        : 'Search failed. Please try again.';
+                throw Object.assign(new Error(message), { status: response.status });
             }
             const data = await response.json();
             return data.results;
         },
         enabled: debouncedQuery.trim() !== '',
+        retry: (failureCount, searchError) => {
+            const status = (searchError as Error & { status?: number }).status;
+            return status !== 400 && status !== 409 && status !== 503 && failureCount < 3;
+        },
     });
 
     // A completed search with nothing to show is the directory-coverage signal; once per query.
@@ -490,6 +501,16 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
                             </button>
                         );
                     })}
+                </div>
+            )}
+
+            {!duplicateChoice && isError && query.trim() !== "" && query === debouncedQuery && (
+                <div role="alert" className={styles.searchEmpty}>
+                    <span>{error instanceof Error ? error.message : 'Search failed. Please try again.'}</span>
+                    <button type="button" onClick={() => { handleFocus(); void refetch(); }} disabled={isFetching}
+                        aria-label="Try search again" className="underline underline-offset-4">
+                        Try again
+                    </button>
                 </div>
             )}
 
