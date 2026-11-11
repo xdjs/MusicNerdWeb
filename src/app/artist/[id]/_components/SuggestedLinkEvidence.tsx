@@ -9,7 +9,7 @@ export default function SuggestedLinkEvidence({ item }: { item: LinkSuggestion }
     <span className="inline-flex rounded-full border border-black/15 bg-black/5 px-2.5 py-1 text-xs font-medium text-foreground dark:border-white/20 dark:bg-white/10">
       {research ? 'Needs confirmation' : 'Awaiting review'}
     </span>
-    {research && <div className="space-y-1.5 text-sm leading-relaxed text-muted-foreground">
+    {research && <div className="space-y-1.5 break-words text-sm leading-relaxed text-muted-foreground">
       {evidence ? <>
         <p className="font-medium text-foreground">Why this was suggested</p>
         <p>{evidence.summary}</p>
