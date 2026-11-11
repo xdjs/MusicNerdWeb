@@ -178,11 +178,13 @@ describe('SpotifyProvider', () => {
 
     describe('getArtistImage', () => {
         it('should return image URL', async () => {
-            const { provider, getSpotifyImage } = await setup();
+            const { provider, getSpotifyImage, getSpotifyHeaders } = await setup();
             getSpotifyImage.mockResolvedValue({ artistImage: 'https://img.spotify.com/artist.jpg', artistId: '' });
 
             const result = await provider.getArtistImage('spotify-123');
             expect(result).toBe('https://img.spotify.com/artist.jpg');
+            expect(getSpotifyHeaders).not.toHaveBeenCalled();
+            expect(getSpotifyImage).toHaveBeenCalledWith('spotify-123');
         });
 
         it('uses Spotify oEmbed when the Web API image is unavailable', async () => {

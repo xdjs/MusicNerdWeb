@@ -1,60 +1,75 @@
-// @ts-nocheck
-import { jest } from '@jest/globals';
+/** @jest-environment node */
+import type { SQL } from 'drizzle-orm';
 
-// Mock the two things the health check inspects.
-jest.mock('@/server/lib/supabase', () => ({ isSupabaseStorageConfigured: jest.fn(() => true) }));
-jest.mock('@/server/db/drizzle', () => ({ db: { execute: jest.fn().mockResolvedValue([{ result: 1 }]) } }));
-
-if (!('json' in Response)) {
-  Response.json = (data, init) =>
-    new Response(JSON.stringify(data), {
-      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
-      status: init?.status || 200,
-    });
+// The shared test setup installs a Response polyfill without the static helper.
+if (!Response.json) {
+    Response.json = (data: unknown, init?: ResponseInit) => {
+        const headers = new Headers(init?.headers);
+        headers.set('Content-Type', 'application/json');
+        return new Response(JSON.stringify(data), { ...init, headers });
+    };
 }
 
 describe('GET /api/health', () => {
-  beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); });
+    beforeEach(() => {
+        jest.resetModules();
+        jest.doMock('@/env', () => ({ SUPABASE_DB_CONNECTION: 'configured' }));
+    });
 
-  it('returns 200 and ok:true when storage + database are healthy', async () => {
-    const { GET } = await import('../route');
-    const res = await GET();
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(body.checks.storage).toBe(true);
-    expect(body.checks.database).toBe(true);
-  });
+    it('checks the candidate application database with a read-only query', async () => {
+        const { db } = await import('@/server/db/drizzle');
+        jest.mocked(db.execute).mockResolvedValue([{ result: 1 }]);
+        const { GET, dynamic } = await import('../route');
+        const { PgDialect } = await import('drizzle-orm/pg-core');
 
-  it('returns 503 and ok:false when storage is not configured (the outage we just had)', async () => {
-    const supabase = await import('@/server/lib/supabase');
-    (supabase.isSupabaseStorageConfigured as jest.Mock).mockReturnValue(false);
-    const { GET } = await import('../route');
-    const res = await GET();
-    expect(res.status).toBe(503);
-    const body = await res.json();
-    expect(body.ok).toBe(false);
-    expect(body.checks.storage).toBe(false);
-  });
+        const response = await GET();
 
-  it('returns 503 when the database ping throws', async () => {
-    const drizzle = await import('@/server/db/drizzle');
-    (drizzle.db.execute as jest.Mock).mockRejectedValue(new Error('connection refused'));
-    const { GET } = await import('../route');
-    const res = await GET();
-    expect(res.status).toBe(503);
-    const body = await res.json();
-    expect(body.ok).toBe(false);
-    expect(body.checks.database).toBe(false);
-  });
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ ok: true, checks: { database: true } });
+        expect(dynamic).toBe('force-dynamic');
+        expect(response.headers.get('cache-control')).toBe('no-store');
+        expect(db.execute).toHaveBeenCalledTimes(1);
+        expect(new PgDialect().sqlToQuery(jest.mocked(db.execute).mock.calls[0][0] as SQL))
+            .toMatchObject({ sql: 'select 1', params: [] });
+    });
 
-  it('never leaks secrets (connection strings, service keys, JWTs) in the response', async () => {
-    const { GET } = await import('../route');
-    const res = await GET();
-    const body = await res.json();
-    const serialized = JSON.stringify(body);
-    expect(serialized).not.toMatch(/postgres(ql)?:\/\//i);
-    expect(serialized).not.toMatch(/service_role|SUPABASE_SERVICE_ROLE_KEY/i);
-    expect(serialized).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}/); // JWT-looking blobs
-  });
+    it.each(['', '   '])('fails closed with a missing connection (%j), without using pg defaults', async connection => {
+        jest.doMock('@/env', () => ({ SUPABASE_DB_CONNECTION: connection }));
+        const { db } = await import('@/server/db/drizzle');
+        const { GET } = await import('../route');
+
+        const response = await GET();
+
+        expect(response.status).toBe(503);
+        expect(await response.json()).toEqual({ ok: false, checks: { database: false } });
+        expect(response.headers.get('cache-control')).toBe('no-store');
+        expect(db.execute).not.toHaveBeenCalled();
+    });
+
+    it('fails closed for invalid credentials without returning or logging provider details', async () => {
+        const { db } = await import('@/server/db/drizzle');
+        jest.mocked(db.execute).mockRejectedValue(new Error('postgres://private:secret@private-host/database'));
+        const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const { GET } = await import('../route');
+
+        try {
+            const response = await GET();
+            expect(response.status).toBe(503);
+            expect(await response.json()).toEqual({ ok: false, checks: { database: false } });
+            expect(log).not.toHaveBeenCalled();
+        } finally {
+            log.mockRestore();
+        }
+    });
+
+    it('queries again instead of retaining a previous healthy result', async () => {
+        const { db } = await import('@/server/db/drizzle');
+        jest.mocked(db.execute).mockResolvedValueOnce([{ result: 1 }])
+            .mockRejectedValueOnce(new Error('connection refused'));
+        const { GET } = await import('../route');
+
+        expect((await GET()).status).toBe(200);
+        expect((await GET()).status).toBe(503);
+        expect(db.execute).toHaveBeenCalledTimes(2);
+    });
 });

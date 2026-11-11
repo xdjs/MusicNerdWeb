@@ -1,6 +1,7 @@
 import { SPOTIFY_WEB_CLIENT_ID, SPOTIFY_WEB_CLIENT_SECRET } from "@/env"
 import axios from "axios";
 import { spotifyGet } from '@/server/utils/spotify/spotifyGet';
+import { SpotifyCooldownError } from '@/server/utils/spotify/SpotifyCooldownError';
 import { runSpotifyRequest } from '@/server/utils/spotify/runSpotifyRequest';
 import queryString from 'querystring';
 import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
@@ -78,7 +79,9 @@ export async function refreshSpotifyToken(): Promise<SpotifyHeaderType> {
             }
         };
     } catch (e) {
-        console.error("Error fetching Spotify headers:", e);
+        if (!(e instanceof SpotifyCooldownError)) {
+            console.error("Error fetching Spotify headers:", e);
+        }
         if (e instanceof Error) {
             throw e;
         }

@@ -10,6 +10,15 @@ or writes. CORS is route-specific. API rate limits are applied by [middleware](s
 See [development](docs/development.md) for session/auth boundaries and [MCP](docs/mcp.md) for
 agent tool access. MCP bearer keys are not a general authentication scheme for the HTTP API.
 
+### Deployment health
+
+Web's temporary `GET /api/health` runs a read-only `select 1` through its own database
+connection and returns `{"ok":true,"checks":{"database":true}}` on success, or the
+same flags set to false with HTTP 503 if configuration is missing or the query fails.
+Responses are uncached and contain no provider error details. The release gate checks
+this on the immutable Web candidate in addition to the homepage and MusicNerdAPI health.
+Keep it until #1627/#1628 remove Web's remaining database consumers.
+
 ### Artist Search & Discovery
 
 The public lookups `searchArtists`, `findArtistBySpotifyID`, `findArtistByIG`, `findTwitterHandle`, `trackLinks`, `leaderboard` and `artist/[id]/image` are served by MusicNerdAPI at `api.musicnerd.net`, in the response shapes external clients already use ([docs](https://docs.musicnerd.net/api-reference/lookups/search-artists)).
@@ -77,7 +86,6 @@ The public lookups `searchArtists`, `findArtistBySpotifyID`, `findArtistByIG`, `
 | Uploads | Vault upload and artist profile image are on [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) |
 | Admin and worker operations | [Admin routes](src/app/api/admin), [agent routes](src/app/api/agent) |
 | MCP | [Reference](docs/mcp.md) |
-| Health | [Health handler](src/app/api/health/route.ts) |
 
 The former `/api/coverage` endpoint is absent. Use `npm run test:coverage` for local coverage
 and `npm run test:ci` for CI verification.

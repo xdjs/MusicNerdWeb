@@ -13,7 +13,7 @@ interface AdminTabsProps {
   reviewContent: ReactNode; usersContent: ReactNode; claimsContent: ReactNode;
   mcpKeysContent: ReactNode; agentWorkContent: ReactNode; artistDataContent: ReactNode;
   ugcCount: number; loreCount: number; claimsCount: number;
-  initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections";
+  initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections" | "claims";
   correctionsCount?: number;
   activityContent?: ReactNode;
 }
