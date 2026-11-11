@@ -27,6 +27,8 @@ jest.mock('@/app/actions/addVaultSource', () => ({
   addVaultSource: jest.fn().mockResolvedValue({ success: true }),
 }));
 import { addVaultSource } from '@/app/actions/addVaultSource';
+import { setSourcePublicationAction } from '@/app/actions/setSourcePublicationAction';
+jest.mock('@/app/actions/setSourcePublicationAction', () => ({ setSourcePublicationAction: jest.fn() }));
 import { updateSourceStatus, removeVaultSource, removeVaultSources, searchWebForSources } from '@/app/actions/dashboardActions';
 
 const pending = [{ id: 'p1', artistId: 'a1', url: 'http://e/1', title: 'Pending One', status: 'pending' }];
@@ -243,4 +245,44 @@ it('bounds long Lore lists and resets the page when searching', () => {
   expect(screen.getByText('Saved article 12')).toBeVisible();
   expect(screen.getByRole('button',{name:'Previous source page'})).toBeDisabled();
   expect(screen.getByRole('button',{name:'Next source page'})).toBeDisabled();
+});
+
+
+it.each(['inherit', 'private'])('uses refreshed publication and exact revision for the next %s decision', async nextPublication => {
+  jest.clearAllMocks();
+  setSourcePublicationAction.mockResolvedValue({ success: true });
+  const original = { ...approved[0], publication: 'inherit', updatedAt: '2026-11-11 00:00:00.123456+00' };
+  const revised = { ...original, publication: 'public', updatedAt: '2026-11-11 00:00:01.654321+00' };
+  const view = source => <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
+    <VaultManager artistId="a1" pendingSources={[]} approvedSources={[source]} canPublishSources />
+  </EditModeContext.Provider>;
+  const { rerender } = render(view(original));
+  fireEvent.change(screen.getByPlaceholderText(/add a source by url/i), { target: { value: 'https://example.com/unsaved' } });
+  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'public' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save publication' }));
+  await waitFor(() => expect(setSourcePublicationAction).toHaveBeenCalledWith({ sourceId: 'ap1', publication: 'public', expectedUpdatedAt: original.updatedAt }));
+  await screen.findByText('Publication decision saved.');
+  rerender(view(revised));
+  fireEvent.change(screen.getByRole('combobox'), { target: { value: nextPublication } });
+  expect(screen.getByRole('button', { name: 'Save publication' })).toBeEnabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Save publication' }));
+  await waitFor(() => expect(setSourcePublicationAction).toHaveBeenLastCalledWith({ sourceId: 'ap1', publication: nextPublication, expectedUpdatedAt: revised.updatedAt }));
+  expect(setSourcePublicationAction).toHaveBeenCalledTimes(2);
+  expect(screen.getByPlaceholderText(/add a source by url/i)).toHaveValue('https://example.com/unsaved');
+});
+
+
+it('refreshes a changed revision even when publication stays public', async () => {
+  jest.clearAllMocks();
+  setSourcePublicationAction.mockResolvedValue({ success: true });
+  const original = { ...approved[0], publication: 'public', updatedAt: '2026-11-11 00:00:00.123456+00' };
+  const revised = { ...original, updatedAt: '2026-11-11 00:00:01.654321+00' };
+  const view = source => <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
+    <VaultManager artistId="a1" pendingSources={[]} approvedSources={[source]} canPublishSources />
+  </EditModeContext.Provider>;
+  const { rerender } = render(view(original));
+  rerender(view(revised));
+  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'private' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save publication' }));
+  await waitFor(() => expect(setSourcePublicationAction).toHaveBeenCalledWith({ sourceId: 'ap1', publication: 'private', expectedUpdatedAt: revised.updatedAt }));
 });
