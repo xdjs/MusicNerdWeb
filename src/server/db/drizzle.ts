@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { createDatabase } from './createDatabase';
+import { installDatabaseDiagnostics } from './installDatabaseDiagnostics';
 import { SUPABASE_DB_CONNECTION } from '@/env';
 
 const connectionString = SUPABASE_DB_CONNECTION
@@ -21,7 +22,7 @@ const client = globalForDb.musicNerdPgPool ?? new Pool({
 // Idle connection failures are emitted outside a query promise. The pool removes
 // that connection; handle the event without logging credentials or query data.
 if (!globalForDb.musicNerdPgPool) {
-    client.on('error', () => console.error('[database] Idle connection closed unexpectedly'));
+    installDatabaseDiagnostics(client);
 }
 
 if (process.env.NODE_ENV !== 'production') {
