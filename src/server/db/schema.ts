@@ -206,6 +206,7 @@ export const artists = pgTable("artists", {
 ]);
 
 export const ugcresearch = pgTable("ugcresearch", {
+	discoveryEvidence: jsonb("discovery_evidence"),
 	origin: text("origin").default("unknown").notNull(),
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),

@@ -17,3 +17,35 @@ it('can reach suggestions beyond a page containing only unrelated sources',async
 it('restores a removed icon through an explicit server decision',async()=>{
  (fetch as jest.Mock).mockResolvedValueOnce({ok:true,json:async()=>({items:[{...item,kind:'source',status:'approved',hidden:true}],nextOffset:null})});mount();fireEvent.click(await screen.findByText('Recently reviewed (1)'));fireEvent.click(screen.getByRole('button',{name:'Restore link'}));await waitFor(()=>expect(fetch).toHaveBeenCalledWith('https://api-preview.test/api/artist/artist-1/link-suggestions',expect.objectContaining({method:'POST',headers:expect.objectContaining({Authorization:'Bearer private-token'}),body:JSON.stringify({id:item.id,kind:'source',decision:'restore'})})));
 });
+it('marks automated pending suggestions as needing confirmation without invented evidence',async()=>{
+ (fetch as jest.Mock).mockResolvedValue({ok:true,json:async()=>({items:[{...item,origin:'research'}]})});mount();
+ expect(await screen.findByText('Needs confirmation')).toBeInTheDocument();
+ expect(screen.getByText('The discovery reason was not saved with this suggestion. Open the profile and check it before adding it.')).toBeInTheDocument();
+ expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
+});
+it('does not call a contributor submission an automated uncertain match',async()=>{
+ mount();expect(await screen.findByText('Awaiting review')).toBeInTheDocument();
+ expect(screen.queryByText('Needs confirmation')).not.toBeInTheDocument();
+ expect(screen.queryByText(/discovery reason was not saved/)).not.toBeInTheDocument();
+});
+it.each(['approved','rejected'])('does not show a pending uncertainty badge after %s',async status=>{
+ (fetch as jest.Mock).mockResolvedValue({ok:true,json:async()=>({items:[{...item,origin:'research',status}]})});mount();
+ fireEvent.click(await screen.findByText('Recently reviewed (1)'));
+ expect(screen.queryByText('Needs confirmation')).not.toBeInTheDocument();
+ expect(screen.queryByText('Awaiting review')).not.toBeInTheDocument();
+});
+it('shows recorded discovery observations as evidence, not ownership proof',async()=>{
+ const evidence={method:'name_handle_probe',summary:'A handle based on the artist name was found and its page title matched.',artistName:'Example artist',sourceUrl:item.url,observedTitle:'Example artist on Apple Music'};
+ (fetch as jest.Mock).mockResolvedValue({ok:true,json:async()=>({items:[{...item,origin:'research',evidence}]})});mount();
+ expect(await screen.findByText(evidence.summary)).toBeInTheDocument();
+ expect(screen.getByText('Example artist on Apple Music')).toBeInTheDocument();
+ expect(screen.getByText('This explains how it was found, not proof that the account belongs to you.')).toBeInTheDocument();
+ expect(screen.queryByText(/discovery reason was not saved/)).not.toBeInTheDocument();
+});
+it('renders recorded text literally rather than HTML',async()=>{
+ (fetch as jest.Mock).mockResolvedValue({ok:true,json:async()=>({items:[{...item,origin:'research',evidence:{method:'name_web_search',summary:'<script>not trusted</script>',artistName:'Example',sourceUrl:item.url,observedTitle:'<img src=x onerror=alert(1)>'}}]})});mount();
+ expect(await screen.findByText('<script>not trusted</script>')).toBeInTheDocument();
+ expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
+ expect(document.querySelector('script')).toBeNull();
+ expect(document.querySelector('img')).toBeNull();
+});
