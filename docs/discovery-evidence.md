@@ -7,7 +7,7 @@ its recorded title as plain text. These observations are not proof of account ow
 Old or unsupported records show an explicit missing-reason message; no reasons are backfilled
 or generated for legacy suggestions. Reviewed suggestions keep their existing reviewed state.
 
-Migration 0060 adds one nullable JSONB column to ugcresearch. No default, data backfill,
+Migration 0066 adds one nullable JSONB column to ugcresearch. No default, data backfill,
 new table, index, RLS or permission expansion. The API serializes bounded, validated
 structured observations, not model reasoning. Apply the reviewed migration using the
 existing migration procedure before deploying the dependent API. Verify mnweb app-role
