@@ -84,6 +84,14 @@ describe('bio actions pass original ownership to the locked mutation', () => {
         expect(dq.pinBioVersion).toHaveBeenCalledWith('v1', 'a1', expected);
         expect(dq.deleteBioVersion).toHaveBeenCalledWith('v1', 'a1', expected);
     });
+    it('keeps history provenance server-only while preserving authorized version content', async () => {
+        const { actions, dq } = await setup();
+        const version = {id:'v1',artistId:'a1',bioText:'Saved artist words',isPinned:true,createdAt:'2026-11-03T00:00:00Z'};
+        dq.getBioVersionsByArtistId.mockResolvedValue([{...version,bioProvenance:{version:1,kind:'generated',sources:[{url:'https://private.example/source'}]}}]);
+        expect(await actions.getArtistBioVersions('a1')).toEqual({success:true,versions:[version]});
+        expect(await actions.saveCurrentBio('Saved artist words','a1')).toEqual({success:true});
+        expect(await actions.pinBioVersionAction('v1','a1')).toEqual({success:true});
+    });
     it('captures generation before authorization and does not report a revoked unpin as success', async () => {
         const { actions, dq, generation } = await setup();
         dq.unpinArtistBio.mockRejectedValue(new Error('Artist ownership changed'));

@@ -1,4 +1,4 @@
-import { pgSchema, pgTable, primaryKey, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
+import { customType, pgSchema, pgTable, primaryKey, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
 import { relations, sql } from "drizzle-orm"
 
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
@@ -399,6 +399,7 @@ export const artistActivityEvents = pgTable("artist_activity_events", {
 ]).enableRLS();
 
 export const artistVaultSources = pgTable("artist_vault_sources", {
+    publication: text().default('inherit').notNull(),
     origin: text().default('unknown').notNull(),
     activityId: uuid("activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
@@ -427,6 +428,7 @@ export const artistVaultSources = pgTable("artist_vault_sources", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
+    check("artist_vault_sources_publication_check", sql`${table.publication} in ('inherit', 'public', 'private')`),
 	index("idx_artist_vault_sources_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 		columns: [table.artistId],
@@ -1345,4 +1347,41 @@ export const catalogLinkDisconnects = pgSchema("musicnerd_private").table("catal
   check("catalog_link_disconnects_old_value_check", sql`length(btrim(${table.oldValue})) > 0`),
   check("catalog_link_disconnects_authorization_mode_check", sql`${table.authorizationMode} IN ('owner', 'contributor')`),
   check("catalog_disconnect_mapping_snapshot", sql`${table.mappingSnapshot} IS NULL OR (jsonb_typeof(${table.mappingSnapshot}) = 'object' AND ${table.mappingSnapshot}->>'artist_id' = ${table.artistId}::text AND ${table.mappingSnapshot}->>'platform' = ${table.platform} AND ${table.mappingSnapshot}->>'platform_id' = ${table.oldValue} AND ${table.mappingSnapshot}->>'id' IS NOT NULL)`),
+]).enableRLS();
+
+// Evidence is never part of the public artist/history row shape.
+export const mnPrivate = pgSchema("mn_private");
+export const artistBioProvenance = mnPrivate.table("artist_bio_provenance", {
+    artistId: uuid("artist_id").primaryKey().references(() => artists.id, { onDelete: "cascade" }),
+    provenance: jsonb("provenance").notNull(),
+}, table => [check("artist_bio_provenance_object", sql`jsonb_typeof(${table.provenance})='object'`), pgPolicy("mnweb_artist_bio_provenance", { for: "all", to: ["mnweb"], using: sql`true`, withCheck: sql`true` })]).enableRLS();
+
+export const artistBioVersionProvenance = mnPrivate.table("artist_bio_version_provenance", {
+    versionId: uuid("version_id").primaryKey().references(() => artistBioVersions.id, { onDelete: "cascade" }),
+    provenance: jsonb("provenance").notNull(),
+}, table => [check("artist_bio_version_provenance_object", sql`jsonb_typeof(${table.provenance})='object'`), pgPolicy("mnweb_artist_bio_version_provenance", { for: "all", to: ["mnweb"], using: sql`true`, withCheck: sql`true` })]).enableRLS();
+
+// URL policy approval is exact-byte and versioned; it does not approve source content.
+const receiptBytea = customType<{data: Buffer; driverData: Buffer}>({dataType() { return 'bytea'; }});
+const receiptUrl = customType<{data: string; driverData: string}>({dataType() { return 'text COLLATE "C"'; }});
+export const publicUrlReceipts = mnPrivate.table("public_url_receipts", {
+    urlHash: receiptBytea("url_hash").notNull(),
+    url: receiptUrl("url").notNull(),
+    policyVersion: integer("policy_version").notNull(),
+}, table => [
+    primaryKey({name: "public_url_receipts_pkey", columns: [table.urlHash, table.policyVersion]}),
+    check("public_url_receipts_hash_length", sql`octet_length(${table.urlHash})=32`),
+    check("public_url_receipts_policy_positive", sql`${table.policyVersion} > 0`),
+    pgPolicy("mnweb_public_url_receipts_select", {for: "select", to: ["mnweb"], using: sql`true`}),
+    pgPolicy("mnweb_public_url_receipts_insert", {for: "insert", to: ["mnweb"], withCheck: sql`true`}),
+]).enableRLS();
+
+// Exact reviewed legacy exception; application writes cannot create or refresh it.
+export const legacyBioPublications = mnPrivate.table("legacy_bio_publications", {
+    artistId: uuid("artist_id").primaryKey().references(() => artists.id, {onDelete: "cascade"}),
+    claimId: uuid("claim_id").notNull().references(() => artistClaims.id, {onDelete: "cascade"}),
+    bioHash: text("bio_hash").notNull(),
+}, table => [
+    check("legacy_bio_publications_hash", sql`${table.bioHash} ~ '^[a-f0-9]{64}$'`),
+    pgPolicy("mnweb_legacy_bio_publications_select", {for: "select", to: ["mnweb"], using: sql`true`}),
 ]).enableRLS();
