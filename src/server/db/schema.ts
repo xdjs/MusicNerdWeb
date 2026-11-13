@@ -1,4 +1,4 @@
-import { customType, pgSchema, pgTable, primaryKey, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
+import { customType, vector, pgSchema, pgTable, primaryKey, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
 import { relations, sql } from "drizzle-orm"
 
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
@@ -1383,4 +1383,37 @@ export const legacyBioPublications = mnPrivate.table("legacy_bio_publications", 
 }, table => [
     check("legacy_bio_publications_hash", sql`${table.bioHash} ~ '^[a-f0-9]{64}$'`),
     pgPolicy("mnweb_legacy_bio_publications_select", {for: "select", to: ["mnweb"], using: sql`true`}),
+]).enableRLS();
+
+const tsvector = customType<{data: string; driverData: string}>({dataType() { return 'tsvector'; }});
+
+// Page-level text units for grounded chat retrieval; written by the API unit_sync job.
+export const sourceUnits = pgTable("source_units", {
+	id: uuid().default(sql`extensions.uuid_generate_v4()`).primaryKey().notNull(),
+	sourceKind: text("source_kind").notNull(),
+	sourceId: uuid("source_id").notNull(),
+	artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+	sourceRevision: text("source_revision").notNull(),
+	unitIndex: integer("unit_index").notNull(),
+	locator: text().notNull(),
+	title: text(),
+	url: text(),
+	text: text().notNull(),
+	textHash: text("text_hash").notNull(),
+	tokens: integer().notNull(),
+	ocr: boolean().default(false).notNull(),
+	ingestVersion: integer("ingest_version").notNull(),
+	search: tsvector().generatedAlwaysAs(sql`to_tsvector('english', coalesce(title, '') || ' ' || text)`).notNull(),
+	embedding: vector("embedding", { dimensions: 1536 }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).default(sql`(now() at time zone 'utc')`).notNull(),
+}, table => [
+	unique("source_units_source_unit").on(table.sourceKind, table.sourceId, table.unitIndex),
+	index("source_units_artist").using("btree", table.artistId, table.sourceKind, table.sourceId),
+	index("source_units_search").using("gin", table.search),
+	index("source_units_embedding").using("hnsw", table.embedding.op("vector_cosine_ops")),
+	check("source_units_source_kind", sql`${table.sourceKind} IN ('vault','social','evidence')`),
+	pgPolicy("mnweb_select_source_units", { for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_source_units", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_source_units", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+	pgPolicy("mnweb_delete_source_units", { for: "delete", to: ["mnweb"], using: sql`true` }),
 ]).enableRLS();
