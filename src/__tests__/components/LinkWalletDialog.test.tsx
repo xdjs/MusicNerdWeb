@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { LegacyAccountModal } from '@/app/_components/nav/components/LegacyAccountModal';
+import { LinkWalletDialog } from '@/app/_components/nav/components/LinkWalletDialog';
 
 const mockGetAccessToken = jest.fn();
 
@@ -19,12 +19,12 @@ jest.mock('@privy-io/react-auth', () => ({
   },
 }));
 
-const mockUpdateSession = jest.fn();
-jest.mock('next-auth/react', () => ({
-  useSession: () => ({
-    data: { user: { id: 'test-user' } },
+const mockRefetchAccount = jest.fn();
+jest.mock('@/hooks/useMusicNerdUser', () => ({
+  useMusicNerdUser: () => ({
+    user: { id: 'test-user' },
     status: 'authenticated',
-    update: mockUpdateSession,
+    refetch: mockRefetchAccount,
   }),
 }));
 
@@ -34,11 +34,6 @@ jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
-// Mock the dismissLegacyLink server action
-const mockDismissLegacyLink = jest.fn();
-jest.mock('@/app/actions/dismissLegacyLink', () => ({
-  dismissLegacyLink: (...args) => mockDismissLegacyLink(...args),
-}));
 
 // Mock Radix Dialog to render in JSDOM without portals
 jest.mock('@/components/ui/dialog', () => ({
@@ -59,7 +54,7 @@ jest.mock('@/components/ui/button', () => ({
   ),
 }));
 
-describe('LegacyAccountModal', () => {
+describe('LinkWalletDialog', () => {
   const mockOnClose = jest.fn();
 
   beforeEach(() => {
@@ -67,35 +62,35 @@ describe('LegacyAccountModal', () => {
     jest.clearAllMocks();
     linkAccountCallbacks = {};
     global.fetch = jest.fn();
-    mockDismissLegacyLink.mockReset();
     mockGetAccessToken.mockResolvedValue('privy-token');
   });
 
-  it('renders dialog with all three buttons when open', () => {
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+  it('renders the link-wallet dialog with Connect Wallet and Skip for now when open', () => {
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
-    expect(screen.getByText('Welcome to Music Nerd!')).toBeInTheDocument();
+    expect(screen.getByText('Link your wallet')).toBeInTheDocument();
     expect(screen.getByText(/existing Music Nerd wallet-based account/i)).toBeInTheDocument();
     expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
     expect(screen.getByText('Skip for now')).toBeInTheDocument();
-    expect(screen.getByText("New user")).toBeInTheDocument();
+    expect(screen.queryByText('New user')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 
   it('does not render when closed', () => {
-    render(<LegacyAccountModal open={false} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={false} onClose={mockOnClose} />);
 
     expect(screen.queryByText('Welcome to Music Nerd!')).not.toBeInTheDocument();
   });
 
   it('calls onClose when "Skip for now" is clicked', () => {
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
     fireEvent.click(screen.getByText('Skip for now'));
     expect(mockOnClose).toHaveBeenCalled();
   });
 
   it('shows loading state when connecting wallet', () => {
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
     fireEvent.click(screen.getByText('Connect Wallet'));
 
@@ -113,7 +108,7 @@ describe('LegacyAccountModal', () => {
       }),
     });
 
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
     // Simulate Privy onSuccess callback
     await linkAccountCallbacks.onSuccess?.({
@@ -134,7 +129,7 @@ describe('LegacyAccountModal', () => {
           title: 'Wallet Linked!',
         })
       );
-      expect(mockUpdateSession).toHaveBeenCalled();
+      expect(mockRefetchAccount).toHaveBeenCalled();
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
@@ -151,7 +146,7 @@ describe('LegacyAccountModal', () => {
       }),
     });
 
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
     await linkAccountCallbacks.onSuccess?.({
       linkedAccount: {
@@ -178,7 +173,7 @@ describe('LegacyAccountModal', () => {
       }),
     });
 
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
     await linkAccountCallbacks.onSuccess?.({
       linkedAccount: {
@@ -201,7 +196,7 @@ describe('LegacyAccountModal', () => {
   it('shows an error without calling the API when Privy has no token', async () => {
     mockGetAccessToken.mockResolvedValue(null);
 
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
     await linkAccountCallbacks.onSuccess?.({
       linkedAccount: {
@@ -224,7 +219,7 @@ describe('LegacyAccountModal', () => {
   it('shows error when fetch throws', async () => {
     (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
     await linkAccountCallbacks.onSuccess?.({
       linkedAccount: {
@@ -245,7 +240,7 @@ describe('LegacyAccountModal', () => {
   });
 
   it('handles Privy onError callback', async () => {
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
     await linkAccountCallbacks.onError?.(new Error('Wallet connection rejected'));
 
@@ -261,7 +256,7 @@ describe('LegacyAccountModal', () => {
   });
 
   it('ignores non-wallet linked accounts', async () => {
-    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
     await linkAccountCallbacks.onSuccess?.({
       linkedAccount: {
@@ -274,71 +269,14 @@ describe('LegacyAccountModal', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  // Dismiss button tests
-  describe('dismiss button', () => {
-    it('calls dismissLegacyLink and closes modal on success', async () => {
-      mockDismissLegacyLink.mockResolvedValue({ success: true });
+  it('disables all buttons during wallet linking', () => {
+    render(<LinkWalletDialog open={true} onClose={mockOnClose} />);
 
-      render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+    fireEvent.click(screen.getByText('Connect Wallet'));
 
-      fireEvent.click(screen.getByText("New user"));
-
-      await waitFor(() => {
-        expect(mockDismissLegacyLink).toHaveBeenCalled();
-        expect(mockUpdateSession).toHaveBeenCalled();
-        expect(mockOnClose).toHaveBeenCalled();
-      });
-    });
-
-    it('shows error when dismiss fails', async () => {
-      mockDismissLegacyLink.mockResolvedValue({ success: false, error: 'Server error' });
-
-      render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
-
-      fireEvent.click(screen.getByText("New user"));
-
-      await waitFor(() => {
-        expect(mockDismissLegacyLink).toHaveBeenCalled();
-        expect(mockOnClose).not.toHaveBeenCalled();
-        expect(mockToast).toHaveBeenCalledWith(
-          expect.objectContaining({
-            title: 'Error',
-            variant: 'destructive',
-          })
-        );
-      });
-    });
-
-    it('shows loading state during dismiss', async () => {
-      // Make the promise hang so we can check loading state
-      let resolvePromise: (value: { success: boolean }) => void;
-      mockDismissLegacyLink.mockReturnValue(new Promise((resolve) => { resolvePromise = resolve; }));
-
-      render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
-
-      fireEvent.click(screen.getByText("New user"));
-
-      expect(screen.getByText('Dismissing...')).toBeInTheDocument();
-
-      // All buttons should be disabled during dismiss
-      const buttons = screen.getAllByRole('button');
-      buttons.forEach((button) => {
-        expect(button).toBeDisabled();
-      });
-
-      // Resolve to clean up
-      resolvePromise({ success: true });
-    });
-
-    it('disables all buttons during wallet linking', () => {
-      render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
-
-      fireEvent.click(screen.getByText('Connect Wallet'));
-
-      const buttons = screen.getAllByRole('button');
-      buttons.forEach((button) => {
-        expect(button).toBeDisabled();
-      });
+    const buttons = screen.getAllByRole('button');
+    buttons.forEach((button) => {
+      expect(button).toBeDisabled();
     });
   });
 });

@@ -12,7 +12,7 @@ export type AnalyticsEvents = {
     latest_card_open: { kind: string; filter: string };
     interview_answer: { question: string; skipped: boolean };
     profile_edit: {
-        action: 'link_add' | 'link_remove' | 'reorder' | 'photo' | 'vault_upload' | 'dismiss';
+        action: 'link_add' | 'link_remove' | 'reorder' | 'photo' | 'vault_upload';
         target: string | null;
     };
     login: { trigger: LoginTrigger; new: boolean };

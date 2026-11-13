@@ -10,8 +10,8 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-jest.mock('next-auth/react', () => ({
-    useSession: () => ({ data: null }),
+jest.mock('@/hooks/useMusicNerdUser', () => ({
+    useMusicNerdUser: () => ({ user: null, status: 'unauthenticated' }),
 }));
 
 jest.mock('@privy-io/react-auth', () => ({

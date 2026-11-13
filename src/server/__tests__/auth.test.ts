@@ -116,7 +116,6 @@ describe('Auth - Privy Credentials Provider', () => {
         isSuperAdmin: false,
         isHidden: false,
         isSignupComplete: true,
-        needsLegacyLink: false,
       });
     });
 
@@ -166,54 +165,6 @@ describe('Auth - Privy Credentials Provider', () => {
       const result = await authorize({ authToken: 'valid-token' });
 
       expect(result).toBeNull();
-    });
-
-    it('sets needsLegacyLink to true for user without wallet (not dismissed)', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
-      mockVerifyPrivyToken.mockResolvedValue({
-        userId: 'did:privy:user123',
-        email: 'user@example.com',
-        linkedAccounts: [],
-      });
-      mockGetUserByPrivyId.mockResolvedValue(mockDbUserNoWallet);
-
-      const authorize = getAuthorize(authOptions);
-      const result = await authorize({ authToken: 'valid-token' });
-
-      expect(result.needsLegacyLink).toBe(true);
-    });
-
-    it('sets needsLegacyLink to false when user has a wallet', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
-      mockVerifyPrivyToken.mockResolvedValue({
-        userId: 'did:privy:user123',
-        email: 'user@example.com',
-        linkedAccounts: [],
-      });
-      mockGetUserByPrivyId.mockResolvedValue(mockDbUser);
-
-      const authorize = getAuthorize(authOptions);
-      const result = await authorize({ authToken: 'valid-token' });
-
-      expect(result.needsLegacyLink).toBe(false);
-    });
-
-    it('sets needsLegacyLink to false when user dismissed legacy link', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
-      mockVerifyPrivyToken.mockResolvedValue({
-        userId: 'did:privy:user123',
-        email: 'user@example.com',
-        linkedAccounts: [],
-      });
-      mockGetUserByPrivyId.mockResolvedValue({
-        ...mockDbUserNoWallet,
-        legacyLinkDismissed: true,
-      });
-
-      const authorize = getAuthorize(authOptions);
-      const result = await authorize({ authToken: 'valid-token' });
-
-      expect(result.needsLegacyLink).toBe(false);
     });
 
     it('assigns a public generated name when user has no username', async () => {
@@ -310,7 +261,6 @@ describe('Auth - JWT Callback', () => {
       isAdmin: false,
       isSuperAdmin: false,
       isHidden: false,
-      needsLegacyLink: false,
     };
 
     const token = { sub: 'user-uuid' };
@@ -323,7 +273,6 @@ describe('Auth - JWT Callback', () => {
     expect(result.isAdmin).toBe(false);
     expect(result.isSuperAdmin).toBe(false);
     expect(result.isHidden).toBe(false);
-    expect(result.needsLegacyLink).toBe(false);
     expect(result.lastRefresh).toBeDefined();
   });
 
@@ -452,49 +401,6 @@ describe('Auth - JWT Callback', () => {
     );
   });
 
-  it('updates needsLegacyLink based on wallet and dismissed status during refresh', async () => {
-    const { authOptions, mockGetUserByPrivyId } = await setup();
-    const jwtCallback = authOptions.callbacks.jwt;
-    mockGetUserByPrivyId.mockResolvedValue(mockDbUserNoWallet);
-
-    const token = {
-      sub: 'user-uuid',
-      privyUserId: 'did:privy:user123',
-      lastRefresh: Date.now() - 6 * 60 * 1000,
-      isAdmin: false,
-      isWhiteListed: false,
-      isSuperAdmin: false,
-      isHidden: false,
-    };
-
-    const result = await jwtCallback({ token });
-
-    expect(result.needsLegacyLink).toBe(true);
-  });
-
-  it('sets needsLegacyLink to false when user dismissed legacy link during refresh', async () => {
-    const { authOptions, mockGetUserByPrivyId } = await setup();
-    const jwtCallback = authOptions.callbacks.jwt;
-    mockGetUserByPrivyId.mockResolvedValue({
-      ...mockDbUserNoWallet,
-      legacyLinkDismissed: true,
-    });
-
-    const token = {
-      sub: 'user-uuid',
-      privyUserId: 'did:privy:user123',
-      lastRefresh: Date.now() - 6 * 60 * 1000,
-      isAdmin: false,
-      isWhiteListed: false,
-      isSuperAdmin: false,
-      isHidden: false,
-    };
-
-    const result = await jwtCallback({ token });
-
-    expect(result.needsLegacyLink).toBe(false);
-  });
-
   it('handles DB errors gracefully during refresh', async () => {
     const { authOptions, mockGetUserByPrivyId } = await setup();
     const jwtCallback = authOptions.callbacks.jwt;
@@ -530,7 +436,6 @@ describe('Auth - Session Callback', () => {
       isAdmin: false,
       isSuperAdmin: false,
       isHidden: false,
-      needsLegacyLink: false,
     };
 
     const session = {
@@ -550,7 +455,6 @@ describe('Auth - Session Callback', () => {
       isAdmin: false,
       isSuperAdmin: false,
       isHidden: false,
-      needsLegacyLink: false,
     });
   });
 });

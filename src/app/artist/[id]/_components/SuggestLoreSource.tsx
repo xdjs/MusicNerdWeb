@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useSession } from "next-auth/react";
+import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,7 +11,7 @@ import { requestLoreSuggestion } from "@/lib/source/requestLoreSuggestion";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 
 export default function SuggestLoreSource({ artistId, isClaimed, autoApprove = false }: { artistId: string; isClaimed: boolean; autoApprove?: boolean }) {
-  const { data: session, status } = useSession();
+  const { user, status } = useMusicNerdUser();
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -20,7 +20,7 @@ export default function SuggestLoreSource({ artistId, isClaimed, autoApprove = f
   const [error, setError] = useState("");
   const title = autoApprove ? "Add a Lore source" : "Suggest a Lore source";
 
-  if (!session) {
+  if (!user) {
     return <Button type="button" variant="pink" className="w-full sm:w-auto" disabled={status === "loading"}
       onClick={() => requestLogin("add_link")}>Suggest a Lore source</Button>;
   }
