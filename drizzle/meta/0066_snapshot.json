@@ -4378,7 +4378,7 @@
       "checkConstraints": {
         "artist_research_jobs_kind_check": {
           "name": "artist_research_jobs_kind_check",
-          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research', 'spotify_match', 'interview_prepare', 'catalog_match')"
+          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research', 'spotify_match', 'interview_prepare', 'catalog_match', 'unit_sync')"
         },
         "artist_research_jobs_status_check": {
           "name": "artist_research_jobs_status_check",
