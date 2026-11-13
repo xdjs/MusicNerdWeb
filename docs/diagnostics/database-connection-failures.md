@@ -19,10 +19,20 @@ stack, cause, host, connection string, SQL, parameters, or user data is serializ
 A full local pool at acquisition start and a subsequent failure can identify
 local contention as a candidate; an empty start is materially different evidence.
 Snapshots are not a queue-duration measurement or proof that a request stayed in
-a queue. Concurrent activity can change counts. Unknown includes pg's uncoded
-queue timeout. Counts are per-process, not provider-wide connection counts.
+a queue. Concurrent activity can change counts. Exact uncoded driver messages are classified as `pool_wait_timeout`,
+`connection_timeout`, or `pool_ended`; other uncoded errors remain `unknown`.
+Allowlisted codes use `coded_connection_error`. These labels are observations, not
+root-cause determinations. Counts are per-process, not provider-wide connection counts.
 Neither absence of logs nor an allowlisted code establishes cause or recovery.
 Query failures after successful checkout are outside this narrow boundary.
+
+Error records also include nonnegative integer `poolAgeMs` (since diagnostic
+installation at pool creation) and `processAgeMs` (Node process uptime). Acquisition
+errors add `acquisitionElapsedMs`, measured with a monotonic clock from immediately
+before `connect` to failure observation. Invalid clock values become null. No
+process identifiers, new timers, success logs, or continuous telemetry are added.
+Elapsed time includes queueing, handshake work and scheduling delays; it does not
+separate them or prove process suspension. Ages cannot identify a unique process.
 
 ## Verification and closure
 
