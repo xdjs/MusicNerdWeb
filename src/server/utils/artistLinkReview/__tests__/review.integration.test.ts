@@ -63,7 +63,7 @@ it('allows owner review, retaining contributor, exact submission/review timestam
  const item=(await list(artist,admin)).items[0];
  expect(item).toMatchObject({status:'approved',suggestedBy:{id:contributor,name:'Listener'},reviewedBy:{id:admin,name:'Artist'}});
  expect(item.submittedAt).toMatch(/Z$/);expect(item.reviewedAt).toMatch(/Z$/);
- expect((await client.query('select id from artist_research_jobs')).rows).toHaveLength(1);
+ expect((await client.query("select kind from artist_research_jobs order by kind")).rows).toEqual([{kind:'source_extract'},{kind:'unit_sync'}]);
 });
 it('denies another user, revoked claim and wrong artist without writes',async()=>{
  const source=(await pending())!;
