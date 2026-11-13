@@ -13,23 +13,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { requestLinkWallet } from '@/lib/account/requestLinkWallet';
-import { requestUserApi } from '@/lib/user/requestUserApi';
-import { trackEvent } from '@/lib/analytics/trackEvent';
 import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 
-interface LegacyAccountModalProps {
+interface LinkWalletDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
-  const { user, refetch } = useMusicNerdUser();
+/** Links a wallet to the signed-in account, merging an older wallet-based account that has it. */
+export function LinkWalletDialog({ open, onClose }: LinkWalletDialogProps) {
+  const { refetch } = useMusicNerdUser();
   const { toast } = useToast();
   const [isLinking, setIsLinking] = useState(false);
-  const [isDismissing, setIsDismissing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const isBusy = isLinking || isDismissing;
 
   const { linkWallet } = useLinkAccount({
     onSuccess: async ({ linkedAccount }) => {
@@ -83,41 +79,11 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
     linkWallet();
   };
 
-  const handleDismiss = async () => {
-    setIsDismissing(true);
-    setError(null);
-    try {
-      if (!user) throw new Error('Not signed in');
-      const response = await requestUserApi(`/api/user/${user.id}/dismiss-legacy-link`, { method: 'POST' });
-      if (response.ok) {
-        trackEvent('profile_edit', { action: 'dismiss', target: null });
-        await refetch();
-        onClose();
-      } else {
-        setError('Failed to dismiss legacy link prompt');
-        toast({
-          title: 'Error',
-          description: 'Failed to dismiss legacy link prompt',
-          variant: 'destructive',
-        });
-      }
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
-      toast({
-        title: 'Error',
-        description: 'Something went wrong. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDismissing(false);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="dark:text-white">Welcome to Music Nerd!</DialogTitle>
+          <DialogTitle className="dark:text-white">Link your wallet</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             Have an existing Music Nerd wallet-based account? Connect your
             wallet to link your old account and restore your contribution history.
@@ -134,22 +100,14 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
           <Button
             variant="outline"
             onClick={onClose}
-            disabled={isBusy}
+            disabled={isLinking}
             className="dark:border-gray-500 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             Skip for now
           </Button>
           <Button
-            variant="outline"
-            onClick={handleDismiss}
-            disabled={isBusy}
-            className="dark:border-gray-500 dark:text-gray-200 dark:hover:bg-gray-700"
-          >
-            {isDismissing ? 'Dismissing...' : 'New user'}
-          </Button>
-          <Button
             onClick={handleLinkWallet}
-            disabled={isBusy}
+            disabled={isLinking}
             variant="pink"
           >
             {isLinking ? 'Connecting...' : 'Connect Wallet'}

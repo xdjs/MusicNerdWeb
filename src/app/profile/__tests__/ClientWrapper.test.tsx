@@ -40,7 +40,6 @@ const mockUserData = {
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-06-01T00:00:00.000Z',
   legacyId: null,
-  needsLegacyLink: false,
 };
 
 describe('ClientWrapper', () => {

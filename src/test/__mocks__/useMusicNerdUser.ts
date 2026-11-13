@@ -18,7 +18,6 @@ export const mockMusicNerdUser: MusicNerdUser = {
     isHidden: false,
     legacyLinkDismissed: false,
     acceptedUgcCount: 0,
-    needsLegacyLink: false,
 };
 
 export const useMusicNerdUser = jest.fn(() => ({

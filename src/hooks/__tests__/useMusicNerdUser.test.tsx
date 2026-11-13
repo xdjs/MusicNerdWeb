@@ -8,7 +8,7 @@ jest.mock('@privy-io/react-auth', () => ({ usePrivy: () => mockPrivy }));
 const mockRequestUserApi = jest.fn();
 jest.mock('@/lib/user/requestUserApi', () => ({ requestUserApi: (...args: unknown[]) => mockRequestUserApi(...args) }));
 
-const account = { status: 'ok', id: 'u1', username: 'Vinyl Otter', isAdmin: true, needsLegacyLink: false };
+const account = { status: 'ok', id: 'u1', username: 'Vinyl Otter', isAdmin: true };
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 
 let client: QueryClient;

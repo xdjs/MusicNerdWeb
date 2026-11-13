@@ -26,7 +26,7 @@ import { Menu, X, LogIn, LogOut, Trophy, UserRound, Music2, ShieldCheck, Wallet,
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/app/_components/ThemeProvider';
 import AccountMenuAvatar from './AccountMenuAvatar';
-import { LegacyAccountModal } from './LegacyAccountModal';
+import { LinkWalletDialog } from './LinkWalletDialog';
 import { TOKEN_PREFIXES } from '@/server/utils/privyConstants';
 import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 
@@ -38,7 +38,6 @@ const accountMenuItemClass = "min-h-12 cursor-pointer gap-3 rounded-lg px-3 text
 const accountMenuClass = "profile-account-panel w-72 max-w-[calc(100vw-2rem)] max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/90 bg-gradient-to-br from-white/[0.08] to-transparent p-2 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_48px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150 sm:w-64";
 
 const isDev = process.env.NODE_ENV === 'development';
-const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
 
 // Retry configuration from environment variables
 const maxRetries = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_MAX_RETRIES || '5', 10);
@@ -52,7 +51,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const router = useRouter();
     const { toast } = useToast();
     const { theme, setTheme } = useTheme();
-    const [showLegacyModal, setShowLegacyModal] = useState(false);
+    const [showLinkWallet, setShowLinkWallet] = useState(false);
     const [hasPendingUGC, setHasPendingUGC] = useState(false);
     const [ugcCount, setUgcCount] = useState<number>(0);
     const [hasNewUGC, setHasNewUGC] = useState(false);
@@ -372,7 +371,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
 
     const handleLogout = async () => {
       try {
-        sessionStorage.removeItem(LEGACY_MODAL_SHOWN_KEY);
         await signOut({ redirect: false });
         await privyLogout();
         window.location.reload();
@@ -517,8 +515,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
             <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>
-            {account.needsLegacyLink && (
-              <DropdownMenuItem className={accountMenuItemClass} onSelect={() => setShowLegacyModal(true)}>
+            {!account.wallet && (
+              <DropdownMenuItem className={accountMenuItemClass} onSelect={() => setShowLinkWallet(true)}>
                 <Wallet aria-hidden="true" />Link Wallet
               </DropdownMenuItem>
             )}
@@ -535,13 +533,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <LegacyAccountModal
-          open={showLegacyModal}
-          onClose={() => {
-            setShowLegacyModal(false);
-            sessionStorage.setItem(LEGACY_MODAL_SHOWN_KEY, 'true');
-          }}
-        />
+        <LinkWalletDialog open={showLinkWallet} onClose={() => setShowLinkWallet(false)} />
       </>
     );
   }

@@ -71,11 +71,11 @@ jest.mock('@/app/_components/nav/components/AccountMenuAvatar', () => ({
   __esModule: true, default: () => <img src="/default_pfp_pink.png" alt="Your profile" />,
 }));
 
-// Mock LegacyAccountModal
-jest.mock('@/app/_components/nav/components/LegacyAccountModal', () => ({
-  LegacyAccountModal: ({ open, onClose }) =>
+// Mock LinkWalletDialog
+jest.mock('@/app/_components/nav/components/LinkWalletDialog', () => ({
+  LinkWalletDialog: ({ open, onClose }) =>
     open ? (
-      <div data-testid="legacy-modal">
+      <div data-testid="link-wallet-dialog">
         <button onClick={onClose}>Close Modal</button>
       </div>
     ) : null,
@@ -241,7 +241,7 @@ describe('PrivyLogin', () => {
     it('shows theme toggle in authenticated dropdown', () => {
       mockPrivyState.authenticated = true;
       mockAccount = {
-        user: { id: 'user-uuid', isAdmin: false, needsLegacyLink: false },
+        user: { id: 'user-uuid', isAdmin: false, wallet: '0xabc' },
         expires: '2025-12-31',
       };
       mockAccountStatus = 'authenticated';
@@ -262,7 +262,7 @@ describe('PrivyLogin', () => {
           email: 'test@test.com',
           isAdmin: false,
           isWhiteListed: true,
-          needsLegacyLink: false,
+          wallet: '0xabc',
         },
         expires: '2025-12-31',
       };
@@ -330,106 +330,50 @@ describe('PrivyLogin', () => {
       expect(screen.queryByText('Admin Panel')).not.toBeInTheDocument();
     });
 
-    it('shows Link Wallet menu item when needsLegacyLink is true', () => {
-      mockAccount.user.needsLegacyLink = true;
+    it('shows Link Wallet when the account has no wallet', () => {
+      mockAccount.user.wallet = null;
 
       render(<PrivyLogin />);
 
       expect(screen.getByText('Link Wallet')).toBeInTheDocument();
     });
 
-    it('does not show Link Wallet when needsLegacyLink is false', () => {
+    it('does not show Link Wallet when the account has a wallet', () => {
       render(<PrivyLogin />);
 
       expect(screen.queryByText('Link Wallet')).not.toBeInTheDocument();
     });
   });
 
-  describe('Legacy account modal', () => {
-    it('does not stack a wallet-link modal over user name setup', async () => {
+  describe('Link wallet dialog', () => {
+    beforeEach(() => {
       mockPrivyState.authenticated = true;
       mockAccount = {
-        user: {
-          id: 'user-uuid',
-          needsLegacyLink: true,
-          isAdmin: false,
-        },
+        user: { id: 'user-uuid', wallet: null, isAdmin: false },
         expires: '2025-12-31',
       };
       mockAccountStatus = 'authenticated';
+    });
 
+    it('does not open by itself', async () => {
       render(<PrivyLogin />);
 
       await waitFor(() => {
-        expect(screen.queryByTestId('legacy-modal')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('link-wallet-dialog')).not.toBeInTheDocument();
       });
     });
 
-    it('does not auto-show modal when needsLegacyLink is false', () => {
-      mockPrivyState.authenticated = true;
-      mockAccount = {
-        user: {
-          id: 'user-uuid',
-          needsLegacyLink: false,
-          isAdmin: false,
-        },
-        expires: '2025-12-31',
-      };
-      mockAccountStatus = 'authenticated';
-
-      render(<PrivyLogin />);
-
-      expect(screen.queryByTestId('legacy-modal')).not.toBeInTheDocument();
-    });
-
-    it('does not auto-show modal on re-render when already shown this session', () => {
-      mockPrivyState.authenticated = true;
-      mockAccount = {
-        user: {
-          id: 'user-uuid',
-          needsLegacyLink: true,
-          isAdmin: false,
-        },
-        expires: '2025-12-31',
-      };
-      mockAccountStatus = 'authenticated';
-
-      // Simulate that the modal was already shown this session
-      mockSessionStorage['legacyModalShown'] = 'true';
-
-      render(<PrivyLogin />);
-
-      expect(screen.queryByTestId('legacy-modal')).not.toBeInTheDocument();
-    });
-
-    it('keeps manual wallet linking available and clears its session flag on logout', async () => {
-      mockPrivyState.authenticated = true;
-      mockAccount = {
-        user: {
-          id: 'user-uuid',
-          needsLegacyLink: true,
-          isAdmin: false,
-        },
-        expires: '2025-12-31',
-      };
-      mockAccountStatus = 'authenticated';
-
+    it('opens from the Link Wallet menu item and closes', async () => {
       render(<PrivyLogin />);
 
       fireEvent.click(screen.getByText('Link Wallet'));
       await waitFor(() => {
-        expect(screen.getByTestId('legacy-modal')).toBeInTheDocument();
+        expect(screen.getByTestId('link-wallet-dialog')).toBeInTheDocument();
       });
 
-      // sessionStorage should NOT have the flag yet (only set on close)
-      expect(sessionStorage.setItem).not.toHaveBeenCalledWith('legacyModalShown', 'true');
-
-      // Click Log Out
-      const logoutItem = screen.getByText('Log Out');
-      fireEvent.click(logoutItem);
-
+      fireEvent.click(screen.getByText('Close Modal'));
       await waitFor(() => {
-        expect(sessionStorage.removeItem).toHaveBeenCalledWith('legacyModalShown');
+        expect(screen.queryByTestId('link-wallet-dialog')).not.toBeInTheDocument();
       });
     });
   });
@@ -441,7 +385,7 @@ describe('PrivyLogin', () => {
         user: {
           id: 'user-uuid',
           isAdmin: false,
-          needsLegacyLink: false,
+          wallet: '0xabc',
         },
         expires: '2025-12-31',
       };

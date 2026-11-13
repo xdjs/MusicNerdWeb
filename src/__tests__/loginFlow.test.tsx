@@ -46,9 +46,9 @@ jest.mock('@/hooks/use-toast', () => ({
     useToast: () => ({ toast: jest.fn() }),
 }));
 
-jest.mock('@/app/_components/nav/components/LegacyAccountModal', () => ({
-    LegacyAccountModal: ({ open, onClose }: any) =>
-        open ? <div data-testid="legacy-modal"><button onClick={onClose}>Close</button></div> : null,
+jest.mock('@/app/_components/nav/components/LinkWalletDialog', () => ({
+    LinkWalletDialog: ({ open, onClose }: any) =>
+        open ? <div data-testid="link-wallet-dialog"><button onClick={onClose}>Close</button></div> : null,
 }));
 
 jest.mock('@/components/ui/button', () => {
@@ -168,7 +168,7 @@ describe('Login flow', () => {
         beforeEach(() => {
             mockPrivyAuthenticated = true;
             mockAccount = {
-                user: { id: 'user-uuid', isAdmin: false, needsLegacyLink: false },
+                user: { id: 'user-uuid', isAdmin: false, wallet: '0xabc' },
             };
             mockAccountStatus = 'authenticated';
         });
@@ -189,7 +189,7 @@ describe('Login flow', () => {
         beforeEach(() => {
             mockPrivyAuthenticated = true;
             mockAccount = {
-                user: { id: 'user-uuid', isAdmin: false, needsLegacyLink: false },
+                user: { id: 'user-uuid', isAdmin: false, wallet: '0xabc' },
             };
             mockAccountStatus = 'authenticated';
         });

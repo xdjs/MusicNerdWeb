@@ -22,7 +22,6 @@ export type MusicNerdUser = {
   isHidden: boolean;
   legacyLinkDismissed: boolean;
   acceptedUgcCount: number | null;
-  needsLegacyLink: boolean;
 };
 
 /**
