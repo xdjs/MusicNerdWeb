@@ -1,4 +1,6 @@
 -- Page-level source units for grounded chat; additive. Apply before MusicNerdAPI `unit_sync` deploys.
+-- Also adds AFTER DELETE triggers on artist_vault_sources, artist_social_posts and
+-- artist_research_evidence that delete the matching source_units rows.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 --> statement-breakpoint
@@ -46,6 +48,45 @@ CREATE POLICY "mnweb_delete_source_units" ON "source_units" AS PERMISSIVE FOR DE
 --> statement-breakpoint
 REVOKE ALL ON public.source_units FROM PUBLIC, anon, authenticated, mnweb;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.source_units TO mnweb;
+--> statement-breakpoint
+CREATE FUNCTION public.delete_vault_source_units()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
+BEGIN
+  DELETE FROM public.source_units WHERE source_kind = 'vault' AND source_id = OLD.id;
+  RETURN OLD;
+END $$;
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.delete_vault_source_units() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_vault_source_units() TO mnweb;
+--> statement-breakpoint
+CREATE TRIGGER delete_vault_source_units AFTER DELETE ON public.artist_vault_sources
+  FOR EACH ROW EXECUTE FUNCTION public.delete_vault_source_units();
+--> statement-breakpoint
+CREATE FUNCTION public.delete_social_post_units()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
+BEGIN
+  DELETE FROM public.source_units WHERE source_kind = 'social' AND source_id = OLD.id;
+  RETURN OLD;
+END $$;
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.delete_social_post_units() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_social_post_units() TO mnweb;
+--> statement-breakpoint
+CREATE TRIGGER delete_social_post_units AFTER DELETE ON public.artist_social_posts
+  FOR EACH ROW EXECUTE FUNCTION public.delete_social_post_units();
+--> statement-breakpoint
+CREATE FUNCTION public.delete_research_evidence_units()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
+BEGIN
+  DELETE FROM public.source_units WHERE source_kind = 'evidence' AND source_id = OLD.id;
+  RETURN OLD;
+END $$;
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.delete_research_evidence_units() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_research_evidence_units() TO mnweb;
+--> statement-breakpoint
+CREATE TRIGGER delete_research_evidence_units AFTER DELETE ON public.artist_research_evidence
+  FOR EACH ROW EXECUTE FUNCTION public.delete_research_evidence_units();
 --> statement-breakpoint
 ALTER TABLE public.artist_research_jobs DROP CONSTRAINT artist_research_jobs_kind_check;
 ALTER TABLE public.artist_research_jobs ADD CONSTRAINT artist_research_jobs_kind_check
