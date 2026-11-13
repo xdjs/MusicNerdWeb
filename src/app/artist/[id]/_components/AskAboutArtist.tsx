@@ -47,10 +47,14 @@ function sourceHost(s: ChatSource): string {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/** A PDF page label the model writes inside a citation: "p.8", "pp.10", "page 3". */
+const PAGE_LABEL = /^(?:p|pp|page|pages)\.?\s*\d/i;
+
 /**
- * Render an answer's citations. The model writes "[4]", "[11, 18, Artist Doc]"
- * and sometimes "[2026-05-13]". Only the numbers are citations, and only
- * numbers the stream sent a `source-url` part for are links.
+ * Render an answer's citations. The model writes "[4]", "[11, 18, Artist Doc]",
+ * "[1, p.8]" for a PDF page and sometimes "[2026-05-13]". Only the numbers are
+ * citations, and only numbers the stream sent a `source-url` part for are links.
+ * A page label stays beside its link so a reader can find the passage in the PDF.
  *
  * "[Artist Doc]" is a label the model can invent for context it read with no
  * number. There is no source behind it — the document has no public URL — so
@@ -65,7 +69,9 @@ function renderAnswer(text: string, sources: ChatSource[]): React.ReactNode {
         const body = m[1];
         if (/\d{4}-\d{2}/.test(body)) continue;                     // a date, not a citation
         const at = m.index ?? 0;
-        const cited = body.split(",").map(p => byNumber.get(Number(p.trim()))).filter((x): x is ChatSource => !!x);
+        const pieces = body.split(",").map(p => p.trim());
+        const cited = pieces.map(p => byNumber.get(Number(p))).filter((x): x is ChatSource => !!x);
+        const pages = pieces.filter(p => PAGE_LABEL.test(p));
         if (at > cursor) out.push(text.slice(cursor, at));
         cursor = at + m[0].length;
         // A bracket with nothing citable in it disappears entirely, which covers
@@ -79,6 +85,9 @@ function renderAnswer(text: string, sources: ChatSource[]): React.ReactNode {
                         <a href={c.url} target="_blank" rel="noopener noreferrer" title={c.title}
                             className="px-[0.15em] text-pastypink hover:underline">{c.n}</a>
                     </span>
+                ))}
+                {pages.map(page => (
+                    <span key={page} className="text-white/60">{`, ${page}`}</span>
                 ))}
             </sup>,
         );
