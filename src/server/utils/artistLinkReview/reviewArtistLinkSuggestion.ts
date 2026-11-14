@@ -64,7 +64,7 @@ export async function reviewArtistLinkSuggestion(artistId: string, userId: strin
       return;
     }
     if (input.kind==='ugc') {
-      if (approved && sourceBacked) await approveSourceBackedUgc(tx,artistId,userId,row);
+      if (approved && sourceBacked) { await approveSourceBackedUgc(tx,artistId,userId,row); statusChanged = true; } // inserts an approved source
       else if (approved) await approveUGC(input.id,artistId,String(row.site_name),String(row.site_username),tx);
       else await tx.execute(sql`update ugcresearch set accepted=false,date_processed=now(),updated_at=now() where id=${input.id}::uuid`);
       await recordArtistActivity(artistId,approved?'link_approved':'link_rejected',{userId,sourceId:input.id,trigger:'artist_link_review'},tx);

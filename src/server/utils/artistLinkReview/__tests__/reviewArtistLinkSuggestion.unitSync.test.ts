@@ -1,5 +1,7 @@
 import { db } from '@/server/db/drizzle';
 import { queueUnitSync } from '@/server/utils/units/queueUnitSync';
+import { approveSourceBackedUgc } from '../approveSourceBackedUgc';
+import { parseMusicDestination } from '@/lib/musicLinks/parseMusicDestination';
 import { reviewArtistLinkSuggestion } from '../reviewArtistLinkSuggestion';
 
 jest.mock('@/server/db/drizzle', () => ({ db: { transaction: jest.fn() } }));
@@ -48,4 +50,30 @@ it('resolves normally when the hook fails', async () => {
   run('pending');
   (queueUnitSync as jest.Mock).mockRejectedValueOnce(new Error('boom'));
   await expect(reviewArtistLinkSuggestion(ARTIST, 'user', { kind: 'source', id: 'source', decision: 'approve' })).resolves.toBeUndefined();
+});
+
+function runUgc() {
+  const execute = jest.fn()
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([{ id: 'ugc', ugc_url: 'https://music.apple.com/artist/1', site_name: 'applemusic', accepted: false, date_processed: null }])
+    .mockResolvedValueOnce([{}])
+    .mockResolvedValue([]);
+  (parseMusicDestination as jest.Mock).mockReturnValueOnce({ kind: 'artist', platform: 'apple_music', id: '1', label: 'x' });
+  db.transaction = jest.fn(async fn => { const out = await fn({ execute } as never); committed = true; return out; }) as never;
+}
+it('queues a unit sync after a source-backed UGC approval inserts an approved source', async () => {
+  runUgc();
+  await reviewArtistLinkSuggestion(ARTIST, 'user', { kind: 'ugc', id: 'ugc', decision: 'approve' });
+  expect(approveSourceBackedUgc).toHaveBeenCalled();
+  expect(queueUnitSync).toHaveBeenCalledWith(ARTIST);
+});
+it('does not queue for a plain UGC approval or rejection that creates no source', async () => {
+  runUgc();
+  await reviewArtistLinkSuggestion(ARTIST, 'user', { kind: 'ugc', id: 'ugc', decision: 'reject' } as never);
+  expect(queueUnitSync).not.toHaveBeenCalled();
+});
+it('UGC path resolves normally when the hook fails', async () => {
+  runUgc();
+  (queueUnitSync as jest.Mock).mockRejectedValueOnce(new Error('boom'));
+  await expect(reviewArtistLinkSuggestion(ARTIST, 'user', { kind: 'ugc', id: 'ugc', decision: 'approve' })).resolves.toBeUndefined();
 });
