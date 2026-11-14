@@ -33,3 +33,22 @@ it('finds markers, including a section heading longer than an ordinary marker', 
         .toEqual(['1', `2, ${heading}`, '2026-05-13', 'Artist Doc']);
     expect(bodies(`[${'x'.repeat(80)}]`)).toEqual([]);
 });
+
+it('counts only plain citation numbers, as the API does', () => {
+    for (const body of ['007', '3.0', '+2', '0x3', '1e1', '1999', '0'])
+        expect(parseCitation(body)).toEqual({ numbers: [], labels: [] });
+    expect(parseCitation('3.0, 4')).toEqual({ numbers: [4], labels: [] });
+    expect(parseCitation('2, 3.0, p.4')).toEqual({ numbers: [2], labels: ['p.4'] });
+});
+
+it('scans a long run of unclosed section markers in linear time', () => {
+    const text = '[1,§'.repeat(20_000);
+    const started = performance.now();
+    expect(bodies(text)).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(50);
+});
+
+it('reads a heading of up to 300 characters', () => {
+    const heading = `§${'h'.repeat(299)}`;
+    expect(bodies(`[1, ${heading}]`)).toEqual([`1, ${heading}`]);
+});

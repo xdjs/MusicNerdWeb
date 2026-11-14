@@ -192,6 +192,7 @@ describe("an answer, rendered", () => {
         expect(document.querySelector('a[href^="musicnerd:"]')).toBeNull();
         expect(screen.getByTestId("answer")).toHaveTextContent("Dutchy ran 2012–2019 4, p.1.");
         expect(within(screen.getByTestId("answer")).getByTitle("dutchyyy-timeline.pdf")).toHaveTextContent("4");
+        expect(within(screen.getByTestId("answer")).getByLabelText("Source 4: dutchyyy-timeline.pdf")).toHaveTextContent("4");
         expect(screen.getByText("dutchyyy-timeline.pdf", { selector: "span" })).toBeVisible();
         expect(screen.getByText("Written by AI from the sources above")).toBeVisible();
     });

@@ -36,7 +36,7 @@ export function getChatProgress(message: UIMessage | undefined): string {
 /** "Reading <title>…" for a read step, from its output, the discovery step that found it, or the filename asked for. */
 function reading(tools: ToolPart[], discovery: string, latest: ToolPart, fallback: string): string {
     const found = tools.flatMap(tool => tool.type === discovery ? tool.output?.sources ?? [] : [])
-        .find(source => source.sourceId === latest.input?.sourceId);
+        .find(source => typeof source === "object" && source?.sourceId === latest.input?.sourceId);
     const title = latest.output?.title ?? found?.title ?? latest.input?.filename;
     return typeof title === "string" && title ? `Reading ${title}…` : fallback;
 }
@@ -50,7 +50,7 @@ function reading(tools: ToolPart[], discovery: string, latest: ToolPart, fallbac
 function readingDocument(parts: UIMessage["parts"], tools: ToolPart[], latest: ToolPart): string {
     const n = latest.input?.n;
     const listed = tools.flatMap(tool => tool.type === "tool-searchPassages" || tool.type === "tool-listDocuments"
-        ? tool.output?.documents ?? [] : []).find(document => document.n === n);
+        ? tool.output?.documents ?? [] : []).find(document => typeof document === "object" && document?.n === n);
     const cited = parts.find(part => part.type === "source-url" && part.sourceId === String(n)) as Titled | undefined;
     const title = latest.output?.title ?? listed?.title ?? cited?.title;
     if (typeof title !== "string" || !title) return "Reading a saved document…";

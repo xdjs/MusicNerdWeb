@@ -92,3 +92,14 @@ describe('the passage tools', () => {
             .toBe('Reading a saved document…');
     });
 });
+
+it('ignores null and non-object entries in a tool output\'s list', () => {
+    expect(getChatProgress(assistant([
+        { type: 'tool-searchPassages', toolCallId: 's', state: 'output-available', input: { query: 'q' }, output: { documents: [null, 'x', { n: 2, title: 'Bio' }] } },
+        { type: 'tool-readUnits', toolCallId: 'r', state: 'input-available', input: { n: 2 } },
+    ]))).toBe('Reading Bio…');
+    expect(getChatProgress(assistant([
+        { type: 'tool-searchSources', toolCallId: 's', state: 'output-available', input: { query: 'q' }, output: { sources: [null, 3, { sourceId: 'v', title: 'Bio' }] } },
+        { type: 'tool-readSource', toolCallId: 'r', state: 'input-available', input: { sourceId: 'v' } },
+    ]))).toBe('Reading Bio…');
+});

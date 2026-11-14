@@ -1,9 +1,10 @@
 /**
  * A bracketed marker in an answer; group 1 is its body. A marker is at most 60
- * characters, except `[n, p.N]`, `[n, §Heading]` or `[n, ¶N]`, whose section
- * heading can be longer and can hold anything but `]`.
+ * characters, except `[n, p.N]`, `[n, §Heading]` or `[n, ¶N]`, whose locator
+ * can run to 300 characters (the API's title limit) and hold anything but `]`.
+ * The bound keeps a long line of unclosed markers linear to scan.
  */
-export const CITATION_PATTERN = /\[(\d{1,3}\s*,\s*(?:p\.|§|¶)[^\]\n]*|[^\]]{1,60})\]/.source;
+export const CITATION_PATTERN = /\[(\d{1,3}\s*,\s*(?:p\.|§|¶)[^\]\n]{0,299}|[^\]]{1,60})\]/.source;
 
 /** The API's locator elements: a page, section or paragraph (MusicNerdAPI `findCitationNumbers`). */
 const LOCATOR = /^(?:p\.|§|¶)/u;
@@ -16,7 +17,8 @@ const NUMBER = /^[1-9]\d{0,2}$/;
  * Reads a citation marker's body in the chat's grammar. `[n, p.N]`,
  * `[n, §Heading]` and `[n, ¶N]` cite only `n`, and the rest is the label shown
  * beside it (a heading keeps its commas). Otherwise every number in the group is
- * cited ("[11, 18, Artist Doc]"), with any PDF page label beside them
+ * cited ("[11, 18, Artist Doc]"; a number is 1–999 written plainly, so not
+ * "007", "3.0" or "1999"), with any PDF page label beside them
  * ("[3, pp.10]"); words the model invented are dropped.
  *
  * @param body - The text between the brackets.
@@ -32,7 +34,7 @@ export function parseCitation(body: string): { numbers: number[]; labels: string
     if (/\d{4}-\d{2}/.test(body)) return null;
     const pieces = [first, ...rest];
     return {
-        numbers: pieces.map(Number).filter(n => Number.isInteger(n) && n > 0),
+        numbers: pieces.filter(piece => NUMBER.test(piece)).map(Number),
         labels: pieces.filter(piece => LABEL.test(piece)),
     };
 }
