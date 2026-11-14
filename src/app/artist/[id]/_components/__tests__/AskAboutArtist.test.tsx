@@ -65,6 +65,18 @@ describe("sending", () => {
             .toEqual({ body: { messages } });
     });
 
+    it("sends earlier answers back with their text and tool steps, without their source parts or passage text", () => {
+        renderChat();
+        const search = { type: "tool-searchPassages", toolCallId: "s1", state: "output-available", input: { query: "q" },
+            output: { results: [], weak: false, truncated: false, documents: [] } };
+        const text = { type: "text", text: "Yes [1]." };
+        const messages = [user("Who?"), assistant([{ type: "step-start" }, search, source(1), text]), user("And?", "u2")];
+        expect(transportOptions().prepareSendMessagesRequest({ messages, id: "chat", trigger: "submit-message" }))
+            .toEqual({ body: { messages: [user("Who?"), assistant([{ ...search, output: { documents: [] } }, text]), user("And?", "u2")] } });
+        expect(messages[1].parts[1]).toBe(search);
+        expect(search.output.results).toEqual([]);
+    });
+
     it("sends a suggestion when it is tapped and stops offering it", () => {
         const { rerender } = renderChat();
         fireEvent.click(screen.getByRole("button", { name: "How did Pete Rango get started?" }));
@@ -156,6 +168,33 @@ describe("an answer, rendered", () => {
         expect(text).toContain("1, p.8");
         expect(text).toContain("3, pp.10");
         expect(text).not.toMatch(/Artist Doc/);
+    });
+
+    it("keeps section and paragraph labels beside the citation link, headings with commas included", () => {
+        state({ messages: [user("When did they tour?"), assistant([source(1, "https://x.example/bio", "Bio"), source(2),
+            { type: "text", text: "They toured Europe [1, §Live, 1999: Europe & U.S.] and wrote it alone [2, ¶3]." }])] });
+        renderChat();
+        const prose = within(screen.getByTestId("answer"));
+        expect(prose.getByRole("link", { name: "1" })).toHaveAttribute("href", "https://x.example/bio");
+        expect(prose.getByRole("link", { name: "2" })).toBeInTheDocument();
+        const text = screen.getByTestId("answer").textContent ?? "";
+        expect(text).toContain("1, §Live, 1999: Europe & U.S.");
+        expect(text).toContain("2, ¶3");
+        expect(text).not.toContain("[");
+    });
+
+    it("names a document with no public URL without linking to it", () => {
+        state({ messages: [user("Which years?"), assistant([
+            source(4, "musicnerd://vault/0b6c1f9e-4d7a-4c1e-9a43-2f5a8f1e7b20", "dutchyyy-timeline.pdf"),
+            { type: "text", text: "Dutchy ran 2012–2019 [4, p.1]." }])] });
+        renderChat();
+        expect(screen.queryAllByRole("link")).toHaveLength(0);
+        expect(document.querySelector('a[href^="musicnerd:"]')).toBeNull();
+        expect(screen.getByTestId("answer")).toHaveTextContent("Dutchy ran 2012–2019 4, p.1.");
+        expect(within(screen.getByTestId("answer")).getByTitle("dutchyyy-timeline.pdf")).toHaveTextContent("4");
+        expect(within(screen.getByTestId("answer")).getByLabelText("Source 4: dutchyyy-timeline.pdf")).toHaveTextContent("4");
+        expect(screen.getByText("dutchyyy-timeline.pdf", { selector: "span" })).toBeVisible();
+        expect(screen.getByText("Written by AI from the sources above")).toBeVisible();
     });
 
     it("lists the cited sources only, dated when they are posts on one site", () => {

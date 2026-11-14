@@ -10,9 +10,11 @@ import { trackEvent } from '@/lib/analytics/trackEvent';
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import { getChatProgress } from "@/lib/artistChat/getChatProgress";
 import { getChatQuota } from "@/lib/artistChat/getChatQuota";
+import { getChatRequestMessages } from "@/lib/artistChat/getChatRequestMessages";
 import { getChatSources, type ChatSource } from "@/lib/artistChat/getChatSources";
 import { getMessageText } from "@/lib/artistChat/getMessageText";
 import { getWebSearchUrls } from "@/lib/artistChat/getWebSearchUrls";
+import { CITATION_PATTERN, parseCitation } from "@/lib/artistChat/parseCitation";
 import { removeUnresolvedCitations } from "@/lib/artistChat/removeUnresolvedCitations";
 
 interface AskAboutArtistProps {
@@ -36,6 +38,7 @@ const DEFAULT_SUGGESTIONS = (name: string) => [
  *  the date — "Pete Rango on Instagram, 2026-03-23" — so the pill shows that
  *  instead, and the reader can see which one is the recent one. */
 function sourceHost(s: ChatSource): string {
+    if (!s.url) return s.title;
     const dated = s.title.match(/\b(\d{4})-(\d{2})-\d{2}\b/);
     let host: string;
     try { host = new URL(s.url).hostname.replace(/^www\./, ""); }
@@ -45,16 +48,18 @@ function sourceHost(s: ChatSource): string {
     return month ? `${host} · ${month} ${dated[1]}` : host;
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const PILL = "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border border-white/15 text-white/65 whitespace-nowrap max-w-[16rem] truncate";
 
-/** A PDF page label the model writes inside a citation: "p.8", "pp.10", "page 3". */
-const PAGE_LABEL = /^(?:p|pp|page|pages)\.?\s*\d/i;
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /**
  * Render an answer's citations. The model writes "[4]", "[11, 18, Artist Doc]",
- * "[1, p.8]" for a PDF page and sometimes "[2026-05-13]". Only the numbers are
- * citations, and only numbers the stream sent a `source-url` part for are links.
- * A page label stays beside its link so a reader can find the passage in the PDF.
+ * "[1, p.8]" for a PDF page, "[2, §Heading]" for a section, "[3, ¶4]" for a
+ * paragraph and sometimes "[2026-05-13]" (`parseCitation`). Only the numbers are
+ * citations, and only numbers the stream sent a `source-url` part for are shown:
+ * as links, or as the bare number titled with the document's name when it has no
+ * public URL. A page, section or paragraph label stays beside it so a reader can
+ * find the passage.
  *
  * "[Artist Doc]" is a label the model can invent for context it read with no
  * number. There is no source behind it — the document has no public URL — so
@@ -65,13 +70,11 @@ function renderAnswer(text: string, sources: ChatSource[]): React.ReactNode {
     const byNumber = new Map(sources.map(s => [s.n, s]));
     const out: React.ReactNode[] = [];
     let cursor = 0;
-    for (const m of text.matchAll(/\[([^\]]{1,60})\]/g)) {
-        const body = m[1];
-        if (/\d{4}-\d{2}/.test(body)) continue;                     // a date, not a citation
+    for (const m of text.matchAll(new RegExp(CITATION_PATTERN, "g"))) {
+        const citation = parseCitation(m[1]);
+        if (!citation) continue;                                    // a date, not a citation
         const at = m.index ?? 0;
-        const pieces = body.split(",").map(p => p.trim());
-        const cited = pieces.map(p => byNumber.get(Number(p))).filter((x): x is ChatSource => !!x);
-        const pages = pieces.filter(p => PAGE_LABEL.test(p));
+        const cited = citation.numbers.map(n => byNumber.get(n)).filter((x): x is ChatSource => !!x);
         if (at > cursor) out.push(text.slice(cursor, at));
         cursor = at + m[0].length;
         // A bracket with nothing citable in it disappears entirely, which covers
@@ -82,12 +85,14 @@ function renderAnswer(text: string, sources: ChatSource[]): React.ReactNode {
                 {cited.map((c, i) => (
                     <span key={c.n}>
                         {i > 0 && <span className="text-white/50">,</span>}
-                        <a href={c.url} target="_blank" rel="noopener noreferrer" title={c.title}
-                            className="px-[0.15em] text-pastypink hover:underline">{c.n}</a>
+                        {c.url
+                            ? <a href={c.url} target="_blank" rel="noopener noreferrer" title={c.title}
+                                className="px-[0.15em] text-pastypink hover:underline">{c.n}</a>
+                            : <span title={c.title} aria-label={`Source ${c.n}: ${c.title}`} className="px-[0.15em] text-pastypink">{c.n}</span>}
                     </span>
                 ))}
-                {pages.map(page => (
-                    <span key={page} className="text-white/60">{`, ${page}`}</span>
+                {citation.labels.map(label => (
+                    <span key={label} className="text-white/60">{`, ${label}`}</span>
                 ))}
             </sup>,
         );
@@ -106,7 +111,7 @@ function ConversationAnswer({ message }: { message: UIMessage }) {
     const sources = getChatSources(message);
     const answer = removeUnresolvedCitations(getMessageText(message), new Set(sources.map(s => s.n)));
     const webUrls = getWebSearchUrls(message);
-    const webSources = sources.filter(s => webUrls.has(s.url)).length;
+    const webSources = sources.filter(s => s.url !== null && webUrls.has(s.url)).length;
     return <div className="space-y-3 px-1">
         <p data-testid="answer" className="text-sm text-white/90 leading-relaxed whitespace-pre-line break-words">
             {renderAnswer(answer, sources)}
@@ -119,18 +124,24 @@ function ConversationAnswer({ message }: { message: UIMessage }) {
             <div className="flex flex-col gap-1 pt-1">
                 <p className="text-[10px] text-white/60">Sources</p>
                 <div className="flex flex-wrap gap-1.5">
-                    {sources.map(s => (
+                    {sources.map(s => s.url ? (
                         <a
                             key={s.n}
                             href={s.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border border-white/15 text-white/65 whitespace-nowrap max-w-[16rem] truncate hover:border-white/30"
+                            className={`${PILL} hover:border-white/30`}
                             title={s.title}
                         >
                             <span className="opacity-50">[{s.n}]</span>
                             {sourceHost(s)}
                         </a>
+                    ) : (
+                        // A saved document with no public URL: named, not linked.
+                        <span key={s.n} className={PILL} title={s.title}>
+                            <span className="opacity-50">[{s.n}]</span>
+                            <span>{s.title}</span>
+                        </span>
                     ))}
                 </div>
             </div>
@@ -169,8 +180,8 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
             const token = await getAccessToken().catch(() => null);
             return token ? { Authorization: `Bearer ${token}` } : {};
         },
-        // The endpoint takes `{ messages }` and nothing else.
-        prepareSendMessagesRequest: ({ messages }) => ({ body: { messages } }),
+        // The endpoint takes `{ messages }` and nothing else, and reads only their text and tool parts.
+        prepareSendMessagesRequest: ({ messages }) => ({ body: { messages: getChatRequestMessages(messages) } }),
     }), [artistId]);
     const { messages, sendMessage, status, stop, error, regenerate } = useChat({
         transport,

@@ -10,3 +10,8 @@ it('removes a marker with no source together with the whitespace before it', () 
 it('keeps markers with at least one source, and dates', () => {
     expect(removeUnresolvedCitations('Drums [2] and bass [2, 9] on [2026-05-13].', cited)).toBe('Drums [2] and bass [2, 9] on [2026-05-13].');
 });
+
+it('keeps section and paragraph citations with a source and drops them without one', () => {
+    expect(removeUnresolvedCitations('Toured [2, §Live, 1999] and wrote [2, ¶3].', cited)).toBe('Toured [2, §Live, 1999] and wrote [2, ¶3].');
+    expect(removeUnresolvedCitations('Toured [7, §Live, 2] then.', cited)).toBe('Toured then.');
+});
