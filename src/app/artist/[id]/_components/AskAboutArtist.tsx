@@ -88,7 +88,7 @@ function renderAnswer(text: string, sources: ChatSource[]): React.ReactNode {
                         {c.url
                             ? <a href={c.url} target="_blank" rel="noopener noreferrer" title={c.title}
                                 className="px-[0.15em] text-pastypink hover:underline">{c.n}</a>
-                            : <span title={c.title} className="px-[0.15em] text-pastypink">{c.n}</span>}
+                            : <span title={c.title} aria-label={`Source ${c.n}: ${c.title}`} className="px-[0.15em] text-pastypink">{c.n}</span>}
                     </span>
                 ))}
                 {citation.labels.map(label => (
