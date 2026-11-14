@@ -5,10 +5,11 @@ import { getActiveArtistOperation } from '@/server/utils/artistOperationContext'
 import { recordArtistActivity } from '@/server/utils/activity/recordArtistActivity';
 import { queueApprovedSourceExtraction } from '@/server/utils/source/queueApprovedSourceExtraction';
 import { lockScopedArtistWrite } from './ownershipWrites';
+import { queueUnitSync } from '@/server/utils/units/queueUnitSync';
 
 /** The approval, attribution and missing-original job commit together. */
 export async function updateVaultSourceStatus(sourceId: string, status: 'approved' | 'rejected', expectedStatus?: 'pending') {
-  return db.transaction(async tx => {
+  const row = await db.transaction(async tx => {
     const scope = getActiveArtistOperation();
     let artistId = scope?.artistId;
     if (scope) await lockScopedArtistWrite(tx, scope.artistId);
@@ -28,4 +29,7 @@ export async function updateVaultSourceStatus(sourceId: string, status: 'approve
     await queueApprovedSourceExtraction(tx, row, activityId);
     return row;
   });
+  // After commit, never inside it: the API reads the committed revision.
+  if (row) await queueUnitSync(row.artistId).catch(() => false);
+  return row;
 }
