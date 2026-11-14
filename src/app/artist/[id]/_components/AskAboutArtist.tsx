@@ -10,6 +10,7 @@ import { trackEvent } from '@/lib/analytics/trackEvent';
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import { getChatProgress } from "@/lib/artistChat/getChatProgress";
 import { getChatQuota } from "@/lib/artistChat/getChatQuota";
+import { getChatRequestMessages } from "@/lib/artistChat/getChatRequestMessages";
 import { getChatSources, type ChatSource } from "@/lib/artistChat/getChatSources";
 import { getMessageText } from "@/lib/artistChat/getMessageText";
 import { getWebSearchUrls } from "@/lib/artistChat/getWebSearchUrls";
@@ -179,8 +180,8 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
             const token = await getAccessToken().catch(() => null);
             return token ? { Authorization: `Bearer ${token}` } : {};
         },
-        // The endpoint takes `{ messages }` and nothing else.
-        prepareSendMessagesRequest: ({ messages }) => ({ body: { messages } }),
+        // The endpoint takes `{ messages }` and nothing else, and reads only their text and tool parts.
+        prepareSendMessagesRequest: ({ messages }) => ({ body: { messages: getChatRequestMessages(messages) } }),
     }), [artistId]);
     const { messages, sendMessage, status, stop, error, regenerate } = useChat({
         transport,
