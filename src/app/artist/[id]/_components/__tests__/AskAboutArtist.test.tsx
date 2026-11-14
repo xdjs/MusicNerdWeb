@@ -65,14 +65,16 @@ describe("sending", () => {
             .toEqual({ body: { messages } });
     });
 
-    it("sends earlier answers back with their text and tool steps, without their source parts", () => {
+    it("sends earlier answers back with their text and tool steps, without their source parts or passage text", () => {
         renderChat();
         const search = { type: "tool-searchPassages", toolCallId: "s1", state: "output-available", input: { query: "q" },
             output: { results: [], weak: false, truncated: false, documents: [] } };
         const text = { type: "text", text: "Yes [1]." };
         const messages = [user("Who?"), assistant([{ type: "step-start" }, search, source(1), text]), user("And?", "u2")];
         expect(transportOptions().prepareSendMessagesRequest({ messages, id: "chat", trigger: "submit-message" }))
-            .toEqual({ body: { messages: [user("Who?"), assistant([search, text]), user("And?", "u2")] } });
+            .toEqual({ body: { messages: [user("Who?"), assistant([{ ...search, output: { documents: [] } }, text]), user("And?", "u2")] } });
+        expect(messages[1].parts[1]).toBe(search);
+        expect(search.output.results).toEqual([]);
     });
 
     it("sends a suggestion when it is tapped and stops offering it", () => {
