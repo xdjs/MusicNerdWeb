@@ -65,6 +65,16 @@ describe("sending", () => {
             .toEqual({ body: { messages } });
     });
 
+    it("sends earlier answers back with their text and tool steps, without their source parts", () => {
+        renderChat();
+        const search = { type: "tool-searchPassages", toolCallId: "s1", state: "output-available", input: { query: "q" },
+            output: { results: [], weak: false, truncated: false, documents: [] } };
+        const text = { type: "text", text: "Yes [1]." };
+        const messages = [user("Who?"), assistant([{ type: "step-start" }, search, source(1), text]), user("And?", "u2")];
+        expect(transportOptions().prepareSendMessagesRequest({ messages, id: "chat", trigger: "submit-message" }))
+            .toEqual({ body: { messages: [user("Who?"), assistant([search, text]), user("And?", "u2")] } });
+    });
+
     it("sends a suggestion when it is tapped and stops offering it", () => {
         const { rerender } = renderChat();
         fireEvent.click(screen.getByRole("button", { name: "How did Pete Rango get started?" }));
