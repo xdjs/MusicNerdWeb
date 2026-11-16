@@ -3,6 +3,7 @@
 import {useCallback,useContext,useEffect,useState} from 'react';
 import {EditModeContext} from '@/app/_components/EditModeContext';
 import {Button} from '@/components/ui/button';
+import SuggestedLinkEvidence from './SuggestedLinkEvidence';
 
 import type {LinkSuggestion as Suggestion} from '@/lib/artistLinkReview/types';
 import {requestArtistLinkSuggestions} from '@/lib/artistLinkReview/requestArtistLinkSuggestions';
@@ -28,6 +29,7 @@ export default function SuggestedLinkReview({artistId}:{artistId:string}){
  if(!loading&&!error&&!items.length&&nextOffset===null)return null;
  function card(item:Suggestion){return <article key={`${item.kind}:${item.id}`} className="rounded-xl border border-black/10 p-4 dark:border-white/15">
   <h4 className="text-sm font-semibold text-foreground">{item.title||`${item.platform} profile`}</h4>
+  <SuggestedLinkEvidence item={item} />
   <a href={item.url} target="_blank" rel="noopener noreferrer" className="mt-1 block break-all text-sm text-pink-800 underline dark:text-pastypink">{item.url}</a>
   <p className="mt-2 text-xs text-muted-foreground">{item.origin==='research'?'Found by automated research':<>Suggested by <span className="font-medium">{item.suggestedBy.name||'Unknown contributor'}</span></>}</p>
   <p className="mt-1 text-xs text-muted-foreground"><RecordedTime value={item.submittedAt}/></p>

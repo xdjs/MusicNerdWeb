@@ -463,6 +463,13 @@
       "when": 1794096000000,
       "tag": "0065_about_writer_fence",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1794470400000,
+      "tag": "0066_discovery_evidence",
+      "breakpoints": true
     }
   ]
 }
