@@ -3,10 +3,11 @@ import { db } from '@/server/db/drizzle';
 import { artistClaims } from '@/server/db/schema';
 import { recordArtistActivity } from '@/server/utils/activity/recordArtistActivity';
 import { queueApprovedSourceExtraction } from '@/server/utils/source/queueApprovedSourceExtraction';
+import { queueUnitSync } from '@/server/utils/units/queueUnitSync';
 
 /** Admin-only pending approval; contributor review additionally restricts origin and credit. */
 export async function approvePendingLoreSource(adminId: string, sourceId: string, contributorId?: string) {
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [admin] = await tx.execute(sql`select is_admin from users where id = ${adminId}::uuid for share`);
     if (!admin?.is_admin) throw new Error('Admin access required.');
 
@@ -32,4 +33,7 @@ export async function approvePendingLoreSource(adminId: string, sourceId: string
     const claim = await tx.query.artistClaims.findFirst({ where: and(eq(artistClaims.artistId, artistId), eq(artistClaims.status, 'approved')) });
     return { artistId, lore: true as const, claimId: claim?.id ?? null };
   });
+  // After commit, never inside it: the API reads the committed revision.
+  if (result) await queueUnitSync(result.artistId).catch(() => false);
+  return result;
 }

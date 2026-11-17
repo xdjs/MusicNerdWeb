@@ -13,9 +13,11 @@ import { assertWritableLinkColumn } from '@/server/utils/artistLinks/assertWrita
 import { sanitizeColumnName } from '@/server/utils/artistLinks/sanitizeColumnName';
 import { queueApprovedSourceExtraction } from '@/server/utils/source/queueApprovedSourceExtraction';
 import { lockLinkReview } from './lockLinkReview';
+import { queueUnitSync } from '@/server/utils/units/queueUnitSync';
 /** Pending state, artist ownership, account conflicts and audit trail commit together. */
 export async function reviewArtistLinkSuggestion(artistId: string, userId: string, input: LinkReviewDecision) {
-  return db.transaction(async tx => {
+  let statusChanged = false;
+  await db.transaction(async tx => {
     // Acquire the platform locks before the artist lock, matching direct link writers.
     if (input.kind === 'ugc') {
       const [hint] = await tx.execute(sql`select site_name,site_username from ugcresearch where id=${input.id}::uuid and artist_id=${artistId}::uuid`);
@@ -62,15 +64,18 @@ export async function reviewArtistLinkSuggestion(artistId: string, userId: strin
       return;
     }
     if (input.kind==='ugc') {
-      if (approved && sourceBacked) await approveSourceBackedUgc(tx,artistId,userId,row);
+      if (approved && sourceBacked) { await approveSourceBackedUgc(tx,artistId,userId,row); statusChanged = true; } // inserts an approved source
       else if (approved) await approveUGC(input.id,artistId,String(row.site_name),String(row.site_username),tx);
       else await tx.execute(sql`update ugcresearch set accepted=false,date_processed=now(),updated_at=now() where id=${input.id}::uuid`);
       await recordArtistActivity(artistId,approved?'link_approved':'link_rejected',{userId,sourceId:input.id,trigger:'artist_link_review'},tx);
     } else {
       const status=approved?'approved':'rejected';
       await tx.execute(sql`update artist_vault_sources set status=${status}::source_status,updated_at=now() where id=${input.id}::uuid`);
+      statusChanged = true;
       const activityId=await recordArtistActivity(artistId,approved?'source_approved':'source_rejected',{userId,sourceId:input.id,trigger:'artist_link_review'},tx);
       if(approved) await queueApprovedSourceExtraction(tx,{id:input.id,artistId,url,status,filePath:row.file_path as string|null,extractedText:row.extracted_text as string|null},activityId);
     }
   });
+  // After commit, never inside it: the API reads the committed revision.
+  if (statusChanged) await queueUnitSync(artistId).catch(() => false);
 }
