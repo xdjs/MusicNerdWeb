@@ -44,3 +44,62 @@ it('names the PDF being searched for or read, from its output, the discovery tha
     expect(getChatProgress(assistant([{ type: 'tool-readPdfSource', toolCallId: 't4', state: 'input-available', input: { sourceId: 'unknown' } }])))
         .toBe('Reading a PDF…');
 });
+
+describe('the passage tools', () => {
+    // Output shapes from MusicNerdAPI's createSearchPassagesTool, createReadUnitsTool and createListDocumentsTool.
+    const doc = { n: 3, sourceKind: 'vault', sourceId: '0b6c1f9e-4d7a-4c1e-9a43-2f5a8f1e7b20', revision: 'r1', title: 'Dutchy timeline', url: null };
+    const passages = {
+        type: 'tool-searchPassages', toolCallId: 's1', state: 'output-available', input: { query: 'aliases' },
+        output: { results: [{ n: 3, locator: 'p.4', title: 'Dutchy timeline', passage: '…' }], weak: false, truncated: false,
+            documents: [{ ...doc, units: 12, shown: 1 }] },
+    };
+    const listing = {
+        type: 'tool-listDocuments', toolCallId: 'l1', state: 'output-available', input: {},
+        output: { documents: [{ n: 5, title: 'Press kit', kind: 'vault', url: 'https://x.example/kit.pdf', units: 4, indexing: false },
+            { n: null, title: 'Unnumbered', kind: 'social', url: null, units: 1, indexing: false }] },
+    };
+    const read = (input: unknown, extra: Record<string, unknown> = {}) =>
+        ({ type: 'tool-readUnits', toolCallId: 'r1', state: 'input-available', input, ...extra });
+
+    it('says saved documents are being searched or listed', () => {
+        expect(getChatProgress(assistant([{ ...passages, state: 'input-available', output: undefined }]))).toBe('Searching saved documents…');
+        expect(getChatProgress(assistant([passages, { ...listing, state: 'input-available', output: undefined }]))).toBe('Listing saved documents…');
+    });
+
+    it('names the document being read, from its output or from the search or listing that numbered it', () => {
+        expect(getChatProgress(assistant([read({ n: 9 }, { state: 'output-available',
+            output: { n: 9, title: 'Liner notes', units: [], truncated: false, missing: [], documents: [{ ...doc, n: 9, title: 'Liner notes' }] } })])))
+            .toBe('Reading Liner notes…');
+        expect(getChatProgress(assistant([passages, read({ n: 3 })]))).toBe('Reading Dutchy timeline…');
+        expect(getChatProgress(assistant([listing, read({ n: 5 })]))).toBe('Reading Press kit…');
+    });
+
+    it('names a document an earlier answer numbered, from the source part the turn re-sent for it', () => {
+        expect(getChatProgress(assistant([
+            { type: 'source-url', sourceId: '7', url: 'musicnerd://vault/0b6c1f9e-4d7a-4c1e-9a43-2f5a8f1e7b20', title: 'Old interview' },
+            read({ n: 7 }),
+        ]))).toBe('Reading Old interview…');
+    });
+
+    it('adds the locator when exactly one was asked for', () => {
+        expect(getChatProgress(assistant([passages, read({ n: 3, locators: ['p.4'] })]))).toBe('Reading Dutchy timeline, p.4…');
+        expect(getChatProgress(assistant([passages, read({ n: 3, locators: ['p.4', 'p.5'] })]))).toBe('Reading Dutchy timeline…');
+    });
+
+    it('falls back when the document is not known', () => {
+        expect(getChatProgress(assistant([listing, read({ n: 8, locators: ['p.2'] })]))).toBe('Reading a saved document…');
+        expect(getChatProgress(assistant([read({ n: 1 }, { state: 'output-available', output: { error: 'Unknown document number' } })])))
+            .toBe('Reading a saved document…');
+    });
+});
+
+it('ignores null and non-object entries in a tool output\'s list', () => {
+    expect(getChatProgress(assistant([
+        { type: 'tool-searchPassages', toolCallId: 's', state: 'output-available', input: { query: 'q' }, output: { documents: [null, 'x', { n: 2, title: 'Bio' }] } },
+        { type: 'tool-readUnits', toolCallId: 'r', state: 'input-available', input: { n: 2 } },
+    ]))).toBe('Reading Bio…');
+    expect(getChatProgress(assistant([
+        { type: 'tool-searchSources', toolCallId: 's', state: 'output-available', input: { query: 'q' }, output: { sources: [null, 3, { sourceId: 'v', title: 'Bio' }] } },
+        { type: 'tool-readSource', toolCallId: 'r', state: 'input-available', input: { sourceId: 'v' } },
+    ]))).toBe('Reading Bio…');
+});
