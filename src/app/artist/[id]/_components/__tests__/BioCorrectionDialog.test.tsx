@@ -3,10 +3,10 @@ import BioCorrectionDialog from '../BioCorrectionDialog';
 import { usePrivy } from '@privy-io/react-auth';
 jest.mock('@privy-io/react-auth', () => ({ usePrivy: jest.fn(), getAccessToken: jest.fn(async () => 'private-token') }));
 jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
-jest.mock('next-auth/react', () => ({ useSession: () => ({status: mockSessionStatus}) }));
-let mockSessionStatus = 'authenticated';
+jest.mock('@/hooks/useMusicNerdUser', () => ({ useMusicNerdUser: () => ({status: mockAccountStatus}) }));
+let mockAccountStatus = 'authenticated';
 const login = jest.fn();
-beforeEach(() => { mockSessionStatus = 'authenticated'; sessionStorage.clear(); jest.clearAllMocks(); jest.mocked(usePrivy).mockReturnValue({ ready: true, authenticated: true, login } as never); global.fetch = jest.fn(); });
+beforeEach(() => { mockAccountStatus = 'authenticated'; sessionStorage.clear(); jest.clearAllMocks(); jest.mocked(usePrivy).mockReturnValue({ ready: true, authenticated: true, login } as never); global.fetch = jest.fn(); });
 it('opens from quiet action and submits the exact displayed bio', async () => {
  jest.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ success: true }) } as Response);
  render(<BioCorrectionDialog artistId="artist" artistName="Dutchyyy" bio="A published bio" portrait/>);
@@ -46,7 +46,7 @@ it('restores a draft after a login reload and requires an explicit send', async 
  expect(sessionStorage.getItem('mn:bio-correction:artist')).toBeNull();
 });
 it('transitions the same dialog from sign-in progress to the form without a reload', async () => {
- mockSessionStatus='unauthenticated';
+ mockAccountStatus='unauthenticated';
  jest.mocked(usePrivy).mockReturnValue({ready:true,authenticated:false,login} as never);
  const {rerender}=render(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
  fireEvent.click(screen.getByRole('button',{name:'Suggest a correction'}));
@@ -58,7 +58,7 @@ it('transitions the same dialog from sign-in progress to the form without a relo
  expect(screen.getByRole('status')).toHaveTextContent('Finishing sign-in');
  expect(screen.queryByRole('button',{name:'Submit report'})).not.toBeInTheDocument();
  const dialog = screen.getByRole('dialog');
- mockSessionStatus='authenticated';
+ mockAccountStatus='authenticated';
  rerender(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
  expect(screen.getByRole('dialog')).toBe(dialog);
  expect(screen.getByRole('button',{name:'Submit report'})).toBeVisible();
@@ -79,12 +79,12 @@ it('keeps the restored draft through the subsequent NextAuth page reload', async
 });
 
 it('waits for the application session before opening the report form',()=>{
- mockSessionStatus='loading';
+ mockAccountStatus='loading';
  sessionStorage.setItem('mn:bio-correction:artist',JSON.stringify({reason:'other',details:'',sourceUrl:'',bio:'Bio'}));
  const {rerender}=render(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
  expect(screen.getByRole('status')).toHaveTextContent('Finishing sign-in');
  expect(screen.queryByRole('button',{name:'Submit report'})).not.toBeInTheDocument();
- mockSessionStatus='authenticated';
+ mockAccountStatus='authenticated';
  rerender(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
  expect(screen.getByRole('dialog')).toBeVisible();
  expect(fetch).not.toHaveBeenCalled();
@@ -119,22 +119,22 @@ it.each([false,true])('starts a fresh report after confirmation (duplicate=%s)',
 it('shows the saved login handoff while the auth SDK initializes after reload',()=>{
  sessionStorage.setItem('mn:bio-correction:artist',JSON.stringify({reason:'other',details:'Keep my draft',sourceUrl:'',bio:'Bio'}));
  jest.mocked(usePrivy).mockReturnValue({ready:false,authenticated:false,login} as never);
- mockSessionStatus='loading';
+ mockAccountStatus='loading';
  const view=render(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
  expect(screen.getByRole('status')).toHaveTextContent('Finishing sign-in');
  expect(screen.queryByRole('button',{name:'Submit report'})).not.toBeInTheDocument();
  jest.mocked(usePrivy).mockReturnValue({ready:true,authenticated:true,login} as never);
- mockSessionStatus='authenticated';
+ mockAccountStatus='authenticated';
  view.rerender(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
  expect(screen.getByRole('textbox',{name:'Details (optional)'})).toHaveValue('Keep my draft');
  expect(fetch).not.toHaveBeenCalled();
 });
 it('allows cancelling the finishing state without reopening or submitting',()=>{
  sessionStorage.setItem('mn:bio-correction:artist',JSON.stringify({reason:'other',details:'Draft',sourceUrl:'',bio:'Bio'}));
- mockSessionStatus='loading';
+ mockAccountStatus='loading';
  const view=render(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
  fireEvent.click(screen.getByRole('button',{name:'Close'}));
- mockSessionStatus='authenticated';
+ mockAccountStatus='authenticated';
  view.rerender(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
  expect(sessionStorage.getItem('mn:bio-correction:artist')).toBeNull();

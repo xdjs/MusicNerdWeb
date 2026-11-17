@@ -21,7 +21,6 @@ interface SessionUser {
   isAdmin?: boolean;
   isSuperAdmin?: boolean;
   isHidden?: boolean;
-  needsLegacyLink?: boolean;
 }
 
 export interface Session {
@@ -48,7 +47,6 @@ export const authOptions = {
         token.isAdmin = user.isAdmin;
         token.isSuperAdmin = user.isSuperAdmin;
         token.isHidden = user.isHidden;
-        token.needsLegacyLink = user.needsLegacyLink;
         token.lastRefresh = Date.now();
       } else {
         // Refresh user data from database in these cases:
@@ -102,7 +100,6 @@ export const authOptions = {
                   token.email = refreshedUser.email ?? undefined;
                   token.name = refreshedUser.username ?? undefined;
                   token.userNamePending = needsUserName(refreshedUser);
-                  token.needsLegacyLink = !refreshedUser.wallet && !refreshedUser.legacyLinkDismissed;
                   token.lastRefresh = Date.now();
                 }
               } catch (error) {
@@ -135,7 +132,6 @@ export const authOptions = {
           isAdmin: token.isAdmin,
           isSuperAdmin: token.isSuperAdmin,
           isHidden: token.isHidden,
-          needsLegacyLink: token.needsLegacyLink,
         },
       }
     },
@@ -238,7 +234,6 @@ export const authOptions = {
             isSuperAdmin: user.isSuperAdmin,
             isHidden: user.isHidden,
             isSignupComplete: true,
-            needsLegacyLink: !user.wallet && !user.legacyLinkDismissed,
           };
         } catch (error) {
           console.error('[Auth] Privy authorize error:', error);

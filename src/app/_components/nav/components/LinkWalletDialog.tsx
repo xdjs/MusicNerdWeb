@@ -1,7 +1,6 @@
 'use client';
 
 import { useLinkAccount } from '@privy-io/react-auth';
-import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 import {
   Dialog,
@@ -13,22 +12,20 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { dismissLegacyLink } from '@/app/actions/dismissLegacyLink';
 import { requestLinkWallet } from '@/lib/account/requestLinkWallet';
+import { useMusicNerdUser } from '@/hooks/useMusicNerdUser';
 
-interface LegacyAccountModalProps {
+interface LinkWalletDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
-  const { update: updateSession } = useSession();
+/** Links a wallet to the signed-in account, merging an older wallet-based account that has it. */
+export function LinkWalletDialog({ open, onClose }: LinkWalletDialogProps) {
+  const { refetch } = useMusicNerdUser();
   const { toast } = useToast();
   const [isLinking, setIsLinking] = useState(false);
-  const [isDismissing, setIsDismissing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const isBusy = isLinking || isDismissing;
 
   const { linkWallet } = useLinkAccount({
     onSuccess: async ({ linkedAccount }) => {
@@ -43,7 +40,7 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
               title: result.merged ? 'Account Merged!' : 'Wallet Linked!',
               description: result.message,
             });
-            await updateSession();
+            await refetch();
             onClose();
           } else {
             setError(result.error || 'Failed to link wallet');
@@ -82,39 +79,11 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
     linkWallet();
   };
 
-  const handleDismiss = async () => {
-    setIsDismissing(true);
-    setError(null);
-    try {
-      const result = await dismissLegacyLink();
-      if (result.success) {
-        await updateSession();
-        onClose();
-      } else {
-        setError(result.error || 'Failed to dismiss');
-        toast({
-          title: 'Error',
-          description: result.error || 'Failed to dismiss',
-          variant: 'destructive',
-        });
-      }
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
-      toast({
-        title: 'Error',
-        description: 'Something went wrong. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDismissing(false);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="dark:text-white">Welcome to Music Nerd!</DialogTitle>
+          <DialogTitle className="dark:text-white">Link your wallet</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             Have an existing Music Nerd wallet-based account? Connect your
             wallet to link your old account and restore your contribution history.
@@ -131,22 +100,14 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
           <Button
             variant="outline"
             onClick={onClose}
-            disabled={isBusy}
+            disabled={isLinking}
             className="dark:border-gray-500 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             Skip for now
           </Button>
           <Button
-            variant="outline"
-            onClick={handleDismiss}
-            disabled={isBusy}
-            className="dark:border-gray-500 dark:text-gray-200 dark:hover:bg-gray-700"
-          >
-            {isDismissing ? 'Dismissing...' : 'New user'}
-          </Button>
-          <Button
             onClick={handleLinkWallet}
-            disabled={isBusy}
+            disabled={isLinking}
             variant="pink"
           >
             {isLinking ? 'Connecting...' : 'Connect Wallet'}

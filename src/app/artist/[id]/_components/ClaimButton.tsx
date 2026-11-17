@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { unstable_isUnrecognizedActionError } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
 import { ShieldCheck, Copy, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +33,7 @@ export default function ClaimButton({
     isPendingByUser = false,
     compactOnMobile = false,
 }: ClaimButtonProps) {
-    const { data: session } = useSession();
+    const { user } = useMusicNerdUser();
     const [modalOpen, setModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [needsReload, setNeedsReload] = useState(false);
@@ -114,7 +114,7 @@ export default function ClaimButton({
                 aria-label={compactOnMobile ? "Claim profile" : undefined}
                 title="Claim profile"
                 onClick={() => {
-                    if (!session) {
+                    if (!user) {
                         trackEvent("claim", { step: "login_required" });
                         requestLogin("claim");
                         return;

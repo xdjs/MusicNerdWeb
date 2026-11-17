@@ -4,7 +4,7 @@ import LiveUserProfile from '../LiveUserProfile';
 import type { LiveProfileModel } from '@/lib/profile/types';
 let mockAccount='a';
 let mockModel: LiveProfileModel;
-jest.mock('next-auth/react',()=>({useSession:()=>({status:'authenticated',data:{user:{id:mockAccount}},update:jest.fn()})}));
+jest.mock('@/hooks/useMusicNerdUser',()=>({useMusicNerdUser:()=>({status:'authenticated',user:{id:mockAccount},refetch:jest.fn()})}));
 jest.mock('../ProfileConcept',()=>({__esModule:true,default:({live}:{live:LiveProfileModel})=>{mockModel=live;return <div data-testid="artists">{live.artists.map(a=>a.artistName).join(',')}</div>}}));
 jest.mock('@/lib/musicNerdApi/musicNerdApiUrl',()=>({musicNerdApiUrl:(path:string)=>`https://api.test${path}`}));
 jest.mock('../ProfileLoading',()=>({__esModule:true,default:()=> <div>Loading account</div>}));

@@ -14,7 +14,6 @@ declare module "next-auth" {
       isAdmin?: boolean;
       isSuperAdmin?: boolean;
       isHidden?: boolean;
-      needsLegacyLink?: boolean;
     };
     expires: string;
   }
@@ -34,7 +33,6 @@ declare module "next-auth" {
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
     isHidden?: boolean;
-    needsLegacyLink?: boolean;
   }
 }
 
@@ -46,7 +44,6 @@ declare module "next-auth/jwt" {
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
     isHidden?: boolean;
-    needsLegacyLink?: boolean;
     lastRefresh?: number;
   }
 }

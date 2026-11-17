@@ -1,13 +1,12 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
-import { useSession } from "next-auth/react";
+import { useMusicNerdUser } from "@/hooks/useMusicNerdUser";
 import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
 
 // Exercise Next's real unrecognized-action predicate, not the global navigation mock.
 jest.unmock("next/navigation");
 const mockTrackEvent = jest.fn();
 jest.mock("@/lib/analytics/trackEvent", () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
-jest.mock("next-auth/react", () => ({ useSession: jest.fn() }));
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: jest.fn() }) }));
 const mockClaim = jest.fn();
 jest.mock("@/app/actions/dashboardActions", () => ({ claimArtistProfile: (...a: unknown[]) => mockClaim(...a) }));
@@ -22,7 +21,7 @@ describe("ClaimButton claim events", () => {
     afterEach(cleanup);
 
     it("reports login_required and asks for login when signed out", () => {
-        (useSession as jest.Mock).mockReturnValue({ data: null, status: "unauthenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: null, status: "unauthenticated" });
         const loginBtn = document.createElement("button");
         loginBtn.id = "login-btn";
         const onClick = jest.fn();
@@ -39,7 +38,7 @@ describe("ClaimButton claim events", () => {
     });
 
     it("reports start when the dialog opens and submitted when the claim is accepted", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockResolvedValue({ success: true, referenceCode: "MN-1234" });
 
         render(<ClaimButton {...props} />);
@@ -52,7 +51,7 @@ describe("ClaimButton claim events", () => {
     });
 
     it("directs the claimant to the confirmed inbox before and after submitting", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockResolvedValue({ success: true, referenceCode: "MN-TEST" });
         render(<ClaimButton {...props} />);
         fireEvent.click(screen.getByRole("button", { name: /claim/i }));
@@ -71,7 +70,7 @@ describe("ClaimButton claim events", () => {
     });
 
     it("allows a claim without a saved Instagram link and shows no missing-link warning", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockResolvedValue({ success: true, referenceCode: "MN-NOIG" });
         // No Instagram data is required by the claim dialog.
         render(<ClaimButton {...props} />);
@@ -88,7 +87,7 @@ describe("ClaimButton claim events", () => {
     });
 
     it("offers a full page reload after Next rejects an old action, without replaying the claim", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockRejectedValue(new UnrecognizedActionError('Server Action "old-id" was not found on the server.'));
         render(<ClaimButton {...props} />);
         fireEvent.click(screen.getByRole("button", { name: /claim/i }));
@@ -108,7 +107,7 @@ describe("ClaimButton claim events", () => {
     });
 
     it("does not classify an uncertain network failure as an outdated page or replay the claim", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockRejectedValue(new Error("Failed to fetch"));
         render(<ClaimButton {...props} />);
         fireEvent.click(screen.getByRole("button", { name: /claim/i }));
@@ -120,7 +119,7 @@ describe("ClaimButton claim events", () => {
     });
 
     it("reports already_claimed and error outcomes", async () => {
-        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        (useMusicNerdUser as jest.Mock).mockReturnValue({ user: { id: "u1" }, status: "authenticated" });
         mockClaim.mockResolvedValueOnce({ success: false, alreadyClaimed: true });
         const { unmount } = render(<ClaimButton {...props} />);
         fireEvent.click(screen.getByRole("button", { name: /claim/i }));
@@ -141,10 +140,10 @@ describe('claim status visibility', () => {
     beforeEach(() => { mockTrackEvent.mockReset(); mockClaim.mockReset(); });
     it.each([
         ['anonymous', null, false],
-        ['another account', {user: {id: 'other'}}, false],
-        ['claim owner', {user: {id: 'owner'}}, true],
-    ])('offers no claim action to %s on an approved profile', (_viewer, session, isClaimedByUser) => {
-        (useSession as jest.Mock).mockReturnValue({data: session});
+        ['another account', {id: 'other'}, false],
+        ['claim owner', {id: 'owner'}, true],
+    ])('offers no claim action to %s on an approved profile', (_viewer, user, isClaimedByUser) => {
+        (useMusicNerdUser as jest.Mock).mockReturnValue({user});
         render(<ClaimButton {...props} isClaimed isClaimedByUser={isClaimedByUser as boolean} compactOnMobile />);
         expect(screen.queryByRole('button', {name: 'Claimed artist profile'})).not.toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Claim profile'})).not.toBeInTheDocument();
@@ -153,12 +152,12 @@ describe('claim status visibility', () => {
         expect(mockTrackEvent).not.toHaveBeenCalled();
     });
     it('keeps another account’s pending claim private', () => {
-        (useSession as jest.Mock).mockReturnValue({data: null});
+        (useMusicNerdUser as jest.Mock).mockReturnValue({user: null});
         const {container} = render(<ClaimButton {...props} isPending />);
         expect(container).toBeEmptyDOMElement();
     });
     it('shows pending verification only to its requester', () => {
-        (useSession as jest.Mock).mockReturnValue({data: {user: {id: 'owner'}}});
+        (useMusicNerdUser as jest.Mock).mockReturnValue({user: {id: 'owner'}});
         render(<ClaimButton {...props} isPending isPendingByUser />);
         expect(screen.getByLabelText('Pending verification')).toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Claimed artist profile'})).not.toBeInTheDocument();
