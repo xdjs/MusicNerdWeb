@@ -162,6 +162,7 @@ describe("an answer, rendered", () => {
         renderChat();
         const answer = screen.getByTestId("answer");
         expect(answer.textContent).not.toContain("**");
+        expect(answer.textContent).not.toContain("¶");
         expect(within(answer).getByText("XUE RECORDS.").tagName).toBe("STRONG");
         expect(within(answer).getByRole("link", { name: "5" })).toHaveAttribute("href", "https://lifechangesnetwork.com/a");
     });
@@ -180,7 +181,7 @@ describe("an answer, rendered", () => {
         expect(text).not.toMatch(/Artist Doc/);
     });
 
-    it("keeps section and paragraph labels beside the citation link, headings with commas included", () => {
+    it("drops section and paragraph markers and keeps the citation link", () => {
         state({ messages: [user("When did they tour?"), assistant([source(1, "https://x.example/bio", "Bio"), source(2),
             { type: "text", text: "They toured Europe [1, §Live, 1999: Europe & U.S.] and wrote it alone [2, ¶3]." }])] });
         renderChat();
@@ -188,9 +189,7 @@ describe("an answer, rendered", () => {
         expect(prose.getByRole("link", { name: "1" })).toHaveAttribute("href", "https://x.example/bio");
         expect(prose.getByRole("link", { name: "2" })).toBeInTheDocument();
         const text = screen.getByTestId("answer").textContent ?? "";
-        expect(text).toContain("1, §Live, 1999: Europe & U.S.");
-        expect(text).toContain("2, ¶3");
-        expect(text).not.toContain("[");
+        expect(text).toBe("They toured Europe 1 and wrote it alone 2.");
     });
 
     it("names a document with no public URL without linking to it", () => {
