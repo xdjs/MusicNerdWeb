@@ -156,6 +156,16 @@ describe("an answer, rendered", () => {
         expect(screen.getByTestId("answer").textContent).toContain("Kilo Kish, on");
     });
 
+    it("shows **bold** as bold text, without the asterisks, beside a citation", () => {
+        state({ messages: [user("What did he found?"), assistant([source(5, "https://lifechangesnetwork.com/a"),
+            { type: "text", text: "- **XUE RECORDS.** He is the founder of this label [5, ¶1]." }])] });
+        renderChat();
+        const answer = screen.getByTestId("answer");
+        expect(answer.textContent).not.toContain("**");
+        expect(within(answer).getByText("XUE RECORDS.").tagName).toBe("STRONG");
+        expect(within(answer).getByRole("link", { name: "5" })).toHaveAttribute("href", "https://lifechangesnetwork.com/a");
+    });
+
     it("keeps PDF page labels beside the citation link and still drops invented labels", () => {
         state({ messages: [user("Which years?"), assistant([source(1, "https://x.example/timeline.pdf", "timeline.pdf"), source(3),
             { type: "text", text: "Dutchy ran 2012–2019 [1, p.1]. Both names appear in 2013 [1, p.8] and later [3, pp.10, Artist Doc]." }])] });

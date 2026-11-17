@@ -16,6 +16,7 @@ import { getMessageText } from "@/lib/artistChat/getMessageText";
 import { getWebSearchUrls } from "@/lib/artistChat/getWebSearchUrls";
 import { CITATION_PATTERN, parseCitation } from "@/lib/artistChat/parseCitation";
 import { removeUnresolvedCitations } from "@/lib/artistChat/removeUnresolvedCitations";
+import { splitBold } from "@/lib/artistChat/splitBold";
 
 interface AskAboutArtistProps {
     artistId: string;
@@ -66,6 +67,15 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
  * it is dropped rather than shown. A reader was seeing an internal variable
  * name in the middle of a sentence.
  */
+/** Answer text with the model's "**bold**" shown as real bold. */
+function renderText(text: string, key: string | number): React.ReactNode[] {
+    return splitBold(text).map((run, i) =>
+        run.bold
+            ? <strong key={`${key}-${i}`} className="font-semibold text-white">{run.text}</strong>
+            : <span key={`${key}-${i}`}>{run.text}</span>,
+    );
+}
+
 function renderAnswer(text: string, sources: ChatSource[]): React.ReactNode {
     const byNumber = new Map(sources.map(s => [s.n, s]));
     const out: React.ReactNode[] = [];
@@ -75,7 +85,7 @@ function renderAnswer(text: string, sources: ChatSource[]): React.ReactNode {
         if (!citation) continue;                                    // a date, not a citation
         const at = m.index ?? 0;
         const cited = citation.numbers.map(n => byNumber.get(n)).filter((x): x is ChatSource => !!x);
-        if (at > cursor) out.push(text.slice(cursor, at));
+        if (at > cursor) out.push(...renderText(text.slice(cursor, at), `t${cursor}`));
         cursor = at + m[0].length;
         // A bracket with nothing citable in it disappears entirely, which covers
         // "[Artist Doc]" and a number for a source the answer did not read.
@@ -97,8 +107,7 @@ function renderAnswer(text: string, sources: ChatSource[]): React.ReactNode {
             </sup>,
         );
     }
-    if (cursor === 0) return text;
-    if (cursor < text.length) out.push(text.slice(cursor));
+    if (cursor < text.length) out.push(...renderText(text.slice(cursor), `t${cursor}`));
     return out;
 }
 
