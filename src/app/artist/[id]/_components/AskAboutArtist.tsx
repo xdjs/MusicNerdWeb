@@ -54,13 +54,22 @@ const PILL = "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-ful
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /**
+ * Only a PDF page label ("p.8") is shown beside a citation. A section or
+ * paragraph marker ("§Early Life", "¶3") helps the model point at a passage,
+ * but a reader sees a symbol that does nothing, so it is left out.
+ */
+function isPageLabel(label: string): boolean {
+    return !/^[§¶]/u.test(label);
+}
+
+/**
  * Render an answer's citations. The model writes "[4]", "[11, 18, Artist Doc]",
  * "[1, p.8]" for a PDF page, "[2, §Heading]" for a section, "[3, ¶4]" for a
  * paragraph and sometimes "[2026-05-13]" (`parseCitation`). Only the numbers are
  * citations, and only numbers the stream sent a `source-url` part for are shown:
  * as links, or as the bare number titled with the document's name when it has no
- * public URL. A page, section or paragraph label stays beside it so a reader can
- * find the passage.
+ * public URL. A PDF page label stays beside it so a reader can find the page;
+ * section and paragraph markers are dropped (`isPageLabel`).
  *
  * "[Artist Doc]" is a label the model can invent for context it read with no
  * number. There is no source behind it — the document has no public URL — so
@@ -101,7 +110,7 @@ function renderAnswer(text: string, sources: ChatSource[]): React.ReactNode {
                             : <span title={c.title} aria-label={`Source ${c.n}: ${c.title}`} className="px-[0.15em] text-pastypink">{c.n}</span>}
                     </span>
                 ))}
-                {citation.labels.map(label => (
+                {citation.labels.filter(isPageLabel).map(label => (
                     <span key={label} className="text-white/60">{`, ${label}`}</span>
                 ))}
             </sup>,
