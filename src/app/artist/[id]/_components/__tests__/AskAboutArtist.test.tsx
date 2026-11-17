@@ -144,6 +144,20 @@ describe("an answer, rendered", () => {
         expect(screen.getByTestId("answer").textContent).toContain("Kilo Kish, on");
     });
 
+    it("keeps PDF page labels beside the citation link and still drops invented labels", () => {
+        state({ messages: [user("Which years?"), assistant([source(1, "https://x.example/timeline.pdf", "timeline.pdf"), source(3),
+            { type: "text", text: "Dutchy ran 2012–2019 [1, p.1]. Both names appear in 2013 [1, p.8] and later [3, pp.10, Artist Doc]." }])] });
+        renderChat();
+        const prose = within(screen.getByTestId("answer"));
+        expect(prose.getAllByRole("link", { name: "1" })).toHaveLength(2);
+        expect(prose.getByRole("link", { name: "3" })).toBeInTheDocument();
+        const text = screen.getByTestId("answer").textContent ?? "";
+        expect(text).toContain("1, p.1");
+        expect(text).toContain("1, p.8");
+        expect(text).toContain("3, pp.10");
+        expect(text).not.toMatch(/Artist Doc/);
+    });
+
     it("lists the cited sources only, dated when they are posts on one site", () => {
         answered();
         const pills = screen.getAllByRole("link").filter(a => !within(screen.getByTestId("answer")).queryAllByRole("link").includes(a));
