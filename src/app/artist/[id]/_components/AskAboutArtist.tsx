@@ -76,12 +76,14 @@ function isPageLabel(label: string): boolean {
  * it is dropped rather than shown. A reader was seeing an internal variable
  * name in the middle of a sentence.
  */
-/** Answer text with the model's "**bold**" shown as real bold. */
+/** Answer text with the model's "**bold**" and "*italic*" shown as real bold and italics. */
 function renderText(text: string, key: string | number): React.ReactNode[] {
     return splitBold(text).map((run, i) =>
         run.bold
             ? <strong key={`${key}-${i}`} className="font-semibold text-white">{run.text}</strong>
-            : <span key={`${key}-${i}`}>{run.text}</span>,
+            : run.italic
+                ? <em key={`${key}-${i}`}>{run.text}</em>
+                : <span key={`${key}-${i}`}>{run.text}</span>,
     );
 }
 

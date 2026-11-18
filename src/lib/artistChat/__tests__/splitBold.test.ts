@@ -32,4 +32,27 @@ describe("splitBold", () => {
     it("returns nothing for an empty string", () => {
         expect(splitBold("")).toEqual([]);
     });
+
+    it("turns *text* and _text_ into italic runs without the symbols", () => {
+        expect(splitBold("Their first album was *Metiendo Mano!* (1977) and _Siembra_ came next.")).toEqual([
+            { text: "Their first album was ", bold: false },
+            { text: "Metiendo Mano!", bold: false, italic: true },
+            { text: " (1977) and ", bold: false },
+            { text: "Siembra", bold: false, italic: true },
+            { text: " came next.", bold: false },
+        ]);
+    });
+
+    it("keeps bold and italic apart in one line", () => {
+        expect(splitBold("**Siembra** (*1978*)")).toEqual([
+            { text: "Siembra", bold: true },
+            { text: " (", bold: false },
+            { text: "1978", bold: false, italic: true },
+            { text: ")", bold: false },
+        ]);
+    });
+
+    it("leaves a lone * or _ that is ordinary text", () => {
+        expect(splitBold("5 * 3 and file_name.pdf")).toEqual([{ text: "5 * 3 and file_name.pdf", bold: false }]);
+    });
 });

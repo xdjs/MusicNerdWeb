@@ -181,6 +181,15 @@ describe("an answer, rendered", () => {
         expect(text).not.toMatch(/Artist Doc/);
     });
 
+    it("shows *italic* album titles in italics, without the asterisks", () => {
+        state({ messages: [user("First album?"), assistant([source(5, "https://x.example/a"),
+            { type: "text", text: "Their first album together was *Metiendo Mano!* (1977) [5]." }])] });
+        renderChat();
+        const answer = screen.getByTestId("answer");
+        expect(answer.textContent).toBe("Their first album together was Metiendo Mano! (1977) 5.");
+        expect(within(answer).getByText("Metiendo Mano!").tagName).toBe("EM");
+    });
+
     it("drops section and paragraph markers and keeps the citation link", () => {
         state({ messages: [user("When did they tour?"), assistant([source(1, "https://x.example/bio", "Bio"), source(2),
             { type: "text", text: "They toured Europe [1, §Live, 1999: Europe & U.S.] and wrote it alone [2, ¶3]." }])] });
