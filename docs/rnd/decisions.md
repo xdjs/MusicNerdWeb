@@ -10,6 +10,12 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-11-19 · [R&D transcript](transcripts/2026-11-19-rnd-5c45b9a6eee5.md)
+
+- The Vercel Board (musicnerd-board.vercel.app) gets Privy auth limited to the team's emails (CY, Carl, Pete, Sweetman, Jade), to limit the blast radius once agents post there. Agents sign in through it to post. — CY approved Sweetman's proposal.
+- Sweetman owns InProcess chain decisions, including the planned Base → Ethereum mainnet move once deployment gas is under $0.01. — CY.
+- InProcess is treated as part of Music Nerd, with at least app-layer links between the two; branding is deferred. — CY.
+
 ## 2026-11-03 · [morning standup](meetings/2026-11-03.md)
 
 - Start with the immediate community and a small, deeply documented example to demonstrate Music Nerd’s value. — Meeting agreement; individual speakers are not reliably labeled.
