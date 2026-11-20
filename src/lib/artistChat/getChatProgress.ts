@@ -3,16 +3,15 @@ import type { UIMessage } from "ai";
 type Titled = { n?: unknown; sourceId?: unknown; title?: unknown };
 type ToolPart = {
     type: string;
-    input?: { sourceId?: unknown; filename?: unknown; n?: unknown; locators?: unknown };
+    input?: { sourceId?: unknown; n?: unknown; locators?: unknown };
     output?: { title?: unknown; sources?: Titled[]; documents?: Titled[] };
 };
 
 /**
  * What the chat is doing before the answer's text arrives, from the latest
- * tool step in the streamed message: `searchSources`, `searchPdfSources`,
- * `readSource` or `readPdfSource` / `readNamedPdf` (named by the document's
- * title, from its output, from the search that found it or from the filename
- * asked for), `webSearch`, or the passage tools `searchPassages`,
+ * tool step in the streamed message: `searchSources`, `readSource` (named by
+ * the source's title, from its output or from the search that found it),
+ * `webSearch`, or the passage tools `searchPassages`,
  * `listDocuments` and `readUnits` (named by the title of document `n`).
  *
  * @param message - The assistant message streaming in, if one has started.
@@ -23,21 +22,18 @@ export function getChatProgress(message: UIMessage | undefined): string {
     const latest = tools.at(-1);
     if (latest?.type === "tool-webSearch") return "Searching the web…";
     if (latest?.type === "tool-searchSources") return "Searching saved sources…";
-    if (latest?.type === "tool-searchPdfSources") return "Searching Lore PDFs…";
     if (latest?.type === "tool-searchPassages") return "Searching saved documents…";
     if (latest?.type === "tool-listDocuments") return "Listing saved documents…";
     if (latest?.type === "tool-readUnits") return readingDocument(message?.parts ?? [], tools, latest);
     if (latest?.type === "tool-readSource") return reading(tools, "tool-searchSources", latest, "Reading a saved source…");
-    if (latest?.type === "tool-readPdfSource" || latest?.type === "tool-readNamedPdf")
-        return reading(tools, "tool-searchPdfSources", latest, "Reading a PDF…");
     return "Checking Lore…";
 }
 
-/** "Reading <title>…" for a read step, from its output, the discovery step that found it, or the filename asked for. */
+/** "Reading <title>…" for a read step, from its output or the discovery step that found it. */
 function reading(tools: ToolPart[], discovery: string, latest: ToolPart, fallback: string): string {
     const found = tools.flatMap(tool => tool.type === discovery ? tool.output?.sources ?? [] : [])
         .find(source => typeof source === "object" && source?.sourceId === latest.input?.sourceId);
-    const title = latest.output?.title ?? found?.title ?? latest.input?.filename;
+    const title = latest.output?.title ?? found?.title;
     return typeof title === "string" && title ? `Reading ${title}…` : fallback;
 }
 
