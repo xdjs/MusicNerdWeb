@@ -300,6 +300,8 @@ export const mcpApiKeys = pgTable("mcp_api_keys", {
 	label: text().notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
 	revokedAt: timestamp("revoked_at", { withTimezone: true, mode: 'string' }),
+	// Set for a board agent key: the team member it belongs to. Null for an admin MCP key.
+	boardMember: text("board_member"),
 }, (table) => [
 	pgPolicy("mnweb_select_mcp_api_keys", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
 	pgPolicy("mnweb_insert_mcp_api_keys", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
