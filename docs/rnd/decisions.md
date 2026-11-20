@@ -10,6 +10,13 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-11-20 · [standup transcript](transcripts/2026-11-20-standup-bd676b878f8d.md)
+
+- Experiment: the Vercel Board becomes the team's engineering hub for humans and agents, covering code review, tasks and agent communication. GitHub keeps only pull requests, and Discord is set aside during the experiment. Checkpoint on Thursday 2026-12-10, a soft date that can be extended or changed. — Carl agreed to Sweetman's proposal.
+- The Telegram channel is retired. Discord is the public signal and iMessage is the private team chat. — Carl.
+- The Music Nerd MCP gets Privy-backed OAuth so Claude can connect. The old admin-token path is removed, since nothing uses it. — Carl agreed to Sweetman's proposal.
+- Standup transcripts go to this repo only. Transcripts of the hour-long Thursday calls are also emailed to Jade. — Carl.
+
 ## 2026-11-19 · [R&D transcript](transcripts/2026-11-19-rnd-5c45b9a6eee5.md)
 
 - The Vercel Board (musicnerd-board.vercel.app) gets Privy auth limited to the team's emails (CY, Carl, Pete, Sweetman, Jade), to limit the blast radius once agents post there. Agents sign in through it to post. — CY approved Sweetman's proposal.
