@@ -12,7 +12,7 @@ afterEach(() => jest.restoreAllMocks());
 
 it('allowlists codes and never serializes error text, cause, SQL or arbitrary counters', () => {
     const pool = { totalCount: 3, idleCount: 0, waitingCount: 2 };
-    expect(buildDatabaseFailureDiagnostic(failure, pool)).toEqual({ event: 'database_idle_connection_error', code: 'EAUTHTIMEOUT', pool: { total: 3, idle: 0, waiting: 2 } });
+    expect(buildDatabaseFailureDiagnostic(failure, pool)).toEqual({ event: 'database_idle_connection_error', code: 'EAUTHTIMEOUT', category: 'coded_connection_error', pool: { total: 3, idle: 0, waiting: 2 } });
     for (const error of [null, undefined, 'EAUTHTIMEOUT', { code: failure.message, cause: failure }, { get code() { throw failure; } }]) {
         expect(buildDatabaseFailureDiagnostic(error, pool).code).toBe('unknown');
     }
@@ -120,4 +120,53 @@ it('preserves ended-pool synchronous callback return and promise rejection when 
     expect(callback).toHaveBeenCalledTimes(1);
     await expect(pool.connect()).rejects.toThrow('Cannot use a pool after calling end on the pool');
     expect(log).toHaveBeenCalledTimes(2);
+});
+
+it('classifies only exact uncoded driver messages without leaking text', () => {
+    const pool = { totalCount: 0, idleCount: 0, waitingCount: 0 };
+    for (const [message, category] of [
+        ['timeout exceeded when trying to connect', 'pool_wait_timeout'],
+        ['Connection terminated due to connection timeout', 'connection_timeout'],
+        ['Cannot use a pool after calling end on the pool', 'pool_ended'],
+        ['timeout exceeded when trying to connect postgres://private', 'unknown'],
+    ]) {
+        const diagnostic = buildDatabaseFailureDiagnostic(new Error(message), pool);
+        expect(diagnostic.category).toBe(category);
+        expect(JSON.stringify(diagnostic)).not.toContain(message);
+    }
+    const error = new Error();
+    Object.defineProperty(error, 'message', { get() { throw failure; } });
+    expect(buildDatabaseFailureDiagnostic(error, pool).category).toBe('unknown');
+});
+
+it('records bounded monotonic acquisition and lifecycle ages on failures only', async () => {
+    const clock = jest.spyOn(performance, 'now').mockReturnValue(100);
+    jest.spyOn(process, 'uptime').mockReturnValue(12.345);
+    let reject!: (error: Error) => void;
+    const original = jest.fn(() => new Promise((_resolve, rejectPromise) => { reject = rejectPromise; }));
+    const pool = Object.assign(new EventEmitter(), { totalCount: 0, idleCount: 0, waitingCount: 0, connect: original });
+    installDatabaseDiagnostics(pool as unknown as Pool);
+    clock.mockReturnValue(200);
+    const pending = pool.connect();
+    clock.mockReturnValue(10200.9);
+    reject(failure);
+    await expect(pending).rejects.toBe(failure);
+    expect(log.mock.calls[0][1]).toMatchObject({ acquisitionElapsedMs: 10000, poolAgeMs: 10100, processAgeMs: 12345 });
+    pool.emit('error', failure);
+    expect(log.mock.calls[1][1]).not.toHaveProperty('acquisitionElapsedMs');
+    expect(original).toHaveBeenCalledTimes(1);
+});
+
+it('preserves callback failure with unavailable or invalid diagnostic clocks', () => {
+    const clock = jest.spyOn(performance, 'now').mockImplementation(() => { throw failure; });
+    jest.spyOn(process, 'uptime').mockReturnValue(Infinity);
+    let callback!: (error: Error) => unknown;
+    const pool = Object.assign(new EventEmitter(), { totalCount: 0, idleCount: 0, waitingCount: 0, connect: jest.fn(cb => { callback = cb; }) });
+    installDatabaseDiagnostics(pool as unknown as Pool);
+    const consumer = jest.fn(() => 'preserved');
+    pool.connect(consumer);
+    clock.mockReturnValue(-1);
+    expect(callback(failure)).toBe('preserved');
+    expect(consumer).toHaveBeenCalledWith(failure, undefined, undefined);
+    expect(log.mock.calls[0][1]).toMatchObject({ acquisitionElapsedMs: null, poolAgeMs: null, processAgeMs: null });
 });
