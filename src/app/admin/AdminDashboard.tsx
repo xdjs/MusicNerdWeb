@@ -1,15 +1,12 @@
 import type { getAdminReviewQueue } from '@/server/utils/contributions/getAdminReviewQueue';
 import LoreReviewQueue from './LoreReviewQueue';
 import type { getAllUsers } from "@/server/utils/queries/userQueries";
-import type { getAllMcpKeys } from "@/server/utils/queries/mcpKeyQueries";
 import { whitelistedColumns } from "./columns";
 import ClaimsDataTable from "./claims-data-table";
 import { claimsColumns } from "./claims-columns";
 import type { ClaimRow } from "./claims-columns";
 import UsersSection from "./UsersSection";
 import AdminTabs from "./AdminTabs";
-import McpKeysSection from "./McpKeysSection";
-import AgentWorkSection from "./AgentWorkSection";
 import ArtistDataSection from "./ArtistDataSection";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -19,14 +16,13 @@ import styles from "@/components/community/Community.module.css";
 type Props = {
   reviews: Awaited<ReturnType<typeof getAdminReviewQueue>>;
   allUsers: Awaited<ReturnType<typeof getAllUsers>>;
-  mcpKeys: Awaited<ReturnType<typeof getAllMcpKeys>>;
   allClaims: ClaimRow[];
   initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections" | "claims";
   activityContent?: React.ReactNode;
-  artistDataUrl?: string; agentWorkUrl?: string;
+  artistDataUrl?: string;
 };
 
-export default function AdminDashboard({reviews,allUsers,mcpKeys,allClaims,initialSection,activityContent,artistDataUrl,agentWorkUrl}: Props) {
+export default function AdminDashboard({reviews,allUsers,allClaims,initialSection,activityContent,artistDataUrl}: Props) {
   const pendingClaimsCount = allClaims.filter(c => c.status === "pending").length;
 
   return (
@@ -46,12 +42,6 @@ export default function AdminDashboard({reviews,allUsers,mcpKeys,allClaims,initi
         }
         usersContent={
           <UsersSection columns={whitelistedColumns} data={allUsers || []} />
-        }
-        mcpKeysContent={
-          <McpKeysSection initialKeys={mcpKeys} />
-        }
-        agentWorkContent={
-          <AgentWorkSection dataUrl={agentWorkUrl} />
         }
         artistDataContent={
           <ArtistDataSection dataUrl={artistDataUrl} />

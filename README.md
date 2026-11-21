@@ -37,7 +37,7 @@ side-effect requirements. A mocked unit suite is not proof of working production
 ## Further reading
 
 - [API reference](ApiReadMe.md)
-- [MCP reference](docs/mcp.md)
+- [MCP guide](https://docs.musicnerd.net/mcp)
 - [R&D decisions and public documentation](docs/rnd/README.md)
 - [Artist Latest experiment](docs/artist-latest.md)
 

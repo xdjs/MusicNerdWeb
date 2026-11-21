@@ -28,7 +28,7 @@ const database = nativeRuntime ? nativeDrizzle(nativeRuntime,{schema}) : drizzle
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const artist = id(1), claim = id(2), owner = id(3), source = id(4), activity = id(5);
 const tables = [schema.artists, schema.artistClaims, schema.artistVaultSources, schema.artistActivityEvents,
-    schema.mcpAuditLog, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistDocCorrections,
+    schema.artistResearchJobs, schema.artistSocialCredits, schema.artistDocCorrections,
     schema.artistSocialPosts, schema.artistSocialRefreshes, schema.artistSocialProfiles,
     schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs, schema.artistBioVersions];
 beforeAll(async () => {
@@ -73,33 +73,21 @@ beforeEach(async () => {
 });
 it.each(['approved','pending','rejected'])('preserves trusted %s source, history and object reference', async status => {
     await client.query('UPDATE artist_vault_sources SET status=$1', [status]);
-    expect(await revokeApprovedClaim(claim, 'admin')).toMatchObject({ id: claim });
+    expect(await revokeApprovedClaim(claim)).toMatchObject({ id: claim });
     expect((await client.query('SELECT status,file_path FROM artist_vault_sources')).rows).toEqual([{ status, file_path: `${artist}/trusted.pdf` }]);
     expect((await client.query('SELECT * FROM retained_versions')).rows).toHaveLength(1);
-    expect((await client.query('SELECT old_value FROM mcp_audit_log')).rows[0].old_value).not.toContain('trusted.pdf');
-    expect(await revokeApprovedClaim(claim, 'admin')).toBeUndefined();
+    expect(await revokeApprovedClaim(claim)).toBeUndefined();
 });
 it('blocks unknown provenance before any changes', async () => {
     await client.exec('UPDATE artist_vault_sources SET activity_id=null');
-    await expect(revokeApprovedClaim(claim, 'admin')).rejects.toThrow('REVOCATION_SOURCE_REVIEW_REQUIRED');
+    await expect(revokeApprovedClaim(claim)).rejects.toThrow('REVOCATION_SOURCE_REVIEW_REQUIRED');
     expect((await client.query('SELECT * FROM artist_claims')).rows).toHaveLength(1);
     expect((await client.query('SELECT * FROM retained_versions')).rows).toHaveLength(1);
-    expect((await client.query('SELECT * FROM mcp_audit_log')).rows).toHaveLength(0);
 });
-it('deletes attributable claimant content and records exact deferred object candidates', async () => {
+it('deletes attributable claimant content', async () => {
     await client.exec("UPDATE artist_activity_events SET trigger='dashboard'");
-    await revokeApprovedClaim(claim, 'admin');
+    await revokeApprovedClaim(claim);
     expect((await client.query('SELECT * FROM artist_vault_sources')).rows).toHaveLength(0);
-    expect(JSON.parse((await client.query('SELECT old_value FROM mcp_audit_log')).rows[0].old_value).sources).toEqual([{ id:source,filePath:`${artist}/trusted.pdf` }]);
-});
-it('rolls back source and claim deletion if durable receipt cannot be written', async () => {
-    await client.exec("UPDATE artist_activity_events SET trigger='dashboard'; ALTER TABLE mcp_audit_log ADD CONSTRAINT reject_receipt CHECK(false) NOT VALID");
-    try {
-        await expect(revokeApprovedClaim(claim, 'admin')).rejects.toThrow();
-        expect((await client.query('SELECT * FROM artist_claims')).rows).toHaveLength(1);
-        expect((await client.query('SELECT * FROM artist_vault_sources')).rows).toHaveLength(1);
-        expect((await client.query('SELECT * FROM retained_versions')).rows).toHaveLength(1);
-    } finally { await client.exec('ALTER TABLE mcp_audit_log DROP CONSTRAINT reject_receipt'); }
 });
 
 it.each([
@@ -108,14 +96,14 @@ it.each([
     ['https://directory.example/artist.jpg', 'https://directory.example/artist.jpg'],
 ])('clears only managed profile upload references: %s', async (image, expected) => {
     await client.query('UPDATE artists SET custom_image=$1', [image]);
-    await revokeApprovedClaim(claim, 'admin');
+    await revokeApprovedClaim(claim);
     expect((await client.query('SELECT custom_image FROM artists')).rows[0].custom_image).toBe(expected);
 });
 
 it('preserves public eligibility for trusted inherited Lore after revocation, with privacy/moderation overrides',async()=>{
  await client.exec("update artist_vault_sources set publication='inherit'");
  expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set([source]));
- await revokeApprovedClaim(claim,'admin');
+ await revokeApprovedClaim(claim);
  expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set([source]));
  await client.exec("update artist_vault_sources set publication='private'");
  expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set());
@@ -125,7 +113,7 @@ it('preserves public eligibility for trusted inherited Lore after revocation, wi
 it('does not infer public trust from mismatched or missing original evidence',async()=>{
  await client.exec("update artist_vault_sources set publication='inherit';update artist_activity_events set source_id=null");
  expect(await getTrustedLoreSourceIds(artist)).toEqual(new Set());
- await expect(revokeApprovedClaim(claim,'admin')).rejects.toThrow('REVOCATION_SOURCE_REVIEW_REQUIRED');
+ await expect(revokeApprovedClaim(claim)).rejects.toThrow('REVOCATION_SOURCE_REVIEW_REQUIRED');
  expect((await client.query('select * from artist_claims')).rows).toHaveLength(1);
 });
 
@@ -134,7 +122,7 @@ it('fenced revocation clears the bio while retaining saved history', async () =>
     await client.query('UPDATE artists SET bio=$1', ['Original']);
     await client.exec("SELECT set_config('musicnerd.about_writer_version','',false)");
     await client.query('INSERT INTO artist_bio_versions(artist_id,bio_text,is_pinned) VALUES($1,$2,true)',[artist,'Original']);
-    await revokeApprovedClaim(claim,'admin');
+    await revokeApprovedClaim(claim);
     expect((await client.query('SELECT bio FROM artists')).rows).toEqual([{bio:null}]);
     expect((await client.query('SELECT bio_text,is_pinned FROM artist_bio_versions')).rows).toEqual([{bio_text:'Original',is_pinned:false}]);
     await expect(client.query('UPDATE artists SET bio=$1',['Old writer'])).rejects.toMatchObject({code:'55000'});

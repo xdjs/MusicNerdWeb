@@ -2,15 +2,16 @@ import {render,screen,fireEvent} from '@testing-library/react';
 import AdminTabs from '../AdminTabs';
 const push=jest.fn();
 jest.mock('next/navigation',()=>({useRouter:()=>({push})}));
-const props={ugcCount:2,loreCount:3,correctionsCount:1,claimsCount:2,reviewContent:<p>Unified review list</p>,claimsContent:<p>Ownership requests</p>,usersContent:<p>User controls</p>,artistDataContent:<p>Coverage data</p>,mcpKeysContent:<p>Key controls</p>,agentWorkContent:<p>Worker controls</p>};
+const props={ugcCount:2,loreCount:3,correctionsCount:1,claimsCount:2,reviewContent:<p>Unified review list</p>,claimsContent:<p>Ownership requests</p>,usersContent:<p>User controls</p>,artistDataContent:<p>Coverage data</p>};
 beforeEach(()=>push.mockClear());
-it('uses one combined review tab among seven tools and keeps other tools reachable',()=>{
+it('uses one combined review tab among five tools and keeps other tools reachable',()=>{
  render(<AdminTabs {...props}/>);
- expect(screen.getAllByRole('tab')).toHaveLength(7);
+ expect(screen.getAllByRole('tab')).toHaveLength(5);
+ expect(screen.queryByRole('tab',{name:/MCP keys|Agent work/})).not.toBeInTheDocument();
  expect(screen.getByRole('tab',{name:'Lore review 6'})).toHaveAttribute('data-state','active');
  expect(screen.getByText('Unified review list')).toBeVisible();
  expect(screen.queryByRole('tab',{name:/Link submissions|About corrections/})).not.toBeInTheDocument();
- for(const [name,content] of [['People','User controls'],['Artist data','Coverage data'],['MCP keys','Key controls'],['Agent work','Worker controls']]){
+ for(const [name,content] of [['People','User controls'],['Artist data','Coverage data']]){
   fireEvent.mouseDown(screen.getByRole('tab',{name}),{button:0,ctrlKey:false});
   expect(screen.getByText(content)).toBeVisible();
  }

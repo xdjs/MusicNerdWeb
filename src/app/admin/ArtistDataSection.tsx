@@ -19,7 +19,7 @@ interface CoverageItem {
   label: string;
   count: number;
   percentage: number;
-  todayCount: number;
+  todayCount?: number;
 }
 
 function CoverageGrid({ items }: { items: CoverageItem[] }) {
@@ -37,7 +37,7 @@ function CoverageGrid({ items }: { items: CoverageItem[] }) {
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             {item.percentage}%
-            {item.todayCount > 0 && (
+            {!!item.todayCount && (
               <span className="ml-1 text-green-700 dark:text-green-400">+{item.todayCount} today</span>
             )}
           </div>
@@ -124,7 +124,6 @@ function ArtistLinkCoverageSection({
                 label: item.column,
                 count: item.count,
                 percentage: item.percentage,
-                todayCount: item.todayCount,
               }))}
             />
           </div>

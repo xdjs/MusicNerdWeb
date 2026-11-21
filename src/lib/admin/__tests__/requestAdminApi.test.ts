@@ -14,14 +14,14 @@ it('sends a GET to the configured API with the admin bearer token and no cookies
   });
 });
 it('sends a JSON body with its method', async () => {
-  await requestAdminApi('/api/admin/mcp-keys', { method: 'POST', body: { label: 'Bot' } });
-  expect(fetch).toHaveBeenCalledWith('https://api-preview.test/api/admin/mcp-keys', {
+  await requestAdminApi('/api/admin/artist-data', { method: 'POST', body: { label: 'Bot' } });
+  expect(fetch).toHaveBeenCalledWith('https://api-preview.test/api/admin/artist-data', {
     method: 'POST', headers: { Authorization: 'Bearer admin-token', 'Content-Type': 'application/json' },
     body: JSON.stringify({ label: 'Bot' }), credentials: 'omit', redirect: 'error', cache: 'no-store',
   });
 });
 it('does not call the API without a Privy token', async () => {
   token.mockResolvedValue(null);
-  await expect(requestAdminApi('/api/admin/agent-work')).rejects.toThrow('sign in');
+  await expect(requestAdminApi('/api/admin/artist-data')).rejects.toThrow('sign in');
   expect(fetch).not.toHaveBeenCalled();
 });

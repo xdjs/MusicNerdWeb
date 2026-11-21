@@ -5,7 +5,7 @@ jest.mock('@/app/actions/serverActions',()=>({approveUgcAdminAction:jest.fn()}))
 jest.mock('@/app/actions/dashboardActions',()=>({updateSourceStatus:jest.fn()}));
 const reviews={items:[],counts:{links:0,sources:0,corrections:0},pendingCounts:{links:2,sources:173,corrections:1},total:0,page:1,pageSize:25,type:'all' as const,query:'LATASHA'};
 it('keeps global pending totals visible when the unified search has no matches',()=>{
- render(<AdminDashboard reviews={reviews} allUsers={[]} mcpKeys={[]} allClaims={[]}/>);
+ render(<AdminDashboard reviews={reviews} allUsers={[]} allClaims={[]}/>);
  expect(screen.getByRole('button',{name:'Review 173 pending Lore sources'})).toBeVisible();
  expect(screen.getByRole('button',{name:'Review 2 pending links'})).toBeVisible();
  expect(screen.getByRole('tab',{name:'Lore review 176'})).toBeVisible();
@@ -14,7 +14,7 @@ it('keeps global pending totals visible when the unified search has no matches',
  expect(screen.getByText('No pending items match these filters.')).toBeVisible();
 });
 it('keeps one review destination without duplicate header links or type-specific tabs',()=>{
- render(<AdminDashboard reviews={{...reviews,type:'corrections'}} allUsers={[]} mcpKeys={[]} allClaims={[]} initialSection="corrections"/>);
+ render(<AdminDashboard reviews={{...reviews,type:'corrections'}} allUsers={[]} allClaims={[]} initialSection="corrections"/>);
  expect(screen.getByRole('tab',{name:'Lore review 176'})).toHaveAttribute('data-state','active');
  expect(screen.getByRole('combobox',{name:'Review type'})).toHaveTextContent('About corrections (0)');
  expect(screen.queryByRole('tab',{name:/About corrections|Link submissions/})).not.toBeInTheDocument();
