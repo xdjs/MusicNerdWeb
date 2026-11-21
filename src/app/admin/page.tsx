@@ -5,7 +5,6 @@ import { getServerAuthSession } from "@/server/auth";
 import { redirect } from "next/navigation";
 import { getUserById, getAllUsers } from "@/server/utils/queries/userQueries";
 import { getAllClaims } from "@/server/utils/queries/dashboardQueries";
-import { getAllMcpKeys } from "@/server/utils/queries/mcpKeyQueries";
 import AdminDashboard from "./AdminDashboard";
 import type { ClaimRow } from "./claims-columns";
 
@@ -27,9 +26,9 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Ad
   const params = await searchParams;
   const section = firstParam(params.section);
   const reviewType = firstParam(params.reviewType) || (section === 'corrections' ? 'corrections' : section === 'ugc' ? 'links' : 'all');
-  const [reviews, allUsers, mcpKeys, rawClaims, activity] = await Promise.all([
+  const [reviews, allUsers, rawClaims, activity] = await Promise.all([
     getAdminReviewQueue({type:reviewType,query:firstParam(params.reviewQuery) || firstParam(params.loreQuery),page:Number(firstParam(params.reviewPage) || firstParam(params.lorePage))}),
-    getAllUsers(), getAllMcpKeys(), getAllClaims(),
+    getAllUsers(), getAllClaims(),
     getArtistActivity({ page: Number(firstParam(params.activityPage)), query: firstParam(params.activityQuery), action: firstParam(params.activityAction), eventId: firstParam(params.activityId) }),
   ]);
 
@@ -45,5 +44,5 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Ad
     createdAt: claim.createdAt,
   }));
 
-  return <AdminDashboard reviews={reviews} key={section} activityContent={<ArtistActivitySection data={activity} />} allUsers={allUsers} mcpKeys={mcpKeys} allClaims={allClaims} initialSection={section === 'claims' ? 'claims' : section === 'users' ? 'users' : section === 'activity' ? 'activity' : 'lore'} />;
+  return <AdminDashboard reviews={reviews} key={section} activityContent={<ArtistActivitySection data={activity} />} allUsers={allUsers} allClaims={allClaims} initialSection={section === 'claims' ? 'claims' : section === 'users' ? 'users' : section === 'activity' ? 'activity' : 'lore'} />;
 }

@@ -52,7 +52,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         db.transaction = jest.fn(async (cb) => cb(tx));
 
         const { revokeApprovedClaim } = require('@/server/utils/queries/dashboardQueries');
-        const result = await revokeApprovedClaim('claim-1', 'admin');
+        const result = await revokeApprovedClaim('claim-1');
 
         expect(result).toMatchObject({ artistId: 'artist-1' });
         // Strict delete order: vault, then scraped social data, then onboarding
@@ -71,10 +71,10 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         // A doc was deleted → the (doc-derived or hand-edited) bio is the revoked owner's content
         expect(updatedTables).toEqual([schema.artistBioVersions, schema.artists]);
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
-        expect(tx.execute).toHaveBeenCalledTimes(6); // locking + read lineage + preserve current bio
+        expect(tx.execute).toHaveBeenCalledTimes(5); // locking + read lineage + preserve current bio
         const { PgDialect } = require('drizzle-orm/pg-core');
         const { ABOUT_EMPTY_STATE } = require('@/lib/bio/bioConstants');
-        const preservation = new PgDialect().sqlToQuery(tx.execute.mock.calls[4][0]);
+        const preservation = new PgDialect().sqlToQuery(tx.execute.mock.calls[3][0]);
         expect(preservation.params).toContain(ABOUT_EMPTY_STATE);
         expect(preservation.sql).toContain('btrim(a.bio');
         expect(preservation.sql).toContain('insert into mn_private.artist_bio_version_provenance(version_id,provenance)');
@@ -91,7 +91,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         db.transaction = jest.fn(async (cb) => cb(tx));
 
         const { revokeApprovedClaim } = require('@/server/utils/queries/dashboardQueries');
-        await revokeApprovedClaim('claim-1', 'admin');
+        await revokeApprovedClaim('claim-1');
 
         // Still delete claims, vault, and social data, but no onboarding content to clear
         expect(deletedTables).toEqual([
@@ -102,7 +102,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         // No artists table update
         expect(updatedTables).toEqual([schema.artistBioVersions]);
         expect(setCalls).not.toContainEqual({ table: schema.artists, values: { bio: null } });
-        expect(tx.execute).toHaveBeenCalledTimes(3); // only the row lock
+        expect(tx.execute).toHaveBeenCalledTimes(2); // row lock + managed-image clear
     });
 
     it('clears a pinned bio even without a doc, releases its lock, and never deletes history', async () => {
@@ -110,10 +110,10 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         const { tx, deletedTables, setCalls } = makeTx([], [{ id: 'pinned-version' }]);
         db.transaction = jest.fn(async cb => cb(tx));
         const { revokeApprovedClaim } = require('@/server/utils/queries/dashboardQueries');
-        await revokeApprovedClaim('claim-1', 'admin');
+        await revokeApprovedClaim('claim-1');
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
         expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null } });
         expect(deletedTables).not.toContain(schema.artistBioVersions);
-        expect(tx.execute).toHaveBeenCalledTimes(6);
+        expect(tx.execute).toHaveBeenCalledTimes(5);
     });
 });

@@ -26,9 +26,6 @@ jest.mock("@/server/utils/queries/researchJobQueries", () => ({
 jest.mock("@/server/utils/queries/discord", () => ({
     sendDiscordMessage: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock("@/server/utils/logMcpAudit", () => ({
-    logMcpAudit: jest.fn().mockResolvedValue(undefined),
-}));
 jest.mock("@/server/lib/supabase", () => {
     const list = jest.fn().mockResolvedValue({ data: [], error: null });
     const remove = jest.fn().mockResolvedValue({ error: null });
@@ -210,7 +207,7 @@ describe("adminClaimActions", () => {
             const result = await m.revokeClaimAction("c1");
             expect(result.success).toBe(true);
             expect(result.warning).toContain("files were retained");
-            expect(m.revokeApprovedClaim).toHaveBeenCalledWith("c1", "admin-1");
+            expect(m.revokeApprovedClaim).toHaveBeenCalledWith("c1");
             expect(m.storageList).not.toHaveBeenCalled();
             expect(m.storageRemove).not.toHaveBeenCalled();
         });

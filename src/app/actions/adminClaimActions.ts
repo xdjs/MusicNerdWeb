@@ -11,7 +11,6 @@ import { withArtistOperation } from '@/server/utils/artistOperationContext';
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { sendClaimApprovedEmail } from "@/server/utils/email";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
-import { logMcpAudit } from "@/server/utils/logMcpAudit";
 
 async function requireAdminSession() {
     const session = await getServerAuthSession();
@@ -144,24 +143,12 @@ export async function revokeClaimAction(claimId: string): Promise<{ success: boo
         if (existing.status !== "approved") return { success: false, error: "Can only revoke approved claims" };
 
         // Atomic: delete vault sources + claim in one transaction.
-        const claim = await revokeApprovedClaim(claimId, session.user.id);
+        const claim = await revokeApprovedClaim(claimId);
         if (!claim) return { success: false, error: "Claim is no longer approved" };
 
         // Storage keys can be reused by in-flight completion. Even exact-path
-        // deletion is unsafe until the API fences object generations. The DB
-        // transaction records deferred cleanup; never list/purge artist prefixes.
-
-        // Persist audit before Discord (DB is more reliable than webhook)
-        // apiKeyHash uses "admin:<userId>" convention for admin-initiated actions
-        // (distinct from MCP SHA-256 key hashes which are hex strings)
-        logMcpAudit({
-            artistId: claim.artistId,
-            field: "claim",
-            action: "delete",
-            oldValue: `${claim.status}|${claim.referenceCode}`,
-            newValue: null,
-            apiKeyHash: `admin:${session.user.id}`,
-        }).catch(e => console.error("[revokeClaimAction] Audit log failed:", e));
+        // deletion is unsafe until the API fences object generations, so the
+        // objects are retained; never list/purge artist prefixes.
 
         sendDiscordMessage(
             `Claim REVOKED: ${claim.referenceCode} | Artist ID: ${claim.artistId} | Revoked by: ${session.user.email ?? session.user.id}`

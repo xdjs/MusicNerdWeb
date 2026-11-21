@@ -19,7 +19,6 @@ export interface ArtistLinkCoverageItem {
   category: Category;
   count: number;
   percentage: number;
-  todayCount: number;
 }
 
 export interface CompletenessBucket {

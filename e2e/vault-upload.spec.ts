@@ -16,7 +16,7 @@ import { login } from './helpers/auth';
  * Admin test account → canEdit is true for any artist, so no claim setup needed.
  */
 // Admin test account (is_admin = true in Dev) ⇒ canEdit is true for any artist,
-// so no per-artist claim setup is needed. Same account the agent-work/mcp-keys specs use.
+// so no per-artist claim setup is needed.
 const ADMIN = { email: 'test-6184@privy.io', otp: '413532' };
 
 // A real, magic-byte-valid PDF payload.

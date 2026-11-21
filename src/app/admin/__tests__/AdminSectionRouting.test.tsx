@@ -3,14 +3,12 @@ import Admin from '../page';
 import { getServerAuthSession } from '@/server/auth';
 import { getAllUsers, getUserById } from '@/server/utils/queries/userQueries';
 import { getAllClaims } from '@/server/utils/queries/dashboardQueries';
-import { getAllMcpKeys } from '@/server/utils/queries/mcpKeyQueries';
 import { getAdminReviewQueue } from '@/server/utils/contributions/getAdminReviewQueue';
 import { getArtistActivity } from '@/server/utils/activity/getArtistActivity';
 
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/queries/userQueries', () => ({ getUserById: jest.fn(), getAllUsers: jest.fn() }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getAllClaims: jest.fn() }));
-jest.mock('@/server/utils/queries/mcpKeyQueries', () => ({ getAllMcpKeys: jest.fn() }));
 jest.mock('@/server/utils/contributions/getAdminReviewQueue', () => ({ getAdminReviewQueue: jest.fn() }));
 jest.mock('@/server/utils/activity/getArtistActivity', () => ({ getArtistActivity: jest.fn() }));
 jest.mock('@/app/actions/serverActions', () => ({ approveUgcAdminAction: jest.fn() }));
@@ -20,7 +18,7 @@ jest.mock('next/navigation', () => ({
   redirect: jest.fn(() => { throw new Error('redirect'); }),
 }));
 
-const reads = [getAdminReviewQueue, getAllUsers, getAllMcpKeys, getAllClaims, getArtistActivity];
+const reads = [getAdminReviewQueue, getAllUsers, getAllClaims, getArtistActivity];
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -28,7 +26,6 @@ beforeEach(() => {
   (getUserById as jest.Mock).mockResolvedValue({ isAdmin: true });
   (getAllUsers as jest.Mock).mockResolvedValue([]);
   (getAllClaims as jest.Mock).mockResolvedValue([]);
-  (getAllMcpKeys as jest.Mock).mockResolvedValue([]);
   (getAdminReviewQueue as jest.Mock).mockResolvedValue({
     items: [], counts: { links: 0, sources: 0, corrections: 0 },
     pendingCounts: { links: 0, sources: 0, corrections: 0 },

@@ -39,7 +39,7 @@ admin fallback as a completed integration check.
 | --- | --- |
 | App structure, auth, environment and testing | [Development](development.md) |
 | HTTP route contracts and entry points | [API reference](../ApiReadMe.md) |
-| Agent API access and tool authorization | [MCP reference](mcp.md) |
+| Agent API access and tool authorization | [MCP guide](https://docs.musicnerd.net/mcp) |
 | Artist Latest | [Feature contract](artist-latest.md); release status in `MEMORY.md` |
 | Research view (what a claimed artist sees while research builds their page) | [View contract](research-view.md); status on [#1347](https://github.com/xdjs/MusicNerdWeb/issues/1347). The earlier [stored-run contract](research-runs.md) is superseded |
 | Artist portraits and thumbnails | [Image order](artist-imagery.md) |
@@ -52,7 +52,6 @@ admin fallback as a completed integration check.
 | Past regressions to check | [Regression checklist](rnd/pre-push-checklist.md) |
 | Meetings and missing records | [Meeting index](rnd/meetings/README.md) |
 | Research, agendas and public-note conventions | [R&D guide](rnd/README.md) |
-| ID-mapping worker operations | [Worker README](../agents/id-mapping/README.md) |
 
 ## How to read older documents
 

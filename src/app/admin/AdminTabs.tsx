@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { BookOpen, BadgeCheck, Users, KeyRound, Activity, Database, ArrowUpRight } from "lucide-react";
+import { BookOpen, BadgeCheck, Users, Activity, Database, ArrowUpRight } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import menuStyles from '@/components/ui/MusicNerdSelect.module.css';
 import styles from "@/components/community/Community.module.css";
@@ -11,14 +11,14 @@ import surface from "@/app/profile/ProfileConcept.module.css";
 
 interface AdminTabsProps {
   reviewContent: ReactNode; usersContent: ReactNode; claimsContent: ReactNode;
-  mcpKeysContent: ReactNode; agentWorkContent: ReactNode; artistDataContent: ReactNode;
+  artistDataContent: ReactNode;
   ugcCount: number; loreCount: number; claimsCount: number;
   initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections" | "claims";
   correctionsCount?: number;
   activityContent?: ReactNode;
 }
 
-export default function AdminTabs({reviewContent,usersContent,claimsContent,mcpKeysContent,agentWorkContent,artistDataContent,ugcCount,loreCount,claimsCount,activityContent,correctionsCount=0,initialSection='lore'}: AdminTabsProps) {
+export default function AdminTabs({reviewContent,usersContent,claimsContent,artistDataContent,ugcCount,loreCount,claimsCount,activityContent,correctionsCount=0,initialSection='lore'}: AdminTabsProps) {
   const [value,setValue] = useState<string>(initialSection === 'ugc' || initialSection === 'corrections' ? 'lore' : initialSection);
   const router = useRouter();
   const openReview = (type: string) => { setValue('lore'); router.push(`/admin?section=lore&reviewType=${type}`); };
@@ -28,8 +28,6 @@ export default function AdminTabs({reviewContent,usersContent,claimsContent,mcpK
     {value:'claims',label:'Artist claims',title:'Connect artists with their pages',description:'Review ownership requests and manage existing artist claims.',icon:BadgeCheck,count:claimsCount,content:claimsContent},
     {value:'artist-data',label:'Artist data',title:'A fuller picture of the catalog',description:'See platform coverage, profile completeness, and enrichment readiness.',icon:Database,content:artistDataContent},
     {value:'users',label:'People',title:'The people building Music Nerd',description:'Find a contributor and manage their access and leaderboard visibility.',icon:Users,content:usersContent},
-    {value:'mcp-keys',label:'MCP keys',title:'Connections to Music Nerd',description:'Manage the keys used by connected tools and agents.',icon:KeyRound,content:mcpKeysContent},
-    {value:'agent-work',label:'Agent work',title:'Research behind the profiles',description:'Follow worker health, recent activity, and ongoing catalog work.',icon:Activity,content:agentWorkContent},
   ];
   const currentSection = sections.find(section => section.value === value)!;
   return <Tabs value={value} onValueChange={setValue} className={styles.page}>

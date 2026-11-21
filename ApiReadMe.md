@@ -7,8 +7,8 @@ origin: `{baseurl}/api/{endpoint}`. Use local HTTPS for development.
 Handlers and their tests under [src/app/api](src/app/api) are authoritative. Authentication
 and side effects vary by route; a GET or a public endpoint is not necessarily free of generation
 or writes. CORS is route-specific. API rate limits are applied by [middleware](src/middleware.ts).
-See [development](docs/development.md) for session/auth boundaries and [MCP](docs/mcp.md) for
-agent tool access. MCP bearer keys are not a general authentication scheme for the HTTP API.
+See [development](docs/development.md) for session/auth boundaries and the [MCP guide](https://docs.musicnerd.net/mcp)
+for agent tool access.
 
 ### Deployment health
 
@@ -84,8 +84,8 @@ The public lookups `searchArtists`, `findArtistBySpotifyID`, `findArtistByIG`, `
 | Artist questions and interview | Ask (`/api/artist/{id}/chat` on MusicNerdAPI, streamed to `useChat`), [interview chat](src/app/api/onboarding/[artistId]/chat/route.ts) |
 | Source research and stored knowledge | [Lore URL suggestions](src/app/api/artist/[id]/lore-suggestions/route.ts), [research refresh](src/app/api/artist/[id]/research/refresh/route.ts), [scheduler](src/app/api/research/advance/route.ts), [knowledge export](src/app/api/artist/[id]/knowledge-doc/export/route.ts) |
 | Uploads | Vault upload and artist profile image are on [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) |
-| Admin and worker operations | [Admin routes](src/app/api/admin), [agent routes](src/app/api/agent) |
-| MCP | [Reference](docs/mcp.md) |
+| Admin operations | `/api/admin/*` on [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) |
+| MCP | [Guide](https://docs.musicnerd.net/mcp) |
 
 The former `/api/coverage` endpoint is absent. Use `npm run test:coverage` for local coverage
 and `npm run test:ci` for CI verification.

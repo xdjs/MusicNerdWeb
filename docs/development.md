@@ -105,12 +105,9 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Catalogs:** `src/server/utils/musicPlatform/` handles platform data.
   `cachedOrDirect` preserves function behavior outside Next cache context (e.g. CLIs), falling
   back only for a missing cache context, not for real provider failures.
-- **MCP:** the server runs in MusicNerdAPI (`/api/mcp`). This repo keeps only the audit writer,
-  `src/server/utils/logMcpAudit.ts`, which admin claim actions call.
-  Use Admin → MCP Keys to create/revoke keys; secrets cannot be retrieved afterward.
-  See the [MCP reference](mcp.md); [ID mapping](cross-platform-id-mapping.md) records the original
-  algorithm design.
-- **Admin:** `src/app/admin/` owns UGC, Users, MCP Keys and Agent Work surfaces.
+- **MCP:** the server runs in MusicNerdAPI; see the [MCP guide](https://docs.musicnerd.net/mcp).
+- **Admin:** `src/app/admin/` owns the Lore review, Activity, Artist claims, Artist data and People
+  surfaces.
   User/artist/UGC relationships and mapping enums are defined in `schema.ts`; don't keep a
   second schema inventory in instructions.
 - **Rate limiting:** `src/middleware.ts` applies configurable API limits (auth excluded).
