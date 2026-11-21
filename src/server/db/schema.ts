@@ -1417,3 +1417,55 @@ export const sourceUnits = pgTable("source_units", {
 	pgPolicy("mnweb_update_source_units", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
 	pgPolicy("mnweb_delete_source_units", { for: "delete", to: ["mnweb"], using: sql`true` }),
 ]).enableRLS();
+
+// OAuth for the Music Nerd MCP (MusicNerdAPI `/api/oauth`, #1696). Server-only; tokens are stored as SHA-256 hex.
+// One row per registered client (dynamic client registration); `id` is the OAuth `client_id`.
+export const oauthClients = pgTable("oauth_clients", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	name: text().notNull(),
+	redirectUris: text("redirect_uris").array().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).default(sql`now()`).notNull(),
+}, table => [
+	check("oauth_clients_name", sql`char_length(${table.name}) BETWEEN 1 AND 200`),
+	pgPolicy("mnweb_select_oauth_clients", { for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_oauth_clients", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();
+
+// One row per connection (a member approving a client); deleting it revokes every token issued under it.
+export const oauthGrants = pgTable("oauth_grants", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	clientId: uuid("client_id").notNull().references(() => oauthClients.id, { onDelete: "cascade" }),
+	userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).default(sql`now()`).notNull(),
+	lastUsedAt: timestamp("last_used_at", { withTimezone: true, mode: "string" }),
+}, table => [
+	index("oauth_grants_user").using("btree", table.userId, table.createdAt.desc()),
+	index("oauth_grants_client").using("btree", table.clientId),
+	pgPolicy("mnweb_select_oauth_grants", { for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_oauth_grants", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_oauth_grants", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+	pgPolicy("mnweb_delete_oauth_grants", { for: "delete", to: ["mnweb"], using: sql`true` }),
+]).enableRLS();
+
+// Authorization codes, access and refresh tokens under a grant. Codes and refresh tokens are single use
+// (`used_at`); refresh tokens have no expiry and last until the grant is deleted.
+export const oauthTokens = pgTable("oauth_tokens", {
+	hash: text().primaryKey().notNull(),
+	kind: text().notNull(),
+	grantId: uuid("grant_id").notNull().references(() => oauthGrants.id, { onDelete: "cascade" }),
+	expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+	usedAt: timestamp("used_at", { withTimezone: true, mode: "string" }),
+	codeChallenge: text("code_challenge"),
+	redirectUri: text("redirect_uri"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).default(sql`now()`).notNull(),
+}, table => [
+	index("oauth_tokens_grant").using("btree", table.grantId),
+	check("oauth_tokens_hash", sql`${table.hash} ~ '^[0-9a-f]{64}$'`),
+	check("oauth_tokens_kind", sql`${table.kind} IN ('code','access','refresh')`),
+	check("oauth_tokens_expiry", sql`(${table.kind} = 'refresh') = (${table.expiresAt} IS NULL)`),
+	check("oauth_tokens_code", sql`(${table.kind} = 'code') = (${table.codeChallenge} IS NOT NULL AND ${table.redirectUri} IS NOT NULL)`),
+	pgPolicy("mnweb_select_oauth_tokens", { for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_oauth_tokens", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_oauth_tokens", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+	pgPolicy("mnweb_delete_oauth_tokens", { for: "delete", to: ["mnweb"], using: sql`true` }),
+]).enableRLS();
