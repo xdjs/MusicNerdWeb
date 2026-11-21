@@ -7,7 +7,7 @@ import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 // --- Types ----------------------------------------------------------------
 
 type ActivityEvent = {
-    type: "agent_mapping" | "ugc_approved" | "artist_added" | "self_edit_added" | "self_edit_updated";
+    type: "ugc_approved" | "artist_added" | "self_edit_added" | "self_edit_updated";
     artistId: string;
     artistName: string;
     platform: string | null;
@@ -60,8 +60,6 @@ function platformLabel(raw: string | null): string {
 
 function eventText(e: ActivityEvent): React.ReactNode {
     switch (e.type) {
-        case "agent_mapping":
-            return <>{platformLabel(e.platform)} ID mapped for <strong>{e.artistName}</strong></>;
         case "ugc_approved":
             return <>{platformLabel(e.platform)} link added for <strong>{e.artistName}</strong></>;
         case "self_edit_added":
@@ -87,7 +85,6 @@ const feedThemeVars = `
         --feed-timestamp: #9b8a9f;
         --feed-live-dot: #059669;
         --feed-live-label: rgba(90, 77, 94, 0.6);
-        --feed-bar-agent: #0891b2;
         --feed-bar-ugc: #c44a8c;
         --feed-bar-new: #059669;
         --feed-hover-bg: rgba(90, 77, 94, 0.07);
@@ -116,7 +113,6 @@ const feedThemeVars = `
         --feed-timestamp: rgba(198, 191, 199, 0.35);
         --feed-live-dot: #19ffb8;
         --feed-live-label: rgba(198, 191, 199, 0.6);
-        --feed-bar-agent: #2ad4fc;
         --feed-bar-ugc: #ff9ce3;
         --feed-bar-new: #19ffb8;
         --feed-hover-bg: rgba(198, 191, 199, 0.08);
@@ -127,7 +123,6 @@ const feedThemeVars = `
 `;
 
 const typeBarVar: Record<ActivityEvent["type"], string> = {
-    agent_mapping: "var(--feed-bar-agent)",
     ugc_approved: "var(--feed-bar-ugc)",
     artist_added: "var(--feed-bar-new)",
     self_edit_added: "var(--feed-bar-ugc)",

@@ -11,7 +11,7 @@ jest.mock("next/link", () => ({
 }));
 
 const mockEvents = [
-    { type: "agent_mapping", artistId: "a1", artistName: "Mogwai", platform: "deezer", createdAt: "2026-03-27T12:00:00Z" },
+    { type: "self_edit_added", artistId: "a1", artistName: "Mogwai", platform: "bandcamp", createdAt: "2026-03-27T12:00:00Z" },
     { type: "ugc_approved", artistId: "a2", artistName: "SENTO", platform: "youtube", createdAt: "2026-03-27T11:55:00Z" },
     { type: "artist_added", artistId: "a3", artistName: "Taylor Swift", platform: null, createdAt: "2026-03-27T11:00:00Z" },
 ];
