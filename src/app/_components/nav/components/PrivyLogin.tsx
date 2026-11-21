@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { Menu, X, LogIn, LogOut, Trophy, UserRound, Music2, ShieldCheck, Wallet, Sun, Moon } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, Trophy, UserRound, Music2, ShieldCheck, Wallet, Sun, Moon, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/app/_components/ThemeProvider';
 import AccountMenuAvatar from './AccountMenuAvatar';
@@ -520,6 +520,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 <Wallet aria-hidden="true" />Link Wallet
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem className={accountMenuItemClass} asChild>
+              <Link href="/oauth/connections"><Bot aria-hidden="true" />Connected Agents</Link>
+            </DropdownMenuItem>
             {themeMenuItem}
             <DropdownMenuItem
               className={accountMenuItemClass}
