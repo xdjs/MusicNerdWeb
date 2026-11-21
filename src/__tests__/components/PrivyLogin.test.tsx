@@ -293,6 +293,12 @@ describe('PrivyLogin', () => {
       }));
     });
 
+    it('links the connected-agents page from the account menu', () => {
+      render(<PrivyLogin />);
+
+      expect(screen.getByText('Connected Agents').closest('a')).toHaveAttribute('href', '/oauth/connections');
+    });
+
     it('shows Log Out menu item', () => {
       render(<PrivyLogin />);
 
