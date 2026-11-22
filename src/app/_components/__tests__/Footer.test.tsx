@@ -10,3 +10,9 @@ it.each(['/', '/artist/abc'])('shows the footer links on %s', (path) => {
   expect(screen.getByRole('navigation', { name: 'Footer' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
 });
+
+it.each(['/oauth/authorize', '/oauth/connections'])('leaves the site footer off %s, which shows its own links', (path) => {
+  (usePathname as jest.Mock).mockReturnValue(path);
+  const { container } = render(<Footer />);
+  expect(container).toBeEmptyDOMElement();
+});

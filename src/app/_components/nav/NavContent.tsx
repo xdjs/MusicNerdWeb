@@ -8,10 +8,13 @@ import AddArtist from "./components/AddArtist";
 import Login from "./components/Login";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
+import { isOAuthPage } from "@/lib/oauth/isOAuthPage";
+import OAuthNav from "./components/OAuthNav";
 
 export default function NavContent() {
     const pathname = usePathname();
     const isProfile = pathname?.startsWith("/artist/");
+    if (isOAuthPage(pathname)) return <OAuthNav />;
     if (pathname === "/") {
         return (
             <nav aria-label="Main navigation" className={styles.homeNav}>

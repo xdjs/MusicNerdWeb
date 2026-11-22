@@ -33,8 +33,9 @@ it('shows a loading state until Privy is ready, without reading the request', ()
 it('asks a signed-out member to log in first, without reading the request', () => {
   mockPrivy = { ready: true, authenticated: false };
   mount();
-  expect(screen.getByRole('heading', { name: 'Log in to connect your agent' })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Log In' }));
+  expect(screen.getByRole('heading', { name: 'An agent wants to use music nerd' })).toBeInTheDocument();
+  expect(screen.getByText('Nothing is shared until you approve.')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
   expect(mockRequestLogin).toHaveBeenCalledWith('please_login');
   expect(mockFetchConsentRequest).not.toHaveBeenCalled();
 });

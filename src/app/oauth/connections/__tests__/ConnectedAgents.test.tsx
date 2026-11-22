@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ConnectedAgents from '../ConnectedAgents';
 
-let mockPrivy = { ready: true, authenticated: true };
+let mockPrivy: { ready: boolean; authenticated: boolean; user?: unknown } = { ready: true, authenticated: true };
 jest.mock('@privy-io/react-auth', () => ({ usePrivy: () => mockPrivy }));
+jest.mock('@/hooks/useMusicNerdUser', () => ({ useMusicNerdUser: () => ({ user: { username: 'Sweetman', email: 'member@example.com' } }) }));
 const mockFetchConnections = jest.fn();
 jest.mock('@/lib/oauth/fetchConnections', () => ({ fetchConnections: () => mockFetchConnections() }));
 jest.mock('../ConnectedAgent', () => ({ __esModule: true, default: ({ connection }: { connection: { agent: string } }) => <li>{connection.agent}</li> }));
@@ -32,8 +33,10 @@ it('shows a loading state until Privy is ready, without listing', () => {
 it('asks a signed-out member to log in, without listing', () => {
   mockPrivy = { ready: true, authenticated: false };
   mount();
-  expect(screen.getByRole('heading', { name: 'Log in to see your connected agents' })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Log In' }));
+  expect(screen.getByRole('heading', { name: 'Connected agents' })).toBeInTheDocument();
+  expect(screen.getByText('Log in with your Music Nerd email to see your connected agents.')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
   expect(mockRequestLogin).toHaveBeenCalledWith('please_login');
   expect(mockFetchConnections).not.toHaveBeenCalled();
 });
@@ -44,6 +47,15 @@ it("lists the member's connected agents", async () => {
   expect(screen.getByText('Loading connected agents…')).toBeInTheDocument();
   expect(await screen.findByText('Claude')).toBeInTheDocument();
   expect(screen.getAllByRole('listitem').map(item => item.textContent)).toEqual(['Claude', 'Cursor']);
+  expect(screen.getByText('member@example.com')).toBeInTheDocument();
+  expect(screen.getByText('https://musicnerd-api-staging.vercel.app/mcp')).toBeInTheDocument();
+});
+
+it('reads the list again on Refresh', async () => {
+  mount();
+  expect(await screen.findByText('Claude')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+  await waitFor(() => expect(mockFetchConnections).toHaveBeenCalledTimes(2));
 });
 
 it('says when no agent is connected', async () => {
