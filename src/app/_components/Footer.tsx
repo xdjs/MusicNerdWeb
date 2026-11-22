@@ -4,9 +4,12 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import styles from "./HomePageSplash.module.css";
 import FooterLinks from "./FooterLinks";
+import { isOAuthPage } from "@/lib/oauth/isOAuthPage";
 
 export default function Footer() {
-    const isHome = usePathname() === "/";
+    const pathname = usePathname();
+    if (isOAuthPage(pathname)) return null;
+    const isHome = pathname === "/";
     if (isHome) {
         return (
             <footer className={styles.homeFooter}>

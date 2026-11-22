@@ -1,7 +1,8 @@
 'use client';
 
 import { usePrivy, useLogin, useLogout, useIdentityToken, getIdentityToken } from '@privy-io/react-auth';
-import { getSession, signIn, signOut } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
+import { signOutEverywhere } from './signOutEverywhere';
 import { useRouter } from 'next/navigation';
 import { resumeCorrectionSession } from '@/lib/bio/resumeCorrectionSession';
 import { requestAdminApi } from '@/lib/admin/requestAdminApi';
@@ -371,8 +372,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
 
     const handleLogout = async () => {
       try {
-        await signOut({ redirect: false });
-        await privyLogout();
+        await signOutEverywhere(privyLogout);
         window.location.reload();
       } catch (error) {
         console.error('[PrivyLogin] Logout error:', error);

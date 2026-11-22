@@ -45,6 +45,14 @@ describe('Nav', () => {
         expect(screen.getAllByTestId('search-bar')).toHaveLength(1);
     });
 
+    it.each(['/oauth/authorize', '/oauth/connections'])('shows the slim OAuth header on %s, with login mounted but hidden', (path) => {
+        mockPathname = path;
+        render(<Nav />);
+        expect(screen.getByRole('link', { name: 'Back to Music Nerd' })).toBeInTheDocument();
+        expect(screen.queryByTestId('search-bar')).not.toBeInTheDocument();
+        expect(screen.getByTestId('login-component').parentElement).toHaveAttribute('hidden');
+    });
+
     it('renders navigation on artist pages', () => {
         mockPathname = '/artist/123';
         render(<Nav />);
