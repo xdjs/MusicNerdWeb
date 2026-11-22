@@ -41,7 +41,7 @@ export default function ConsentPrompt({ query, request }: { query: string; reque
   }
 
   return (
-    <section aria-labelledby="consent-title" className="mx-auto flex w-full max-w-[460px] flex-col gap-5 px-4 pb-10 pt-2">
+    <section aria-labelledby="consent-title" className="mx-auto flex w-full max-w-[492px] flex-col gap-5 px-4 pb-10 pt-2">
       <ConnectHeader agent={request.agent} />
       <div className={`${PANEL} overflow-hidden`}>
         <AccountCard member={member} />

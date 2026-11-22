@@ -27,7 +27,7 @@ export default function ConsentRequest() {
   if (!ready) return <Message><p className={MUTED_TEXT}>Loading…</p></Message>;
   if (!authenticated) {
     return (
-      <section aria-labelledby="consent-title" className="mx-auto flex w-full max-w-[460px] flex-1 flex-col gap-5 px-4 pb-8 pt-2">
+      <section aria-labelledby="consent-title" className="mx-auto flex w-full max-w-[492px] flex-1 flex-col gap-5 px-4 pb-8 pt-2">
         <div className="flex flex-1 flex-col justify-center gap-5">
           <ConnectHeader agent="An agent" />
           <SignInCard text="Log in with your Music Nerd email to see which agent is asking and what for." note="Nothing is shared until you approve." />
@@ -40,7 +40,7 @@ export default function ConsentRequest() {
   if (data) return <ConsentPrompt query={query} request={data} />;
 
   return (
-    <section className="mx-auto flex w-full max-w-[460px] flex-col gap-5 px-4 pb-10 pt-8">
+    <section className="mx-auto flex w-full max-w-[492px] flex-col gap-5 px-4 pb-10 pt-8">
       <div className={`${PANEL} flex flex-col gap-2 p-5`}>
         <h1 className="text-xl font-bold tracking-[-0.02em] text-foreground">This connection request can&apos;t be used</h1>
         <p className={`text-sm ${MUTED_TEXT}`}>{error?.message}</p>
