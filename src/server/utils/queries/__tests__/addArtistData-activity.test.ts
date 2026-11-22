@@ -53,7 +53,7 @@ beforeAll(async () => {
     // maintaining a second copy of the schema. Policies/roles are out of scope.
     const tables = {
         artists: schema.artists, users: schema.users,
-        ugcresearch: schema.ugcresearch, mcpAuditLog: schema.mcpAuditLog, artistSelfEdits: schema.artistSelfEdits,
+        ugcresearch: schema.ugcresearch, artistSelfEdits: schema.artistSelfEdits,
     };
     const statements = await generateMigration(generateDrizzleJson({}), generateDrizzleJson(tables));
     await client.exec(`SET TIME ZONE 'UTC';
@@ -69,7 +69,7 @@ beforeAll(async () => {
 afterAll(async () => { await client.close(); });
 
 beforeEach(async () => {
-    await client.exec('TRUNCATE ugcresearch, mcp_audit_log, artists, users CASCADE');
+    await client.exec('TRUNCATE ugcresearch, artists, users CASCADE');
     await database.insert(schema.artists).values({ id: artistId, name: 'Activity Fixture', createdAt: oldTimestamp });
     await database.insert(schema.users).values({ id: userId, username: 'activity_tester' });
     jest.mocked(getServerAuthSession).mockResolvedValue({ user: { id: userId }, expires: '2099-01-01' });

@@ -21,7 +21,7 @@ async function main() {
             END $$;
             CREATE FUNCTION uuid_generate_v4() RETURNS uuid LANGUAGE SQL AS 'SELECT gen_random_uuid()';`);
         const baseSchema = { artists: schema.artists, users: schema.users, ugcresearch: schema.ugcresearch,
-            mcpAuditLog: schema.mcpAuditLog, artistClaims: schema.artistClaims,
+            artistClaims: schema.artistClaims,
             claimStatus: schema.claimStatus, urlmap: schema.urlmap, platformType: schema.platformType };
         // Legacy non-unique index metadata contains known drift (#1148); keep this
         // fixture limited to tables, keys and the exact new migration below.

@@ -119,5 +119,5 @@ Apple Music and Beatport pages, reads as:
 - **Live view:** the page polls the run every few seconds while `status = running`. Saving
   after each step is what makes polling enough; there is no stream to reconnect to.
 - **Retention:** runs are kept for the artist's lifetime and deleted with the artist.
-- **Not recorded here:** Instagram ingest and caption extraction (`artist_research_jobs`) and
-  the ID-mapping workers (`agent_runs`) keep their own records.
+- **Not recorded here:** Instagram ingest and caption extraction (`artist_research_jobs`) keep
+  their own records.

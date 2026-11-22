@@ -294,43 +294,6 @@ export const urlmap = pgTable("urlmap", {
 	pgPolicy("mnweb_update_urlmap", { as: "permissive", for: "update", to: ["mnweb"] }),
 ]);
 
-export const mcpApiKeys = pgTable("mcp_api_keys", {
-	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-	keyHash: text("key_hash").notNull().unique(),
-	label: text().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
-	revokedAt: timestamp("revoked_at", { withTimezone: true, mode: 'string' }),
-}, (table) => [
-	pgPolicy("mnweb_select_mcp_api_keys", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
-	pgPolicy("mnweb_insert_mcp_api_keys", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
-	pgPolicy("mnweb_update_mcp_api_keys", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
-	// No DELETE policy for mnweb — keys are soft-deleted via revoked_at UPDATE, not hard-deleted
-]);
-
-// Append-only audit log — no UPDATE or DELETE policies granted to application role.
-export const mcpAuditLog = pgTable("mcp_audit_log", {
-	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-	artistId: uuid("artist_id").notNull(),
-	field: text().notNull(),
-	action: text().notNull(),
-	submittedUrl: text("submitted_url"),
-	oldValue: text("old_value"),
-	newValue: text("new_value"),
-	apiKeyHash: text("api_key_hash").notNull(), // Intentionally not a FK — audit records survive key deletion
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
-}, (table) => [
-	foreignKey({
-		columns: [table.artistId],
-		foreignColumns: [artists.id],
-		name: "mcp_audit_log_artist_id_fkey"
-	}),
-	index("idx_mcp_audit_log_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
-	index("idx_mcp_audit_log_created_at").using("btree", table.createdAt.desc().nullsLast()),
-	index("idx_mcp_audit_log_api_key_hash_created_at").using("btree", table.apiKeyHash.asc().nullsLast(), table.createdAt.desc().nullsLast()),
-	pgPolicy("mnweb_select_mcp_audit_log", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
-	pgPolicy("mnweb_insert_mcp_audit_log", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
-]);
-
 export const artistClaims = pgTable("artist_claims", {
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	userId: uuid("user_id").notNull(),
@@ -632,60 +595,6 @@ export const artistMappingExclusions = pgTable("artist_mapping_exclusions", {
   pgPolicy("mnweb_update_artist_mapping_exclusions", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
   // No DELETE policy for mnweb — exclusions are cleared via direct DB access, not the app role
 ]);
-
-export const agentHeartbeats = pgTable("agent_heartbeats", {
-	id: uuid().default(sql`gen_random_uuid()`).primaryKey().notNull(),
-	workerId: text("worker_id").notNull().unique(),
-	apiKeyHash: text("api_key_hash").notNull(),
-	status: text().notNull().default('starting'),
-	currentRun: integer("current_run"),
-	batchPlatform: text("batch_platform"),
-	batchSize: integer("batch_size"),
-	message: text(),
-	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
-	config: jsonb(),
-}, (table) => [
-	index("idx_agent_heartbeats_updated_at").using("btree", table.updatedAt.desc().nullsLast()),
-	pgPolicy("mnweb_select_agent_heartbeats", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
-	pgPolicy("mnweb_insert_agent_heartbeats", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
-	pgPolicy("mnweb_update_agent_heartbeats", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
-]);
-
-export const agentRuns = pgTable("agent_runs", {
-	id: uuid().default(sql`gen_random_uuid()`).primaryKey().notNull(),
-	workerId: text("worker_id").notNull(),
-	apiKeyHash: text("api_key_hash").notNull(),
-	runNumber: integer("run_number").notNull(),
-	platform: text().notNull().default('deezer'),
-	status: text().notNull().default('running'),
-	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
-	endedAt: timestamp("ended_at", { withTimezone: true, mode: 'string' }),
-	wallTimeSecs: integer("wall_time_secs"),
-	claudeTimeSecs: integer("claude_time_secs"),
-	apiTimeSecs: integer("api_time_secs"),
-	turns: integer(),
-	batchSize: integer("batch_size"),
-	resolved: integer().default(0),
-	excluded: integer().default(0),
-	skipped: integer().default(0),
-	errors: integer().default(0),
-	highConfidence: integer("high_confidence").default(0),
-	mediumConfidence: integer("medium_confidence").default(0),
-	conflicts: integer().default(0),
-	nameMismatches: integer("name_mismatches").default(0),
-	tooAmbiguous: integer("too_ambiguous").default(0),
-	exitCode: integer("exit_code"),
-	failCategory: text("fail_category"),
-	failReason: text("fail_reason"),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
-}, (table) => [
-	uniqueIndex("idx_agent_runs_worker_run").using("btree", table.workerId.asc().nullsLast(), table.runNumber.asc().nullsLast()),
-	index("idx_agent_runs_started_at").using("btree", table.startedAt.desc().nullsLast()),
-	pgPolicy("mnweb_select_agent_runs", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
-	pgPolicy("mnweb_insert_agent_runs", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
-	pgPolicy("mnweb_update_agent_runs", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
-])
 
 // Post-claim onboarding: ingested social posts (Instagram today). A scraped
 // feed includes posts authored by OTHER people where the artist is a
